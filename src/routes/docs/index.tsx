@@ -2,9 +2,19 @@ import { createFileRoute } from "@tanstack/react-router"
 import { Copy, KeyRound, Rocket } from "lucide-react"
 import { toast } from "sonner"
 import { useDocsKey } from "@/components/docs/docs-key-context"
+import { buildPageSeo } from "@/lib/seo"
+
+const docsIndexSeo = buildPageSeo({
+	title: "Standup API + MCP Quickstart | DailyStand Docs",
+	description:
+		"Quickstart guide for the DailyStand public API and MCP server. Authenticate with API keys and run your first standup automation calls.",
+	path: "/docs",
+	ogPage: "docs",
+})
 
 export const Route = createFileRoute("/docs/")({
 	component: DocsQuickstartPage,
+	head: () => ({ meta: docsIndexSeo.meta, links: docsIndexSeo.links }),
 })
 
 function DocsQuickstartPage() {

@@ -3,9 +3,19 @@ import { Copy, Server, Wrench } from "lucide-react"
 import { toast } from "sonner"
 import { useDocsKey } from "@/components/docs/docs-key-context"
 import { MCP_METHODS, MCP_TOOLS } from "@/lib/docs-content"
+import { buildPageSeo } from "@/lib/seo"
+
+const docsMcpSeo = buildPageSeo({
+	title: "MCP Server Docs | DailyStand",
+	description:
+		"Learn how to use the DailyStand MCP server over JSON-RPC, including tools/list and tools/call flows for standup automation.",
+	path: "/docs/mcp",
+	ogPage: "docs",
+})
 
 export const Route = createFileRoute("/docs/mcp")({
 	component: DocsMcpPage,
+	head: () => ({ meta: docsMcpSeo.meta, links: docsMcpSeo.links }),
 })
 
 function DocsMcpPage() {

@@ -1,16 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, Shield, Terminal } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { buildPageSeo } from "@/lib/seo";
+
+const privacySeo = buildPageSeo({
+	title: "Privacy Policy | DailyStand",
+	description:
+		"Read the DailyStand privacy policy covering data collection, security controls, retention, and user privacy options.",
+	path: "/privacy",
+	ogPage: "privacy",
+	ogType: "article",
+});
 
 export const Route = createFileRoute("/privacy")({
 	component: PrivacyPage,
-	head: () => ({
-		meta: [
-			{
-				title: "DAILYSTAND // Privacy Policy",
-			},
-		],
-	}),
+	head: () => ({ meta: privacySeo.meta, links: privacySeo.links }),
 });
 
 const sections = [

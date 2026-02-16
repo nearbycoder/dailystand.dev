@@ -4,9 +4,19 @@ import { useEffect, useMemo, useState } from "react"
 import { toast } from "sonner"
 import { useDocsKey } from "@/components/docs/docs-key-context"
 import { MCP_TOOLS, REST_ENDPOINTS } from "@/lib/docs-content"
+import { buildPageSeo } from "@/lib/seo"
+
+const docsExplorerSeo = buildPageSeo({
+	title: "API Explorer | DailyStand Docs",
+	description:
+		"Run live REST and MCP calls from the DailyStand docs explorer to validate API keys, scopes, and standup automation payloads.",
+	path: "/docs/explorer",
+	ogPage: "docs",
+})
 
 export const Route = createFileRoute("/docs/explorer")({
 	component: DocsExplorerPage,
+	head: () => ({ meta: docsExplorerSeo.meta, links: docsExplorerSeo.links }),
 })
 
 type ResponseState = {

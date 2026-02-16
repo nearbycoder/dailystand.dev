@@ -3,9 +3,19 @@ import { Copy } from "lucide-react"
 import { toast } from "sonner"
 import { useDocsKey } from "@/components/docs/docs-key-context"
 import { REST_ENDPOINTS, type RestEndpointDoc } from "@/lib/docs-content"
+import { buildPageSeo } from "@/lib/seo"
+
+const docsRestSeo = buildPageSeo({
+	title: "REST API Reference | DailyStand Docs",
+	description:
+		"Endpoint reference for the DailyStand standup API, including auth headers, request payloads, and cURL examples.",
+	path: "/docs/rest",
+	ogPage: "docs",
+})
 
 export const Route = createFileRoute("/docs/rest")({
 	component: DocsRestPage,
+	head: () => ({ meta: docsRestSeo.meta, links: docsRestSeo.links }),
 })
 
 function buildCurlSnippet(

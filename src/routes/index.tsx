@@ -15,9 +15,35 @@ import {
 } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { authClient } from "@/lib/auth-client";
+import {
+	buildHomeStructuredData,
+	buildPageSeo,
+	KEYWORD_CLUSTERS,
+} from "@/lib/seo";
+
+const homeSeo = buildPageSeo({
+	title: "Async Standup Software for Remote Teams | DailyStand",
+	description:
+		"DailyStand is open source async standup software for remote engineering teams. Replace daily meetings with fast updates, analytics, API access, and MCP automation.",
+	path: "/",
+	keywords: [
+		...KEYWORD_CLUSTERS.core,
+		...KEYWORD_CLUSTERS.platform,
+		...KEYWORD_CLUSTERS.apiAndAi,
+		"async scrum standup",
+		"daily scrum software",
+	],
+	ogPage: "home",
+});
+
+const homeStructuredData = buildHomeStructuredData();
 
 export const Route = createFileRoute("/")({
 	component: LandingPage,
+	head: () => ({
+		meta: homeSeo.meta,
+		links: homeSeo.links,
+	}),
 });
 
 const features = [
@@ -108,12 +134,56 @@ const plans = [
 	},
 ];
 
+const seoUseCases = [
+	{
+		title: "ASYNC STANDUP SOFTWARE FOR REMOTE TEAMS",
+		body: "Collect daily updates across time zones without forcing everyone into the same meeting slot.",
+	},
+	{
+		title: "OPEN SOURCE STANDUP TOOL FOR ENGINEERING ORGS",
+		body: "Use DailyStand as an open source standup tool you can run in your own infrastructure.",
+	},
+	{
+		title: "SELF HOSTED STANDUP APP WITH API CONTROL",
+		body: "Ship with secure API keys, automation workflows, and MCP integrations under your control.",
+	},
+];
+
+const seoFaqItems = [
+	{
+		question: "What is async standup software?",
+		answer:
+			"Async standup software replaces live daily standup meetings with quick written updates so teams stay aligned without losing focus time.",
+	},
+	{
+		question: "Is DailyStand an open source standup tool?",
+		answer:
+			"Yes. DailyStand is open source and supports self-hosted deployment so engineering teams can keep full control over data and operations.",
+	},
+	{
+		question: "Can DailyStand automate standups with AI?",
+		answer:
+			"Yes. DailyStand supports MCP workflows so teams can use AI tools to draft or submit standup updates from existing context.",
+	},
+	{
+		question: "How does DailyStand help Scrum or Agile teams?",
+		answer:
+			"It keeps daily standup structure (completed, planned, blockers) while reducing meeting overhead and improving team visibility.",
+	},
+];
+
 function LandingPage() {
 	const { data: session } = authClient.useSession();
 	const isLoggedIn = !!session?.user;
 
 	return (
 		<div className="min-h-screen bg-ds-bg text-ds-fg selection:bg-ds-selection-bg selection:text-ds-selection-fg font-mono">
+			<script
+				type="application/ld+json"
+				dangerouslySetInnerHTML={{
+					__html: JSON.stringify(homeStructuredData),
+				}}
+			/>
 			{/* Nav */}
 			<header className="border-b-[3px] border-ds-border-strong p-3 sm:p-4">
 				<div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
@@ -123,15 +193,15 @@ function LandingPage() {
 							DAILYSTAND
 						</span>
 					</div>
-						<div className="ml-auto flex items-center gap-2 sm:gap-4">
-							<ThemeToggle />
-							<Link to="/docs">
-								<button className="text-sm font-bold tracking-wider text-ds-text-tertiary transition-colors hover:text-ds-accent">
-									[DOCS]
-								</button>
-							</Link>
-							{isLoggedIn ? (
-								<Link to="/app">
+					<div className="ml-auto flex items-center gap-2 sm:gap-4">
+						<ThemeToggle />
+						<Link to="/docs">
+							<button className="text-sm font-bold tracking-wider text-ds-text-tertiary transition-colors hover:text-ds-accent">
+								[DOCS]
+							</button>
+						</Link>
+						{isLoggedIn ? (
+							<Link to="/app">
 								<button className="border-[3px] border-ds-accent bg-ds-accent px-3 py-2 text-sm font-bold tracking-wider text-ds-accent-fg transition-all duration-150 hover:bg-ds-accent-hover sm:px-6">
 									DASHBOARD &rarr;
 								</button>
@@ -187,9 +257,10 @@ function LandingPage() {
 							// APPLE AD (1997)
 						</p>
 					</blockquote>
-					<p className="mt-8 max-w-xl text-base leading-relaxed font-normal text-ds-text-tertiary sm:mt-10 sm:text-lg">
-						Replace awkward daily meetings with quick async updates. Keep your
-						team aligned, identify blockers early, and ship faster.
+					<p className="mt-8 max-w-3xl text-base leading-relaxed font-normal text-ds-text-tertiary sm:mt-10 sm:text-lg">
+						DailyStand is async standup software built for remote engineering
+						teams. Replace awkward daily meetings with quick updates, track
+						blockers early, and use standup analytics to keep delivery moving.
 					</p>
 					<div className="mt-6 inline-flex items-center gap-2 border-[3px] border-ds-accent bg-ds-accent/10 px-4 py-2 text-xs font-extrabold tracking-widest text-ds-accent sm:text-sm">
 						<Bot className="h-4 w-4" />
@@ -309,6 +380,122 @@ function LandingPage() {
 									</button>
 								</Link>
 							</div>
+						))}
+					</div>
+				</div>
+			</section>
+
+			{/* SEO Use Cases */}
+			<section className="border-b-[3px] border-ds-border-strong px-4 py-16 sm:px-6 sm:py-20">
+				<div className="mx-auto max-w-6xl">
+					<h2 className="mb-4 text-sm font-bold tracking-widest text-ds-muted">
+						// WHY TEAMS CHOOSE ASYNC STANDUP SOFTWARE
+					</h2>
+					<p className="mb-10 max-w-4xl text-sm leading-relaxed text-ds-text-tertiary sm:text-base">
+						DailyStand is built to rank for practical buyer intent: async
+						standup software, open source standup tool, and self hosted standup
+						app. Each workflow is designed for engineering managers and
+						individual contributors who need faster daily coordination.
+					</p>
+					<div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+						{seoUseCases.map((item) => (
+							<div
+								key={item.title}
+								className="-mt-[3px] min-w-0 border-[3px] border-ds-border-strong p-5 sm:p-6"
+							>
+								<h3 className="text-[11px] leading-snug font-extrabold tracking-[0.08em] text-ds-accent [overflow-wrap:anywhere] sm:text-xs sm:tracking-[0.1em]">
+									{item.title}
+								</h3>
+								<p className="mt-3 text-sm leading-relaxed text-ds-text-tertiary">
+									{item.body}
+								</p>
+							</div>
+						))}
+					</div>
+				</div>
+			</section>
+
+			{/* Automation Workflows */}
+			<section className="border-b-[3px] border-ds-border-strong px-4 py-16 sm:px-6 sm:py-20">
+				<div className="mx-auto max-w-6xl">
+					<h2 className="mb-4 text-sm font-bold tracking-widest text-ds-muted">
+						// STANDUP AUTOMATION + API WORKFLOWS
+					</h2>
+					<p className="max-w-4xl text-sm leading-relaxed text-ds-text-tertiary sm:text-base">
+						If you are evaluating standup automation tools, DailyStand gives you
+						a public standup API and MCP server so your team can automate
+						updates, exports, and reporting from existing engineering systems.
+					</p>
+					<div className="mt-8 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3">
+						<div className="-mt-[3px] min-w-0 border-[3px] border-ds-border-strong p-5 sm:p-6">
+							<h3 className="text-[11px] leading-snug font-extrabold tracking-[0.08em] text-ds-accent sm:text-xs sm:tracking-[0.1em]">
+								01 // API-DRIVEN STANDUPS
+							</h3>
+							<p className="mt-3 text-sm leading-relaxed text-ds-text-tertiary">
+								Submit standups and query history from your internal scripts or
+								platform automation jobs.
+							</p>
+						</div>
+						<div className="-mt-[3px] min-w-0 border-[3px] border-ds-border-strong p-5 sm:p-6">
+							<h3 className="text-[11px] leading-snug font-extrabold tracking-[0.08em] text-ds-accent sm:text-xs sm:tracking-[0.1em]">
+								02 // MCP + AGENT TOOLS
+							</h3>
+							<p className="mt-3 text-sm leading-relaxed text-ds-text-tertiary">
+								Connect MCP clients to list teams, fetch blockers, and generate
+								AI-assisted standup updates.
+							</p>
+						</div>
+						<div className="-mt-[3px] min-w-0 border-[3px] border-ds-border-strong p-5 sm:p-6">
+							<h3 className="text-[11px] leading-snug font-extrabold tracking-[0.08em] text-ds-accent sm:text-xs sm:tracking-[0.1em]">
+								03 // EXPORT + ANALYTICS
+							</h3>
+							<p className="mt-3 text-sm leading-relaxed text-ds-text-tertiary">
+								Track delivery velocity and export standup analytics as markdown
+								or CSV for reporting and planning.
+							</p>
+						</div>
+					</div>
+					<div className="mt-8 flex flex-col gap-3 sm:flex-row">
+						<Link
+							to="/docs"
+							className="inline-flex w-full items-center justify-center border-[3px] border-ds-border-strong px-5 py-3 text-xs font-extrabold tracking-widest text-ds-text-tertiary transition-colors hover:border-ds-accent hover:text-ds-accent sm:w-auto sm:text-sm"
+						>
+							READ API + MCP DOCS
+						</Link>
+						<Link
+							to="/auth/sign-up"
+							search={{ invitationId: undefined, email: undefined }}
+							className="inline-flex w-full items-center justify-center border-[3px] border-ds-accent bg-ds-accent px-5 py-3 text-xs font-extrabold tracking-widest text-ds-accent-fg transition-colors hover:bg-ds-accent-hover sm:w-auto sm:text-sm"
+						>
+							START FREE
+						</Link>
+					</div>
+				</div>
+			</section>
+
+			{/* SEO FAQ */}
+			<section className="border-b-[3px] border-ds-border-strong px-4 py-16 sm:px-6 sm:py-20">
+				<div className="mx-auto max-w-6xl">
+					<h2 className="mb-4 text-sm font-bold tracking-widest text-ds-muted">
+						// FAQ
+					</h2>
+					<p className="mb-10 max-w-4xl text-sm leading-relaxed text-ds-text-tertiary sm:text-base">
+						Common questions from teams looking for daily standup software and
+						async Scrum tooling.
+					</p>
+					<div className="space-y-0">
+						{seoFaqItems.map((item) => (
+							<section
+								key={item.question}
+								className="-mt-[3px] border-[3px] border-ds-border-strong p-5 sm:p-6"
+							>
+								<h3 className="text-sm font-extrabold tracking-wider text-ds-accent sm:text-base">
+									{item.question}
+								</h3>
+								<p className="mt-3 text-sm leading-relaxed text-ds-text-tertiary sm:text-base">
+									{item.answer}
+								</p>
+							</section>
 						))}
 					</div>
 				</div>

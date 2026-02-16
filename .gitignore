@@ -19,3 +19,5 @@ todos.json
 .cursor
 .vscode
 .cta.json
+playwright-report
+test-results

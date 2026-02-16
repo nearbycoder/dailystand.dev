@@ -8,6 +8,7 @@ import {
 
 import Providers from "@/integrations/tanstack-query/root-provider"
 import { Toaster } from "@/components/ui/sonner"
+import { SITE_NAME, buildOgImageUrl } from "@/lib/seo"
 
 import appCss from "../styles.css?url"
 
@@ -19,6 +20,15 @@ interface MyRouterContext {
 	queryClient: QueryClient
 	trpc: TRPCOptionsProxy<TRPCRouter>
 }
+
+const defaultTitle = "DailyStand | Async Standup Software for Remote Teams"
+const defaultDescription =
+	"DailyStand is open source async standup software for remote engineering teams with analytics, API access, and MCP automation tools."
+const defaultOgImage = buildOgImageUrl({
+	page: "home",
+	title: defaultTitle,
+	subtitle: defaultDescription,
+})
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
 	component: () => <Outlet />,
@@ -33,7 +43,51 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				content: "width=device-width, initial-scale=1",
 			},
 			{
-				title: "DAILYSTAND // Async Standups",
+				title: defaultTitle,
+			},
+			{
+				name: "description",
+				content: defaultDescription,
+			},
+			{
+				name: "robots",
+				content: "index, follow, max-image-preview:large",
+			},
+			{
+				property: "og:site_name",
+				content: SITE_NAME,
+			},
+			{
+				property: "og:type",
+				content: "website",
+			},
+			{
+				property: "og:title",
+				content: defaultTitle,
+			},
+			{
+				property: "og:description",
+				content: defaultDescription,
+			},
+			{
+				property: "og:image",
+				content: defaultOgImage,
+			},
+			{
+				name: "twitter:card",
+				content: "summary_large_image",
+			},
+			{
+				name: "twitter:title",
+				content: defaultTitle,
+			},
+			{
+				name: "twitter:description",
+				content: defaultDescription,
+			},
+			{
+				name: "twitter:image",
+				content: defaultOgImage,
 			},
 		],
 		links: [

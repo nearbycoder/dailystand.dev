@@ -129,7 +129,7 @@ bun run db:seed
 
 Seed includes:
 
-- Demo org: `Acme Corp` (5 users, 2 teams)
+- Demo org: `Acme Corp` (18 users, 7 teams, business subscription, invites, digest preferences, share links, dense history)
 - Enterprise org: `Northstar Enterprise` (10 teams, 100 users, business subscription, large standup volume)
 - Default password for all seeded users: `password123`
 
@@ -254,7 +254,12 @@ curl -X POST http://localhost:3000/api/workflows/email-digests \
 | `bun run build` | Build for production and copy server instrumentation file |
 | `bun run preview` | Preview production build |
 | `bun run start` | Start production server with Sentry instrumentation import |
-| `bun run test` | Run tests |
+| `bun run test` | Run unit tests (Vitest) |
+| `bun run test:unit` | Run unit tests (Vitest) |
+| `bun run test:e2e` | Run end-to-end tests (Playwright) |
+| `bun run test:e2e:headed` | Run Playwright tests in headed mode |
+| `bun run test:all` | Run unit + end-to-end tests |
+| `bun run typecheck` | TypeScript typecheck |
 | `bun run lint` | Lint with Biome |
 | `bun run format` | Format with Biome |
 | `bun run check` | Biome check |
@@ -265,6 +270,52 @@ curl -X POST http://localhost:3000/api/workflows/email-digests \
 | `bun run db:studio` | Open Drizzle Studio |
 | `bun run db:seed` | Reset and seed DB |
 | `bun run workflow:email-digests` | Run daily+weekly digest workflows |
+
+## Testing + CI/CD
+
+### Unit tests (Vitest)
+
+- Config: `vitest.config.ts`
+- Setup file: `src/test/setup.ts`
+- Coverage report: text + `lcov`
+
+Run:
+
+```bash
+bun run test:unit
+```
+
+Note: use `bun run test:unit` (or `bun run test`) for Vitest. `bun test` invokes Bun's native test runner, which is not this project's configured test harness.
+
+### End-to-end tests (Playwright)
+
+- Config: `playwright.config.ts`
+- Specs: `tests/e2e/*.spec.ts`
+- Default seeded test credentials:
+  - `alex@dailystand.dev`
+  - `password123`
+
+Run locally (after DB push + seed):
+
+```bash
+bun run db:push
+bun run db:seed
+bun run test:e2e
+```
+
+### GitHub Actions
+
+- CI workflow: `.github/workflows/ci.yml`
+  - quality gate: typecheck, Vitest, build
+  - e2e gate: Postgres service, DB push/seed, Playwright
+- CD workflow: `.github/workflows/deploy.yml`
+  - builds and publishes Docker image to `ghcr.io/<owner>/<repo>`
+  - optional deploy trigger via `DEPLOY_WEBHOOK_URL` secret
+
+### Container deployment
+
+- Dockerfile: `Dockerfile`
+- Built image runs `bun run start` and exposes port `3000`
 
 ## Key routes
 

@@ -27,6 +27,7 @@ import { Route as AuthForgotPasswordRouteImport } from './routes/auth/forgot-pas
 import { Route as AppStandupRouteImport } from './routes/app/standup'
 import { Route as AppHistoryRouteImport } from './routes/app/history'
 import { Route as AppAnalyticsRouteImport } from './routes/app/analytics'
+import { Route as ApiOgRouteImport } from './routes/api/og'
 import { Route as ApiMcpRouteImport } from './routes/api/mcp'
 import { Route as AppSettingsIndexRouteImport } from './routes/app/settings/index'
 import { Route as AppTeamTeamIdRouteImport } from './routes/app/team.$teamId'
@@ -132,6 +133,11 @@ const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
   path: '/analytics',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const ApiOgRoute = ApiOgRouteImport.update({
+  id: '/api/og',
+  path: '/api/og',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiMcpRoute = ApiMcpRouteImport.update({
   id: '/api/mcp',
   path: '/api/mcp',
@@ -212,6 +218,7 @@ export interface FileRoutesByFullPath {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/api/mcp': typeof ApiMcpRoute
+  '/api/og': typeof ApiOgRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/history': typeof AppHistoryRoute
   '/app/standup': typeof AppStandupRoute
@@ -244,6 +251,7 @@ export interface FileRoutesByTo {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/api/mcp': typeof ApiMcpRoute
+  '/api/og': typeof ApiOgRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/history': typeof AppHistoryRoute
   '/app/standup': typeof AppStandupRoute
@@ -279,6 +287,7 @@ export interface FileRoutesById {
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/api/mcp': typeof ApiMcpRoute
+  '/api/og': typeof ApiOgRoute
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/history': typeof AppHistoryRoute
   '/app/standup': typeof AppStandupRoute
@@ -315,6 +324,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/api/mcp'
+    | '/api/og'
     | '/app/analytics'
     | '/app/history'
     | '/app/standup'
@@ -347,6 +357,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/api/mcp'
+    | '/api/og'
     | '/app/analytics'
     | '/app/history'
     | '/app/standup'
@@ -381,6 +392,7 @@ export interface FileRouteTypes {
     | '/privacy'
     | '/terms'
     | '/api/mcp'
+    | '/api/og'
     | '/app/analytics'
     | '/app/history'
     | '/app/standup'
@@ -416,6 +428,7 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
   ApiMcpRoute: typeof ApiMcpRoute
+  ApiOgRoute: typeof ApiOgRoute
   AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
   AuthResetPasswordRoute: typeof AuthResetPasswordRoute
   AuthSignInRoute: typeof AuthSignInRoute
@@ -554,6 +567,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/analytics'
       preLoaderRoute: typeof AppAnalyticsRouteImport
       parentRoute: typeof AppRouteRoute
+    }
+    '/api/og': {
+      id: '/api/og'
+      path: '/api/og'
+      fullPath: '/api/og'
+      preLoaderRoute: typeof ApiOgRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/mcp': {
       id: '/api/mcp'
@@ -717,6 +737,7 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
   ApiMcpRoute: ApiMcpRoute,
+  ApiOgRoute: ApiOgRoute,
   AuthForgotPasswordRoute: AuthForgotPasswordRoute,
   AuthResetPasswordRoute: AuthResetPasswordRoute,
   AuthSignInRoute: AuthSignInRoute,

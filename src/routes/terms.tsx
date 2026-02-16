@@ -1,16 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { ArrowLeft, FileText, Terminal } from "lucide-react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import { buildPageSeo } from "@/lib/seo";
+
+const termsSeo = buildPageSeo({
+	title: "Terms of Service | DailyStand",
+	description:
+		"Review the DailyStand terms of service, including plan limits, billing terms, acceptable use, and account responsibilities.",
+	path: "/terms",
+	ogPage: "terms",
+	ogType: "article",
+});
 
 export const Route = createFileRoute("/terms")({
 	component: TermsPage,
-	head: () => ({
-		meta: [
-			{
-				title: "DAILYSTAND // Terms of Service",
-			},
-		],
-	}),
+	head: () => ({ meta: termsSeo.meta, links: termsSeo.links }),
 });
 
 const sections = [

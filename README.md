@@ -1,5 +1,7 @@
 # DailyStand
 
+![DailyStand](public/screenshot.png)
+
 Async daily standup app for teams. Employees join organizations, get assigned to teams, and post daily updates — what they completed, what they're working on next, and any blockers.
 
 ## Features

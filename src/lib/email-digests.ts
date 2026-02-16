@@ -1,6 +1,5 @@
 import { render } from "@react-email/render";
 import { and, desc, eq, gte, inArray, isNull, lte, or } from "drizzle-orm";
-import { StandupDigestEmail } from "@/emails/standup-digest-email";
 import { db } from "@/db";
 import {
 	emailDigestPreference,
@@ -8,6 +7,7 @@ import {
 	standupEntry,
 	teamMember,
 } from "@/db/schema";
+import { StandupDigestEmail } from "@/emails/standup-digest-email";
 import { isResendConfigured, sendResendEmailMessage } from "@/lib/email";
 import { resolveOrganizationPlanLimits } from "@/lib/plan-limits";
 
@@ -30,7 +30,9 @@ function normalizeTimeZone(timeZone: string | null | undefined): string {
 	const candidate = (timeZone ?? "").trim();
 	if (!candidate) return "UTC";
 	try {
-		new Intl.DateTimeFormat("en-US", { timeZone: candidate }).format(new Date());
+		new Intl.DateTimeFormat("en-US", { timeZone: candidate }).format(
+			new Date(),
+		);
 		return candidate;
 	} catch {
 		return "UTC";
@@ -103,7 +105,9 @@ function hasAlreadySentForCurrentWindow(
 	if (cadence === "daily") {
 		return currentDateKey === lastSentDateKey;
 	}
-	return weekKeyFromDateKey(currentDateKey) === weekKeyFromDateKey(lastSentDateKey);
+	return (
+		weekKeyFromDateKey(currentDateKey) === weekKeyFromDateKey(lastSentDateKey)
+	);
 }
 
 function buildPlainTextDigest(input: {
@@ -218,7 +222,10 @@ export async function runDigestWorkflow(
 
 			const scopeCondition =
 				teamIds.length > 0
-					? or(inArray(standupEntry.teamId, teamIds), isNull(standupEntry.teamId))
+					? or(
+							inArray(standupEntry.teamId, teamIds),
+							isNull(standupEntry.teamId),
+						)
 					: isNull(standupEntry.teamId);
 
 			const entries = await db.query.standupEntry.findMany({
@@ -355,7 +362,8 @@ export async function runDigestWorkflow(
 			result.errors.push({
 				userId: preference.userId,
 				organizationId: preference.organizationId,
-				message: error instanceof Error ? error.message : "Unknown digest error",
+				message:
+					error instanceof Error ? error.message : "Unknown digest error",
 			});
 		}
 	}

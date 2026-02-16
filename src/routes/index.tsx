@@ -13,6 +13,7 @@ import {
 	Users,
 	Zap,
 } from "lucide-react";
+import { useEffect, useState } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import { authClient } from "@/lib/auth-client";
 import {
@@ -174,7 +175,11 @@ const seoFaqItems = [
 
 function LandingPage() {
 	const { data: session } = authClient.useSession();
-	const isLoggedIn = !!session?.user;
+	const [isHydrated, setIsHydrated] = useState(false);
+	useEffect(() => {
+		setIsHydrated(true);
+	}, []);
+	const isLoggedIn = isHydrated && !!session?.user;
 
 	return (
 		<div className="min-h-screen bg-ds-bg text-ds-fg selection:bg-ds-selection-bg selection:text-ds-selection-fg font-mono">

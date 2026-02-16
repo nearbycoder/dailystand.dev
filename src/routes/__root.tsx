@@ -1,34 +1,41 @@
+import { PostHogProvider } from "@posthog/react";
+import type { QueryClient } from "@tanstack/react-query";
 import {
+	createRootRouteWithContext,
 	HeadContent,
 	Link,
 	Outlet,
 	Scripts,
-	createRootRouteWithContext,
-} from "@tanstack/react-router"
-
-import Providers from "@/integrations/tanstack-query/root-provider"
-import { Toaster } from "@/components/ui/sonner"
-import { SITE_NAME, buildOgImageUrl } from "@/lib/seo"
-
-import appCss from "../styles.css?url"
-
-import type { QueryClient } from "@tanstack/react-query"
-import type { TRPCRouter } from "@/integrations/trpc/router"
-import type { TRPCOptionsProxy } from "@trpc/tanstack-react-query"
+} from "@tanstack/react-router";
+import type { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
+import { Toaster } from "@/components/ui/sonner";
+import Providers from "@/integrations/tanstack-query/root-provider";
+import type { TRPCRouter } from "@/integrations/trpc/router";
+import { buildOgImageUrl, SITE_NAME } from "@/lib/seo";
+import appCss from "../styles.css?url";
 
 interface MyRouterContext {
-	queryClient: QueryClient
-	trpc: TRPCOptionsProxy<TRPCRouter>
+	queryClient: QueryClient;
+	trpc: TRPCOptionsProxy<TRPCRouter>;
 }
 
-const defaultTitle = "DailyStand | Async Standup Software for Remote Teams"
+const defaultTitle = "DailyStand | Async Standup Software for Remote Teams";
 const defaultDescription =
-	"DailyStand is open source async standup software for remote engineering teams with analytics, API access, and MCP automation tools."
+	"DailyStand is open source async standup software for remote engineering teams with analytics, API access, and MCP automation tools.";
 const defaultOgImage = buildOgImageUrl({
 	page: "home",
 	title: defaultTitle,
 	subtitle: defaultDescription,
-})
+});
+const posthogApiKey = import.meta.env.VITE_PUBLIC_POSTHOG_KEY;
+const posthogApiHost =
+	import.meta.env.VITE_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
+const posthogUiHost =
+	import.meta.env.VITE_PUBLIC_POSTHOG_UI_HOST || "https://us.posthog.com";
+const posthogEnabledInDev =
+	import.meta.env.VITE_PUBLIC_POSTHOG_ENABLE_IN_DEV === "true";
+const shouldEnablePosthog =
+	Boolean(posthogApiKey) && (import.meta.env.PROD || posthogEnabledInDev);
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
 	component: () => <Outlet />,
@@ -108,7 +115,7 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 		],
 	}),
 	shellComponent: RootDocument,
-})
+});
 
 const themeBootScript = `(() => {
   try {
@@ -121,7 +128,7 @@ const themeBootScript = `(() => {
     html.classList.remove("dark", "light");
     html.classList.add(resolved);
   } catch (_) {}
-})();`
+})();`;
 
 function NotFound() {
 	return (
@@ -140,10 +147,23 @@ function NotFound() {
 				</Link>
 			</div>
 		</div>
-	)
+	);
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+	const app = (
+		<Providers>
+			{children}
+			<Toaster
+				position="top-right"
+				expand
+				richColors={false}
+				closeButton
+				duration={2200}
+			/>
+		</Providers>
+	);
+
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
@@ -151,18 +171,24 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<HeadContent />
 			</head>
 			<body className="bg-ds-bg text-ds-fg antialiased">
-				<Providers>
-					{children}
-					<Toaster
-						position="top-right"
-						expand
-						richColors={false}
-						closeButton
-						duration={2200}
-					/>
-				</Providers>
+				{shouldEnablePosthog ? (
+					<PostHogProvider
+						apiKey={posthogApiKey}
+						options={{
+							api_host: posthogApiHost,
+							ui_host: posthogUiHost,
+							defaults: "2025-05-24",
+							capture_exceptions: true,
+							debug: import.meta.env.VITE_PUBLIC_POSTHOG_DEBUG === "true",
+						}}
+					>
+						{app}
+					</PostHogProvider>
+				) : (
+					app
+				)}
 				<Scripts />
 			</body>
 		</html>
-	)
+	);
 }

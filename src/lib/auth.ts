@@ -178,7 +178,10 @@ async function assertCanInviteOrganizationMembers(
 		),
 		columns: { role: true },
 	});
-	if (!inviterMembership || !canManageOrganizationRole(inviterMembership.role)) {
+	if (
+		!inviterMembership ||
+		!canManageOrganizationRole(inviterMembership.role)
+	) {
 		throw new APIError("FORBIDDEN", {
 			message: "Only owners/admins can invite members.",
 		});
@@ -247,16 +250,16 @@ export const auth = betterAuth({
 					);
 				}
 			},
-				organizationHooks: {
-					beforeCreateInvitation: async ({ invitation, inviter }) => {
-						await assertCanInviteOrganizationMembers(
-							invitation.organizationId,
-							inviter.id,
-						);
-						await assertOrganizationMemberLimit(
-							invitation.organizationId,
-							inviter.id,
-						);
+			organizationHooks: {
+				beforeCreateInvitation: async ({ invitation, inviter }) => {
+					await assertCanInviteOrganizationMembers(
+						invitation.organizationId,
+						inviter.id,
+					);
+					await assertOrganizationMemberLimit(
+						invitation.organizationId,
+						inviter.id,
+					);
 				},
 				beforeAcceptInvitation: async ({ invitation }) => {
 					await assertOrganizationMemberLimit(invitation.organizationId);

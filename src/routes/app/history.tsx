@@ -1,74 +1,70 @@
-import { createFileRoute } from "@tanstack/react-router"
-import { useTRPC } from "@/integrations/trpc/react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { AutoLinkText } from "@/components/auto-link-text"
-import { useState } from "react"
-import type { ReactNode } from "react"
+import { usePostHog } from "@posthog/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
 import {
-	CheckCircle2,
-	Target,
 	AlertTriangle,
-	Copy,
 	Check,
+	CheckCircle2,
+	Copy,
 	Link2,
 	Link2Off,
-} from "lucide-react"
+	Target,
+} from "lucide-react";
+import type { ReactNode } from "react";
+import { useState } from "react";
+import { AutoLinkText } from "@/components/auto-link-text";
+import { useTRPC } from "@/integrations/trpc/react";
 
 export const Route = createFileRoute("/app/history")({
 	component: HistoryPage,
-})
+});
 
 type HistoryEntry = {
-	date: string
-	sharedToken: string | null
-	completed: string[]
-	planned: string[]
-	blockers: string[]
-}
+	date: string;
+	sharedToken: string | null;
+	completed: string[];
+	planned: string[];
+	blockers: string[];
+};
 
-type DayActionState =
-	| "idle"
-	| "copied"
-	| "error"
-	| "sharing"
-	| "retracting"
+type DayActionState = "idle" | "copied" | "error" | "sharing" | "retracting";
 
 function buildShareUrl(token: string) {
-	if (typeof window === "undefined") return `/share/${token}`
-	return `${window.location.origin}/share/${token}`
+	if (typeof window === "undefined") return `/share/${token}`;
+	return `${window.location.origin}/share/${token}`;
 }
 
 function formatDateSub(dateStr: string): string {
-	const date = new Date(dateStr + "T12:00:00")
+	const date = new Date(dateStr + "T12:00:00");
 	return date.toLocaleDateString("en-US", {
 		weekday: "long",
 		year: "numeric",
 		month: "long",
 		day: "numeric",
-	})
+	});
 }
 
 function getSectionMarkdown(label: string, items: string[]): string[] {
-	if (items.length === 0) return []
-	return [label, ...items.map((item) => `- ${item}`), ""]
+	if (items.length === 0) return [];
+	return [label, ...items.map((item) => `- ${item}`), ""];
 }
 
 function buildDayMarkdown(entry: HistoryEntry): string {
-	const lines: string[] = [`## ${formatDateSub(entry.date)}`, ""]
+	const lines: string[] = [`## ${formatDateSub(entry.date)}`, ""];
 	lines.push(
 		...getSectionMarkdown("### Completed", entry.completed),
 		...getSectionMarkdown("### Planned", entry.planned),
 		...getSectionMarkdown("### Blockers", entry.blockers),
-	)
-	return lines.join("\n").trim()
+	);
+	return lines.join("\n").trim();
 }
 
 function buildAllHistoryMarkdown(entries: HistoryEntry[]): string {
-	const lines: string[] = ["# My Standup History", ""]
+	const lines: string[] = ["# My Standup History", ""];
 	for (const entry of entries) {
-		lines.push(buildDayMarkdown(entry), "")
+		lines.push(buildDayMarkdown(entry), "");
 	}
-	return lines.join("\n").trim()
+	return lines.join("\n").trim();
 }
 
 async function copyTextToClipboard(text: string) {
@@ -77,47 +73,48 @@ async function copyTextToClipboard(text: string) {
 		navigator.clipboard &&
 		typeof navigator.clipboard.writeText === "function"
 	) {
-		await navigator.clipboard.writeText(text)
-		return
+		await navigator.clipboard.writeText(text);
+		return;
 	}
 
 	if (typeof document === "undefined") {
-		throw new Error("Clipboard unavailable")
+		throw new Error("Clipboard unavailable");
 	}
 
-	const textarea = document.createElement("textarea")
-	textarea.value = text
-	textarea.setAttribute("readonly", "")
-	textarea.style.position = "fixed"
-	textarea.style.left = "-9999px"
-	document.body.appendChild(textarea)
-	textarea.select()
-	const copied = document.execCommand("copy")
-	document.body.removeChild(textarea)
-	if (!copied) throw new Error("Failed to copy markdown")
+	const textarea = document.createElement("textarea");
+	textarea.value = text;
+	textarea.setAttribute("readonly", "");
+	textarea.style.position = "fixed";
+	textarea.style.left = "-9999px";
+	document.body.appendChild(textarea);
+	textarea.select();
+	const copied = document.execCommand("copy");
+	document.body.removeChild(textarea);
+	if (!copied) throw new Error("Failed to copy markdown");
 }
 
 function HistoryPage() {
-	const trpc = useTRPC()
-	const queryClient = useQueryClient()
+	const trpc = useTRPC();
+	const posthog = usePostHog();
+	const queryClient = useQueryClient();
 	const { data: history, isLoading } = useQuery(
 		trpc.standups.getMine.queryOptions({ limit: 1000 }),
-	)
+	);
 	const createDayShare = useMutation(
 		trpc.standups.createDayShare.mutationOptions(),
-	)
+	);
 	const retractDayShare = useMutation(
 		trpc.standups.retractDayShare.mutationOptions(),
-	)
+	);
 	const [copyAllState, setCopyAllState] = useState<"idle" | "copied" | "error">(
 		"idle",
-	)
+	);
 	const [copyDayStates, setCopyDayStates] = useState<
 		Record<string, "idle" | "copied" | "error">
-	>({})
+	>({});
 	const [shareDayStates, setShareDayStates] = useState<
 		Record<string, DayActionState>
-	>({})
+	>({});
 
 	const resetShareDayState = (date: string) => {
 		setTimeout(
@@ -127,25 +124,25 @@ function HistoryPage() {
 					[date]: "idle",
 				})),
 			1800,
-		)
-	}
+		);
+	};
 
 	const handleCopyAll = async () => {
-		if (!history || history.length === 0) return
+		if (!history || history.length === 0) return;
 		try {
-			await copyTextToClipboard(buildAllHistoryMarkdown(history))
-			setCopyAllState("copied")
-			setTimeout(() => setCopyAllState("idle"), 1800)
+			await copyTextToClipboard(buildAllHistoryMarkdown(history));
+			setCopyAllState("copied");
+			setTimeout(() => setCopyAllState("idle"), 1800);
 		} catch {
-			setCopyAllState("error")
-			setTimeout(() => setCopyAllState("idle"), 1800)
+			setCopyAllState("error");
+			setTimeout(() => setCopyAllState("idle"), 1800);
 		}
-	}
+	};
 
 	const handleCopyDay = async (entry: HistoryEntry) => {
 		try {
-			await copyTextToClipboard(buildDayMarkdown(entry))
-			setCopyDayStates((prev) => ({ ...prev, [entry.date]: "copied" }))
+			await copyTextToClipboard(buildDayMarkdown(entry));
+			setCopyDayStates((prev) => ({ ...prev, [entry.date]: "copied" }));
 			setTimeout(
 				() =>
 					setCopyDayStates((prev) => ({
@@ -153,9 +150,9 @@ function HistoryPage() {
 						[entry.date]: "idle",
 					})),
 				1800,
-			)
+			);
 		} catch {
-			setCopyDayStates((prev) => ({ ...prev, [entry.date]: "error" }))
+			setCopyDayStates((prev) => ({ ...prev, [entry.date]: "error" }));
 			setTimeout(
 				() =>
 					setCopyDayStates((prev) => ({
@@ -163,45 +160,55 @@ function HistoryPage() {
 						[entry.date]: "idle",
 					})),
 				1800,
-			)
+			);
 		}
-	}
+	};
 
 	const handleCopyShareLink = async (entry: HistoryEntry) => {
-		if (!entry.sharedToken) return
+		if (!entry.sharedToken) return;
 		try {
-			await copyTextToClipboard(buildShareUrl(entry.sharedToken))
-			setShareDayStates((prev) => ({ ...prev, [entry.date]: "copied" }))
+			await copyTextToClipboard(buildShareUrl(entry.sharedToken));
+			setShareDayStates((prev) => ({ ...prev, [entry.date]: "copied" }));
 		} catch {
-			setShareDayStates((prev) => ({ ...prev, [entry.date]: "error" }))
+			setShareDayStates((prev) => ({ ...prev, [entry.date]: "error" }));
 		}
-		resetShareDayState(entry.date)
-	}
+		resetShareDayState(entry.date);
+	};
 
 	const handleCreateShare = async (entry: HistoryEntry) => {
-		setShareDayStates((prev) => ({ ...prev, [entry.date]: "sharing" }))
+		setShareDayStates((prev) => ({ ...prev, [entry.date]: "sharing" }));
 		try {
-			const result = await createDayShare.mutateAsync({ date: entry.date })
-			await queryClient.invalidateQueries()
-			await copyTextToClipboard(buildShareUrl(result.token))
-			setShareDayStates((prev) => ({ ...prev, [entry.date]: "copied" }))
-		} catch {
-			setShareDayStates((prev) => ({ ...prev, [entry.date]: "error" }))
+			const result = await createDayShare.mutateAsync({ date: entry.date });
+			await queryClient.invalidateQueries();
+			await copyTextToClipboard(buildShareUrl(result.token));
+			setShareDayStates((prev) => ({ ...prev, [entry.date]: "copied" }));
+			posthog.capture("standup_shared", {
+				date: entry.date,
+				entry_count:
+					entry.completed.length + entry.planned.length + entry.blockers.length,
+			});
+		} catch (error) {
+			setShareDayStates((prev) => ({ ...prev, [entry.date]: "error" }));
+			posthog.captureException(error);
 		}
-		resetShareDayState(entry.date)
-	}
+		resetShareDayState(entry.date);
+	};
 
 	const handleRetractShare = async (entry: HistoryEntry) => {
-		setShareDayStates((prev) => ({ ...prev, [entry.date]: "retracting" }))
+		setShareDayStates((prev) => ({ ...prev, [entry.date]: "retracting" }));
 		try {
-			await retractDayShare.mutateAsync({ date: entry.date })
-			await queryClient.invalidateQueries()
-			setShareDayStates((prev) => ({ ...prev, [entry.date]: "idle" }))
-		} catch {
-			setShareDayStates((prev) => ({ ...prev, [entry.date]: "error" }))
-			resetShareDayState(entry.date)
+			await retractDayShare.mutateAsync({ date: entry.date });
+			await queryClient.invalidateQueries();
+			setShareDayStates((prev) => ({ ...prev, [entry.date]: "idle" }));
+			posthog.capture("standup_share_retracted", {
+				date: entry.date,
+			});
+		} catch (error) {
+			setShareDayStates((prev) => ({ ...prev, [entry.date]: "error" }));
+			resetShareDayState(entry.date);
+			posthog.captureException(error);
 		}
-	}
+	};
 
 	return (
 		<div className="mx-auto w-full max-w-[1200px] px-4 py-5 sm:p-6">
@@ -210,9 +217,7 @@ function HistoryPage() {
 					<h1 className="text-2xl font-extrabold tracking-tighter sm:text-3xl">
 						HISTORY
 					</h1>
-					<p className="text-ds-muted text-sm mt-1">
-						// YOUR STANDUP HISTORY
-					</p>
+					<p className="text-ds-muted text-sm mt-1">// YOUR STANDUP HISTORY</p>
 				</div>
 				{history && history.length > 0 && (
 					<button
@@ -253,19 +258,19 @@ function HistoryPage() {
 			) : history && history.length > 0 ? (
 				<div className="space-y-0">
 					{history.map((entry) => {
-						const heading = formatDateHeading(entry.date)
-						const sub = formatDateSub(entry.date)
+						const heading = formatDateHeading(entry.date);
+						const sub = formatDateSub(entry.date);
 						const isToday =
-							entry.date === new Date().toISOString().split("T")[0]
+							entry.date === new Date().toISOString().split("T")[0];
 						const count =
 							entry.completed.length +
 							entry.planned.length +
-							entry.blockers.length
-						const copyState = copyDayStates[entry.date] ?? "idle"
-						const shareState = shareDayStates[entry.date] ?? "idle"
+							entry.blockers.length;
+						const copyState = copyDayStates[entry.date] ?? "idle";
+						const shareState = shareDayStates[entry.date] ?? "idle";
 						const isSharePending =
-							shareState === "sharing" || shareState === "retracting"
-						const hasSharedLink = Boolean(entry.sharedToken)
+							shareState === "sharing" || shareState === "retracting";
+						const hasSharedLink = Boolean(entry.sharedToken);
 
 						return (
 							<div
@@ -285,7 +290,9 @@ function HistoryPage() {
 										>
 											{heading}
 										</span>
-										<span className="text-[11px] text-ds-text-tertiary">{sub}</span>
+										<span className="text-[11px] text-ds-text-tertiary">
+											{sub}
+										</span>
 									</div>
 									<div className="flex items-center gap-2">
 										<span className="text-xs font-bold text-ds-text-tertiary tracking-wider">
@@ -397,7 +404,7 @@ function HistoryPage() {
 									</div>
 								</div>
 							</div>
-						)
+						);
 					})}
 				</div>
 			) : (
@@ -408,17 +415,17 @@ function HistoryPage() {
 				</div>
 			)}
 		</div>
-	)
+	);
 }
 
 function formatDateHeading(dateStr: string): string {
-	const date = new Date(dateStr + "T12:00:00")
-	const today = new Date()
-	const yesterday = new Date()
-	yesterday.setDate(today.getDate() - 1)
+	const date = new Date(dateStr + "T12:00:00");
+	const today = new Date();
+	const yesterday = new Date();
+	yesterday.setDate(today.getDate() - 1);
 
-	if (dateStr === today.toISOString().split("T")[0]) return "TODAY"
-	if (dateStr === yesterday.toISOString().split("T")[0]) return "YESTERDAY"
+	if (dateStr === today.toISOString().split("T")[0]) return "TODAY";
+	if (dateStr === yesterday.toISOString().split("T")[0]) return "YESTERDAY";
 
 	return date
 		.toLocaleDateString("en-US", {
@@ -426,7 +433,7 @@ function formatDateHeading(dateStr: string): string {
 			month: "short",
 			day: "numeric",
 		})
-		.toUpperCase()
+		.toUpperCase();
 }
 
 const colorMap = {
@@ -448,7 +455,7 @@ const colorMap = {
 		text: "text-red-500 dark:text-red-400",
 		link: "underline decoration-red-500 dark:decoration-red-400 underline-offset-2 transition-colors hover:text-red-500 hover:decoration-red-500 dark:hover:text-red-400",
 	},
-} as const
+} as const;
 
 function EntryColumn({
 	icon,
@@ -456,12 +463,12 @@ function EntryColumn({
 	color,
 	items,
 }: {
-	icon: ReactNode
-	label: string
-	color: "lime" | "cyan" | "red"
-	items: string[]
+	icon: ReactNode;
+	label: string;
+	color: "lime" | "cyan" | "red";
+	items: string[];
 }) {
-	const c = colorMap[color]
+	const c = colorMap[color];
 
 	return (
 		<div>
@@ -489,5 +496,5 @@ function EntryColumn({
 				))}
 			</div>
 		</div>
-	)
+	);
 }

@@ -121,7 +121,9 @@ function parseDate(value: string, fieldName: string): string {
 }
 
 function isRangeDays(value: number): value is RangeDays {
-	return value === 7 || value === 14 || value === 30 || value === 60 || value === 90;
+	return (
+		value === 7 || value === 14 || value === 30 || value === 60 || value === 90
+	);
 }
 
 function parseRangeDays(value: string | null): RangeDays {
@@ -148,7 +150,11 @@ function enumerateDateRange(startDate: Date, endDate: Date): string[] {
 }
 
 function groupEntriesByType(entries: { type: StandupType; content: string }[]) {
-	const grouped: { completed: string[]; planned: string[]; blockers: string[] } = {
+	const grouped: {
+		completed: string[];
+		planned: string[];
+		blockers: string[];
+	} = {
 		completed: [],
 		planned: [],
 		blockers: [],

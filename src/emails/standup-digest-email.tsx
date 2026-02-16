@@ -163,12 +163,16 @@ export function StandupDigestEmail({
 			<Preview>{previewText}</Preview>
 			<Body style={rootStyle}>
 				<Container style={containerStyle}>
-					<Text style={subtleStyle}>// {cadenceLabel.toUpperCase()}_DIGEST</Text>
+					<Text style={subtleStyle}>
+						// {cadenceLabel.toUpperCase()}_DIGEST
+					</Text>
 					<Heading style={headingStyle}>STANDUP_REPORT</Heading>
 					<Text style={{ ...subtleStyle, marginTop: "2px" }}>
 						{organizationName.toUpperCase()} // {periodLabel}
 					</Text>
-					<Text style={{ color: "#d1d5db", fontSize: "14px", margin: "14px 0 0" }}>
+					<Text
+						style={{ color: "#d1d5db", fontSize: "14px", margin: "14px 0 0" }}
+					>
 						Hi {recipientName}, here is your {cadenceLabel.toLowerCase()} team
 						activity summary.
 					</Text>
@@ -203,8 +207,8 @@ export function StandupDigestEmail({
 										{teamStat.teamName} • {teamStat.total} entries
 									</Text>
 									<Text style={panelMetaStyle}>
-										DONE {teamStat.counts.completed} • PLAN {teamStat.counts.planned} •
-										BLOCK {teamStat.counts.blockers}
+										DONE {teamStat.counts.completed} • PLAN{" "}
+										{teamStat.counts.planned} • BLOCK {teamStat.counts.blockers}
 									</Text>
 								</div>
 							))}
@@ -228,7 +232,10 @@ export function StandupDigestEmail({
 						<Section>
 							<Text style={sectionHeaderStyle}>Recent Blockers</Text>
 							{highlights.map((item, index) => (
-								<div key={`${item.authorName}-${item.date}-${index}`} style={panelStyle}>
+								<div
+									key={`${item.authorName}-${item.date}-${index}`}
+									style={panelStyle}
+								>
 									<Text style={panelValueStyle}>{item.content}</Text>
 									<Text style={panelMetaStyle}>
 										{item.authorName} • {item.teamName} • {item.date}

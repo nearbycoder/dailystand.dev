@@ -1,10 +1,11 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { useTRPC } from "@/integrations/trpc/react";
+import { usePostHog } from "@posthog/react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { authClient } from "@/lib/auth-client";
-import { toast } from "sonner";
+import { createFileRoute } from "@tanstack/react-router";
 import { Check, RotateCcw, Settings2, TriangleAlert, Zap } from "lucide-react";
 import { useState } from "react";
+import { toast } from "sonner";
+import { useTRPC } from "@/integrations/trpc/react";
+import { authClient } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/app/settings/billing")({
 	component: BillingPage,
@@ -57,6 +58,7 @@ const planRank: Record<string, number> = {
 
 function BillingPage() {
 	const trpc = useTRPC();
+	const posthog = usePostHog();
 	const queryClient = useQueryClient();
 	const subQuery = trpc.org.getSubscription.queryOptions();
 	const { data: sub } = useQuery(subQuery);
@@ -109,6 +111,10 @@ function BillingPage() {
 
 	const handleUpgrade = async (planName: string) => {
 		if (planName === "free") return;
+		posthog.capture("subscription_upgrade_started", {
+			from_plan: currentPlan,
+			to_plan: planName,
+		});
 		await runAction(`upgrade:${planName}`, () =>
 			authClient.subscription.upgrade({
 				plan: planName,
@@ -129,6 +135,9 @@ function BillingPage() {
 	};
 
 	const handleCancel = async () => {
+		posthog.capture("subscription_cancelled", {
+			plan: currentPlan,
+		});
 		await runAction("cancel", () =>
 			authClient.subscription.cancel({
 				returnUrl: window.location.href,
@@ -144,6 +153,9 @@ function BillingPage() {
 			}),
 		);
 		await queryClient.invalidateQueries({ queryKey: subQuery.queryKey });
+		posthog.capture("subscription_restored", {
+			plan: currentPlan,
+		});
 		toast.success("Subscription restored");
 	};
 

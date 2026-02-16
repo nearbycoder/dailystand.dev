@@ -1,23 +1,23 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
-import { useTRPC } from "@/integrations/trpc/react"
-import { useQuery } from "@tanstack/react-query"
-import { AutoLinkText } from "@/components/auto-link-text"
-import { AlertTriangle, CheckCircle2, Target } from "lucide-react"
-import type { ReactNode } from "react"
+import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { AlertTriangle, CheckCircle2, Target } from "lucide-react";
+import type { ReactNode } from "react";
+import { AutoLinkText } from "@/components/auto-link-text";
+import { useTRPC } from "@/integrations/trpc/react";
 
 export const Route = createFileRoute("/share/$token")({
 	component: SharedStandupPage,
-})
+});
 
 function SharedStandupPage() {
-	const { token } = Route.useParams()
-	const trpc = useTRPC()
+	const { token } = Route.useParams();
+	const trpc = useTRPC();
 	const { data, isLoading, isError } = useQuery(
 		trpc.standups.getSharedByToken.queryOptions({ token }),
-	)
+	);
 	const hasAnyItems = data
 		? data.completed.length + data.planned.length + data.blockers.length > 0
-		: false
+		: false;
 
 	return (
 		<div className="min-h-screen bg-ds-bg px-4 py-6 text-ds-fg sm:px-6 sm:py-8">
@@ -51,7 +51,8 @@ function SharedStandupPage() {
 								SHARED_STANDUP
 							</h1>
 							<p className="mt-1 text-sm text-ds-muted">
-								// {data.user.name.toUpperCase()} • {formatDateSub(data.date).toUpperCase()}
+								// {data.user.name.toUpperCase()} •{" "}
+								{formatDateSub(data.date).toUpperCase()}
 							</p>
 						</div>
 
@@ -103,28 +104,28 @@ function SharedStandupPage() {
 				)}
 			</div>
 		</div>
-	)
+	);
 }
 
 function formatDateSub(dateStr: string): string {
-	const date = new Date(dateStr + "T12:00:00")
+	const date = new Date(dateStr + "T12:00:00");
 	return date.toLocaleDateString("en-US", {
 		weekday: "long",
 		year: "numeric",
 		month: "long",
 		day: "numeric",
-	})
+	});
 }
 
 function formatDateHeading(dateStr: string): string {
-	const date = new Date(dateStr + "T12:00:00")
+	const date = new Date(dateStr + "T12:00:00");
 	return date
 		.toLocaleDateString("en-US", {
 			weekday: "short",
 			month: "short",
 			day: "numeric",
 		})
-		.toUpperCase()
+		.toUpperCase();
 }
 
 const colorMap = {
@@ -146,7 +147,7 @@ const colorMap = {
 		text: "text-red-500 dark:text-red-400",
 		link: "underline decoration-red-500 dark:decoration-red-400 underline-offset-2 transition-colors hover:text-red-500 hover:decoration-red-500 dark:hover:text-red-400",
 	},
-} as const
+} as const;
 
 function EntryColumn({
 	icon,
@@ -154,21 +155,25 @@ function EntryColumn({
 	color,
 	items,
 }: {
-	icon: ReactNode
-	label: string
-	color: "lime" | "cyan" | "red"
-	items: string[]
+	icon: ReactNode;
+	label: string;
+	color: "lime" | "cyan" | "red";
+	items: string[];
 }) {
-	const c = colorMap[color]
+	const c = colorMap[color];
 
 	return (
 		<div>
 			<div className="mb-2 flex items-center gap-1.5">
 				<span className={c.text}>{icon}</span>
-				<span className={`text-[10px] font-extrabold tracking-widest ${c.text}`}>
+				<span
+					className={`text-[10px] font-extrabold tracking-widest ${c.text}`}
+				>
 					{label}
 				</span>
-				<span className="text-[10px] font-bold text-ds-text-tertiary">{items.length}</span>
+				<span className="text-[10px] font-bold text-ds-text-tertiary">
+					{items.length}
+				</span>
 			</div>
 			<div className="space-y-1.5">
 				{items.map((item, index) => (
@@ -183,5 +188,5 @@ function EntryColumn({
 				))}
 			</div>
 		</div>
-	)
+	);
 }

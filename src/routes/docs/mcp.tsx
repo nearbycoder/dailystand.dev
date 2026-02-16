@@ -1,9 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router"
-import { Copy, Server, Wrench } from "lucide-react"
-import { toast } from "sonner"
-import { useDocsKey } from "@/components/docs/docs-key-context"
-import { MCP_METHODS, MCP_TOOLS } from "@/lib/docs-content"
-import { buildPageSeo } from "@/lib/seo"
+import { createFileRoute } from "@tanstack/react-router";
+import { Copy, Server, Wrench } from "lucide-react";
+import { toast } from "sonner";
+import { useDocsKey } from "@/components/docs/docs-key-context";
+import { MCP_METHODS, MCP_TOOLS } from "@/lib/docs-content";
+import { buildPageSeo } from "@/lib/seo";
 
 const docsMcpSeo = buildPageSeo({
 	title: "MCP Server Docs | DailyStand",
@@ -11,25 +11,25 @@ const docsMcpSeo = buildPageSeo({
 		"Learn how to use the DailyStand MCP server over JSON-RPC, including tools/list and tools/call flows for standup automation.",
 	path: "/docs/mcp",
 	ogPage: "docs",
-})
+});
 
 export const Route = createFileRoute("/docs/mcp")({
 	component: DocsMcpPage,
 	head: () => ({ meta: docsMcpSeo.meta, links: docsMcpSeo.links }),
-})
+});
 
 function DocsMcpPage() {
-	const { apiKey, baseUrl } = useDocsKey()
-	const key = apiKey.trim() || "YOUR_API_KEY"
+	const { apiKey, baseUrl } = useDocsKey();
+	const key = apiKey.trim() || "YOUR_API_KEY";
 
 	const copySnippet = async (value: string) => {
 		try {
-			await navigator.clipboard.writeText(value)
-			toast.success("Snippet copied")
+			await navigator.clipboard.writeText(value);
+			toast.success("Snippet copied");
 		} catch {
-			toast.error("Clipboard unavailable")
+			toast.error("Clipboard unavailable");
 		}
-	}
+	};
 
 	return (
 		<div className="space-y-6">
@@ -56,7 +56,9 @@ function DocsMcpPage() {
 						<div className="text-[10px] font-bold tracking-widest text-ds-muted2">
 							ENDPOINT
 						</div>
-						<div className="mt-1 break-all text-xs font-bold">{baseUrl}/api/mcp</div>
+						<div className="mt-1 break-all text-xs font-bold">
+							{baseUrl}/api/mcp
+						</div>
 					</div>
 					<div className="border-[2px] border-ds-border p-3">
 						<div className="text-[10px] font-bold tracking-widest text-ds-muted2">
@@ -83,11 +85,14 @@ function DocsMcpPage() {
 
 			<div className="space-y-4">
 				{MCP_METHODS.map((methodDoc) => {
-					const payload = methodDoc.payloadExample.replaceAll("YOUR_API_KEY", key)
+					const payload = methodDoc.payloadExample.replaceAll(
+						"YOUR_API_KEY",
+						key,
+					);
 					const curl = `curl -s -X POST "${baseUrl}/api/mcp" \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: ${key}" \\
-  -d '${payload}'`
+  -d '${payload}'`;
 					return (
 						<section
 							key={methodDoc.id}
@@ -121,11 +126,11 @@ function DocsMcpPage() {
 									COPY
 								</button>
 								<pre className="overflow-x-auto border-[2px] border-ds-border bg-ds-surface p-4 pr-4 text-[11px] leading-relaxed text-ds-fg sm:pr-20 sm:text-xs">
-{curl}
+									{curl}
 								</pre>
 							</div>
 						</section>
-					)
+					);
 				})}
 			</div>
 
@@ -137,12 +142,16 @@ function DocsMcpPage() {
 				<div className="space-y-2 md:hidden">
 					{MCP_TOOLS.map((tool) => (
 						<div key={tool.name} className="border-[2px] border-ds-border p-3">
-							<div className="text-xs font-extrabold text-ds-fg">{tool.name}</div>
+							<div className="text-xs font-extrabold text-ds-fg">
+								{tool.name}
+							</div>
 							<div className="mt-1 text-[10px] font-bold tracking-widest text-ds-muted2">
 								{tool.access === "owner_or_admin" ? "OWNER/ADMIN" : "MEMBER"} //{" "}
 								{tool.requiredScope}
 							</div>
-							<div className="mt-2 text-xs text-ds-muted">{tool.description}</div>
+							<div className="mt-2 text-xs text-ds-muted">
+								{tool.description}
+							</div>
 						</div>
 					))}
 				</div>
@@ -167,14 +176,20 @@ function DocsMcpPage() {
 						<tbody>
 							{MCP_TOOLS.map((tool) => (
 								<tr key={tool.name} className="border-b border-ds-border">
-									<td className="px-3 py-2 font-bold text-ds-fg">{tool.name}</td>
+									<td className="px-3 py-2 font-bold text-ds-fg">
+										{tool.name}
+									</td>
 									<td className="px-3 py-2 text-ds-muted">
 										{tool.access === "owner_or_admin"
 											? "OWNER/ADMIN"
 											: "MEMBER"}
 									</td>
-									<td className="px-3 py-2 text-ds-muted">{tool.requiredScope}</td>
-									<td className="px-3 py-2 text-ds-muted">{tool.description}</td>
+									<td className="px-3 py-2 text-ds-muted">
+										{tool.requiredScope}
+									</td>
+									<td className="px-3 py-2 text-ds-muted">
+										{tool.description}
+									</td>
 								</tr>
 							))}
 						</tbody>
@@ -182,5 +197,5 @@ function DocsMcpPage() {
 				</div>
 			</section>
 		</div>
-	)
+	);
 }

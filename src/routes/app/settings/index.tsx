@@ -1,28 +1,28 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
-import { useTRPC } from "@/integrations/trpc/react"
-import { useQuery } from "@tanstack/react-query"
+import { useQuery } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import {
-	BookText,
 	BellRing,
+	BookText,
 	CreditCard,
 	KeyRound,
 	LockKeyhole,
 	Users,
 	Users2,
-} from "lucide-react"
+} from "lucide-react";
+import { useTRPC } from "@/integrations/trpc/react";
 
 export const Route = createFileRoute("/app/settings/")({
 	component: SettingsIndex,
-})
+});
 
 function SettingsIndex() {
-	const trpc = useTRPC()
-	const { data: org } = useQuery(trpc.org.getDetails.queryOptions())
-	const { data: sub } = useQuery(trpc.org.getSubscription.queryOptions())
+	const trpc = useTRPC();
+	const { data: org } = useQuery(trpc.org.getDetails.queryOptions());
+	const { data: sub } = useQuery(trpc.org.getSubscription.queryOptions());
 	const { data: myMembership } = useQuery(
 		trpc.org.getMyMembership.queryOptions(),
-	)
-	const canManageOrganization = myMembership?.canManageOrganization ?? false
+	);
+	const canManageOrganization = myMembership?.canManageOrganization ?? false;
 
 	return (
 		<div className="mx-auto w-full max-w-[1200px] px-4 py-5 sm:p-6">
@@ -62,7 +62,9 @@ function SettingsIndex() {
 					<Link to="/app/settings/billing">
 						<div className="h-full min-h-[140px] border-[3px] border-ds-border p-6 hover:bg-ds-surface hover:border-ds-muted2 transition-all cursor-pointer group">
 							<CreditCard className="w-6 h-6 text-ds-accent mb-3" />
-							<div className="font-extrabold text-sm tracking-wider">BILLING</div>
+							<div className="font-extrabold text-sm tracking-wider">
+								BILLING
+							</div>
 							<div className="mt-1 block overflow-hidden text-ellipsis whitespace-nowrap text-ds-muted text-xs">
 								Plan &amp; payment
 							</div>
@@ -78,19 +80,21 @@ function SettingsIndex() {
 						</div>
 					</div>
 				</Link>
-					<Link to="/app/settings/teams">
-						<div className="h-full min-h-[140px] border-[3px] border-ds-border p-6 hover:bg-ds-surface hover:border-ds-muted2 transition-all cursor-pointer group">
-							<Users2 className="w-6 h-6 text-yellow-500 dark:text-yellow-400 mb-3" />
-							<div className="font-extrabold text-sm tracking-wider">TEAMS</div>
-							<div className="mt-1 block overflow-hidden text-ellipsis whitespace-nowrap text-ds-muted text-xs">
-								{canManageOrganization ? "Create & manage" : "View team rosters"}
-							</div>
+				<Link to="/app/settings/teams">
+					<div className="h-full min-h-[140px] border-[3px] border-ds-border p-6 hover:bg-ds-surface hover:border-ds-muted2 transition-all cursor-pointer group">
+						<Users2 className="w-6 h-6 text-yellow-500 dark:text-yellow-400 mb-3" />
+						<div className="font-extrabold text-sm tracking-wider">TEAMS</div>
+						<div className="mt-1 block overflow-hidden text-ellipsis whitespace-nowrap text-ds-muted text-xs">
+							{canManageOrganization ? "Create & manage" : "View team rosters"}
 						</div>
-					</Link>
+					</div>
+				</Link>
 				<Link to="/app/settings/security">
 					<div className="h-full min-h-[140px] border-[3px] border-ds-border p-6 hover:bg-ds-surface hover:border-ds-muted2 transition-all cursor-pointer group">
 						<LockKeyhole className="w-6 h-6 text-emerald-500 dark:text-emerald-400 mb-3" />
-						<div className="font-extrabold text-sm tracking-wider">SECURITY</div>
+						<div className="font-extrabold text-sm tracking-wider">
+							SECURITY
+						</div>
 						<div className="mt-1 block overflow-hidden text-ellipsis whitespace-nowrap text-ds-muted text-xs">
 							Password &amp; sessions
 						</div>
@@ -110,7 +114,9 @@ function SettingsIndex() {
 				<Link to="/app/settings/api-keys">
 					<div className="h-full min-h-[140px] border-[3px] border-ds-border p-6 hover:bg-ds-surface hover:border-ds-muted2 transition-all cursor-pointer group">
 						<KeyRound className="w-6 h-6 text-lime-600 dark:text-lime-400 mb-3" />
-						<div className="font-extrabold text-sm tracking-wider">API_KEYS</div>
+						<div className="font-extrabold text-sm tracking-wider">
+							API_KEYS
+						</div>
 						<div className="mt-1 block overflow-hidden text-ellipsis whitespace-nowrap text-ds-muted text-xs">
 							External integrations
 						</div>
@@ -119,7 +125,9 @@ function SettingsIndex() {
 				<Link to="/app/settings/api-docs">
 					<div className="h-full min-h-[140px] border-[3px] border-ds-border p-6 hover:bg-ds-surface hover:border-ds-muted2 transition-all cursor-pointer group">
 						<BookText className="w-6 h-6 text-cyan-600 dark:text-cyan-400 mb-3" />
-						<div className="font-extrabold text-sm tracking-wider">API_DOCS</div>
+						<div className="font-extrabold text-sm tracking-wider">
+							API_DOCS
+						</div>
 						<div className="mt-1 block overflow-hidden text-ellipsis whitespace-nowrap text-ds-muted text-xs">
 							REST + MCP setup
 						</div>
@@ -127,5 +135,5 @@ function SettingsIndex() {
 				</Link>
 			</div>
 		</div>
-	)
+	);
 }

@@ -1,30 +1,30 @@
 export type RestEndpointDoc = {
-	id: string
-	label: string
-	method: "GET" | "POST"
-	path: string
-	scope: string
-	description: string
-	queryHint?: string
-	bodyExample?: string
-	responseExample?: string
-}
+	id: string;
+	label: string;
+	method: "GET" | "POST";
+	path: string;
+	scope: string;
+	description: string;
+	queryHint?: string;
+	bodyExample?: string;
+	responseExample?: string;
+};
 
 export type McpMethodDoc = {
-	id: string
-	label: string
-	method: "initialize" | "tools/list" | "tools/call"
-	description: string
-	notes: string[]
-	payloadExample: string
-}
+	id: string;
+	label: string;
+	method: "initialize" | "tools/list" | "tools/call";
+	description: string;
+	notes: string[];
+	payloadExample: string;
+};
 
 export type McpToolDoc = {
-	name: string
-	requiredScope: string
-	access: "member" | "owner_or_admin"
-	description: string
-}
+	name: string;
+	requiredScope: string;
+	access: "member" | "owner_or_admin";
+	description: string;
+};
 
 export const REST_ENDPOINTS: RestEndpointDoc[] = [
 	{
@@ -118,7 +118,7 @@ export const REST_ENDPOINTS: RestEndpointDoc[] = [
 			"Aggregated stats for standups across selected range and optional team.",
 		queryHint: "rangeDays=30&orgId=<optional>&teamId=<optional>",
 	},
-]
+];
 
 export const MCP_METHODS: McpMethodDoc[] = [
 	{
@@ -192,7 +192,7 @@ export const MCP_METHODS: McpMethodDoc[] = [
 			2,
 		),
 	},
-]
+];
 
 export const MCP_TOOLS: McpToolDoc[] = [
 	{
@@ -267,4 +267,4 @@ export const MCP_TOOLS: McpToolDoc[] = [
 		access: "member",
 		description: "Get one team's standup history with limits.",
 	},
-]
+];

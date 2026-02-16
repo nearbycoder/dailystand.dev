@@ -92,6 +92,13 @@ SENTRY_AUTH_TOKEN=
 SENTRY_ORG=
 SENTRY_PROJECT=
 
+# Optional: enable PostHog
+VITE_PUBLIC_POSTHOG_KEY=phc_...
+VITE_PUBLIC_POSTHOG_HOST=https://us.i.posthog.com
+VITE_PUBLIC_POSTHOG_UI_HOST=https://us.posthog.com
+VITE_PUBLIC_POSTHOG_ENABLE_IN_DEV=false
+VITE_PUBLIC_POSTHOG_DEBUG=false
+
 # Optional: enable billing
 STRIPE_SECRET_KEY=sk_test_...
 STRIPE_WEBHOOK_SECRET=whsec_...
@@ -113,6 +120,7 @@ Notes:
 - If Resend env vars are missing, invite/reset links are not emailed and are logged server-side for local development.
 - `EMAIL_DIGEST_WORKFLOW_SECRET` secures the digest workflow endpoint (`/api/workflows/email-digests`).
 - Sentry is optional. Client + server instrumentation is enabled when DSN env vars are configured.
+- PostHog is optional. In development it is disabled by default unless `VITE_PUBLIC_POSTHOG_ENABLE_IN_DEV=true`.
 - Source map upload is enabled only when `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT` are provided.
 
 ### 3) Push schema

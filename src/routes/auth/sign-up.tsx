@@ -1,56 +1,72 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { useState } from "react"
-import { authClient } from "@/lib/auth-client"
-import { Terminal } from "lucide-react"
+import { usePostHog } from "@posthog/react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Terminal } from "lucide-react";
+import { useState } from "react";
+import { authClient } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/auth/sign-up")({
 	validateSearch: (search) => ({
 		invitationId:
-			typeof search.invitationId === "string"
-				? search.invitationId
-				: undefined,
+			typeof search.invitationId === "string" ? search.invitationId : undefined,
 		email: typeof search.email === "string" ? search.email : undefined,
 	}),
 	component: SignUp,
-})
+});
 
 function SignUp() {
-	const navigate = useNavigate()
-	const search = Route.useSearch()
-	const [name, setName] = useState("")
-	const [email, setEmail] = useState(search.email ?? "")
-	const [password, setPassword] = useState("")
-	const [error, setError] = useState("")
-	const [loading, setLoading] = useState(false)
+	const navigate = useNavigate();
+	const posthog = usePostHog();
+	const search = Route.useSearch();
+	const [name, setName] = useState("");
+	const [email, setEmail] = useState(search.email ?? "");
+	const [password, setPassword] = useState("");
+	const [error, setError] = useState("");
+	const [loading, setLoading] = useState(false);
 
 	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault()
-		setError("")
-		setLoading(true)
+		e.preventDefault();
+		setError("");
+		setLoading(true);
 
-		const result = await authClient.signUp.email({ name, email, password })
+		const result = await authClient.signUp.email({ name, email, password });
 
 		if (result.error) {
-			setError(result.error.message ?? "Sign up failed")
-			setLoading(false)
-			return
+			setError(result.error.message ?? "Sign up failed");
+			setLoading(false);
+			posthog.captureException(
+				new Error(result.error.message ?? "Sign up failed"),
+			);
+			return;
 		}
 
 		if (search.invitationId) {
 			const inviteResult = await authClient.organization.acceptInvitation({
 				invitationId: search.invitationId,
-			})
+			});
 			if (inviteResult.error) {
 				setError(
-					inviteResult.error.message ?? "Account created, but invite acceptance failed",
-				)
-				setLoading(false)
-				return
+					inviteResult.error.message ??
+						"Account created, but invite acceptance failed",
+				);
+				setLoading(false);
+				return;
 			}
 		}
 
-		navigate({ to: "/app" })
-	}
+		// Identify the new user and capture sign-up event
+		const userId = result.data?.user?.id;
+		if (userId) {
+			posthog.identify(userId, {
+				email: email,
+				name: name,
+			});
+		}
+		posthog.capture("user_signed_up", {
+			has_invitation: Boolean(search.invitationId),
+		});
+
+		navigate({ to: "/app" });
+	};
 
 	return (
 		<div className="min-h-screen bg-ds-bg text-ds-fg selection:bg-ds-selection-bg selection:text-ds-selection-fg font-mono flex items-center justify-center p-4 sm:p-6">
@@ -147,5 +163,5 @@ function SignUp() {
 				</div>
 			</div>
 		</div>
-	)
+	);
 }

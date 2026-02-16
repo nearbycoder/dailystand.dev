@@ -1,38 +1,38 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react"
+import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
-const DOCS_KEY_STORAGE_KEY = "ds_docs_api_key"
+const DOCS_KEY_STORAGE_KEY = "ds_docs_api_key";
 
 type DocsKeyContextValue = {
-	apiKey: string
-	setApiKey: (value: string) => void
-	showApiKey: boolean
-	setShowApiKey: (value: boolean) => void
-	baseUrl: string
-}
+	apiKey: string;
+	setApiKey: (value: string) => void;
+	showApiKey: boolean;
+	setShowApiKey: (value: boolean) => void;
+	baseUrl: string;
+};
 
-const DocsKeyContext = createContext<DocsKeyContextValue | null>(null)
+const DocsKeyContext = createContext<DocsKeyContextValue | null>(null);
 
 export function DocsKeyProvider({ children }: { children: React.ReactNode }) {
-	const [apiKey, setApiKeyState] = useState("")
-	const [showApiKey, setShowApiKey] = useState(false)
+	const [apiKey, setApiKeyState] = useState("");
+	const [showApiKey, setShowApiKey] = useState(false);
 
 	useEffect(() => {
-		if (typeof window === "undefined") return
-		const stored = window.sessionStorage.getItem(DOCS_KEY_STORAGE_KEY)
-		if (stored) setApiKeyState(stored)
-	}, [])
+		if (typeof window === "undefined") return;
+		const stored = window.sessionStorage.getItem(DOCS_KEY_STORAGE_KEY);
+		if (stored) setApiKeyState(stored);
+	}, []);
 
 	const setApiKey = (value: string) => {
-		setApiKeyState(value)
+		setApiKeyState(value);
 		if (typeof window !== "undefined") {
-			window.sessionStorage.setItem(DOCS_KEY_STORAGE_KEY, value)
+			window.sessionStorage.setItem(DOCS_KEY_STORAGE_KEY, value);
 		}
-	}
+	};
 
 	const baseUrl = useMemo(() => {
-		if (typeof window === "undefined") return "https://your-domain.com"
-		return window.location.origin
-	}, [])
+		if (typeof window === "undefined") return "https://your-domain.com";
+		return window.location.origin;
+	}, []);
 
 	return (
 		<DocsKeyContext.Provider
@@ -46,13 +46,13 @@ export function DocsKeyProvider({ children }: { children: React.ReactNode }) {
 		>
 			{children}
 		</DocsKeyContext.Provider>
-	)
+	);
 }
 
 export function useDocsKey() {
-	const context = useContext(DocsKeyContext)
+	const context = useContext(DocsKeyContext);
 	if (!context) {
-		throw new Error("useDocsKey must be used within DocsKeyProvider")
+		throw new Error("useDocsKey must be used within DocsKeyProvider");
 	}
-	return context
+	return context;
 }

@@ -1,57 +1,60 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router"
-import { useTRPC } from "@/integrations/trpc/react"
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { authClient } from "@/lib/auth-client"
-import { getLocalDateString } from "@/lib/date"
-import { useCallback, useEffect, useMemo, useRef, useState } from "react"
+import { usePostHog } from "@posthog/react";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import {
-	CheckCircle2,
-	Target,
 	AlertTriangle,
+	CheckCircle2,
 	Plus,
-	X,
 	Save,
-} from "lucide-react"
+	Target,
+	X,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useTRPC } from "@/integrations/trpc/react";
+import { authClient } from "@/lib/auth-client";
+import { getLocalDateString } from "@/lib/date";
 
 export const Route = createFileRoute("/app/standup")({
 	component: StandupForm,
-})
+});
 
-type SubmitMode = "same" | "different"
+type SubmitMode = "same" | "different";
 
 type StandupDraft = {
-	completed: string[]
-	planned: string[]
-	blockers: string[]
-}
+	completed: string[];
+	planned: string[];
+	blockers: string[];
+};
 
 type StandupSubmitEntry = {
-	type: "completed" | "planned" | "blocker"
-	content: string
-}
+	type: "completed" | "planned" | "blocker";
+	content: string;
+};
 
 function createEmptyDraft(): StandupDraft {
-	return { completed: [""], planned: [""], blockers: [""] }
+	return { completed: [""], planned: [""], blockers: [""] };
 }
 
-function draftFromEntries(entries: Array<{ type: string; content: string }>): StandupDraft {
+function draftFromEntries(
+	entries: Array<{ type: string; content: string }>,
+): StandupDraft {
 	const draft: StandupDraft = {
 		completed: [],
 		planned: [],
 		blockers: [],
-	}
+	};
 
 	for (const entry of entries) {
-		if (entry.type === "completed") draft.completed.push(entry.content)
-		else if (entry.type === "planned") draft.planned.push(entry.content)
-		else if (entry.type === "blocker") draft.blockers.push(entry.content)
+		if (entry.type === "completed") draft.completed.push(entry.content);
+		else if (entry.type === "planned") draft.planned.push(entry.content);
+		else if (entry.type === "blocker") draft.blockers.push(entry.content);
 	}
 
-	if (draft.completed.length === 0) draft.completed.push("")
-	if (draft.planned.length === 0) draft.planned.push("")
-	if (draft.blockers.length === 0) draft.blockers.push("")
+	if (draft.completed.length === 0) draft.completed.push("");
+	if (draft.planned.length === 0) draft.planned.push("");
+	if (draft.blockers.length === 0) draft.blockers.push("");
 
-	return draft
+	return draft;
 }
 
 function entriesFromDraft(draft: StandupDraft): StandupSubmitEntry[] {
@@ -65,105 +68,163 @@ function entriesFromDraft(draft: StandupDraft): StandupSubmitEntry[] {
 		...draft.blockers
 			.filter((value) => value.trim())
 			.map((content) => ({ type: "blocker" as const, content })),
-	]
+	];
 }
 
 function StandupForm() {
-	const trpc = useTRPC()
-	const navigate = useNavigate()
-	const queryClient = useQueryClient()
-	const today = useMemo(() => getLocalDateString(), [])
+	const trpc = useTRPC();
+	const navigate = useNavigate();
+	const posthog = usePostHog();
+	const queryClient = useQueryClient();
+	const today = useMemo(() => getLocalDateString(), []);
 
-	const { data: session } = authClient.useSession()
+	const { data: session } = authClient.useSession();
 	const { data: existing } = useQuery(
 		trpc.standups.getMyToday.queryOptions({ date: today }),
-	)
-	const { data: teams } = useQuery(trpc.teams.list.queryOptions())
+	);
+	const { data: teams } = useQuery(trpc.teams.list.queryOptions());
 
 	const userTeams = useMemo(() => {
-		const userId = session?.user?.id
-		if (!userId || !teams) return []
-		return teams.filter((team) => team.members.some((member) => member.id === userId))
-	}, [session?.user?.id, teams])
+		const userId = session?.user?.id;
+		if (!userId || !teams) return [];
+		return teams.filter((team) =>
+			team.members.some((member) => member.id === userId),
+		);
+	}, [session?.user?.id, teams]);
 
-	const userTeamIds = useMemo(() => userTeams.map((team) => team.id), [userTeams])
-	const hasMultipleTeams = userTeamIds.length > 1
+	const userTeamIds = useMemo(
+		() => userTeams.map((team) => team.id),
+		[userTeams],
+	);
+	const hasMultipleTeams = userTeamIds.length > 1;
 
-	const [mode, setMode] = useState<SubmitMode>("same")
-	const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([])
-	const [sharedDraft, setSharedDraft] = useState<StandupDraft>(createEmptyDraft)
-	const [teamDrafts, setTeamDrafts] = useState<Record<string, StandupDraft>>({})
-	const [submitError, setSubmitError] = useState("")
-	const [initialized, setInitialized] = useState(false)
+	const [mode, setMode] = useState<SubmitMode>("same");
+	const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([]);
+	const [sharedDraft, setSharedDraft] =
+		useState<StandupDraft>(createEmptyDraft);
+	const [teamDrafts, setTeamDrafts] = useState<Record<string, StandupDraft>>(
+		{},
+	);
+	const [submitError, setSubmitError] = useState("");
+	const [initialized, setInitialized] = useState(false);
 
 	useEffect(() => {
-		if (initialized) return
-		if (!session?.user?.id) return
-		if (existing === undefined || teams === undefined) return
+		if (initialized) return;
+		if (!session?.user?.id) return;
+		if (existing === undefined || teams === undefined) return;
 
-		const byScope = new Map<string, typeof existing>()
+		const byScope = new Map<string, typeof existing>();
 		for (const entry of existing) {
-			const scope = entry.teamId ?? "__GLOBAL__"
+			const scope = entry.teamId ?? "__GLOBAL__";
 			if (!byScope.has(scope)) {
-				byScope.set(scope, [])
+				byScope.set(scope, []);
 			}
-			byScope.get(scope)!.push(entry)
+			byScope.get(scope)!.push(entry);
 		}
 
-		const globalDraft = draftFromEntries(byScope.get("__GLOBAL__") ?? [])
-		const nextTeamDrafts: Record<string, StandupDraft> = {}
+		const globalDraft = draftFromEntries(byScope.get("__GLOBAL__") ?? []);
+		const nextTeamDrafts: Record<string, StandupDraft> = {};
 
 		for (const [scope, scopeEntries] of byScope.entries()) {
-			if (scope === "__GLOBAL__") continue
-			nextTeamDrafts[scope] = draftFromEntries(scopeEntries)
+			if (scope === "__GLOBAL__") continue;
+			nextTeamDrafts[scope] = draftFromEntries(scopeEntries);
 		}
 
 		const teamDraftIds = Object.keys(nextTeamDrafts).filter((id) =>
 			userTeamIds.includes(id),
-		)
-		const nextSelected = teamDraftIds.length > 0 ? teamDraftIds : userTeamIds
-		setSelectedTeamIds(nextSelected)
-		setTeamDrafts(nextTeamDrafts)
+		);
+		const nextSelected = teamDraftIds.length > 0 ? teamDraftIds : userTeamIds;
+		setSelectedTeamIds(nextSelected);
+		setTeamDrafts(nextTeamDrafts);
 
 		if (byScope.has("__GLOBAL__")) {
-			setSharedDraft(globalDraft)
+			setSharedDraft(globalDraft);
 		} else if (teamDraftIds.length > 0) {
-			setSharedDraft(nextTeamDrafts[teamDraftIds[0]] ?? createEmptyDraft())
+			setSharedDraft(nextTeamDrafts[teamDraftIds[0]] ?? createEmptyDraft());
 		} else {
-			setSharedDraft(createEmptyDraft())
+			setSharedDraft(createEmptyDraft());
 		}
 
 		if (
 			teamDraftIds.length > 1 ||
-			(teamDraftIds.length === 1 && !byScope.has("__GLOBAL__") && hasMultipleTeams)
+			(teamDraftIds.length === 1 &&
+				!byScope.has("__GLOBAL__") &&
+				hasMultipleTeams)
 		) {
-			setMode("different")
+			setMode("different");
 		}
 
-		setInitialized(true)
-	}, [existing, teams, initialized, userTeamIds, hasMultipleTeams, session?.user?.id])
+		setInitialized(true);
+	}, [
+		existing,
+		teams,
+		initialized,
+		userTeamIds,
+		hasMultipleTeams,
+		session?.user?.id,
+	]);
 
 	const batchUpsert = useMutation(
 		trpc.standups.upsertBatch.mutationOptions({
-			onSuccess: () => {
-				queryClient.invalidateQueries()
-				navigate({ to: "/app/history" })
+			onSuccess: (_data, variables) => {
+				// Track standup submitted event
+				const submissions = variables.submissions ?? [];
+				const totalEntries = submissions.reduce(
+					(sum, submission) => sum + submission.entries.length,
+					0,
+				);
+				const completedCount = submissions.reduce(
+					(sum, submission) =>
+						sum +
+						submission.entries.filter((entry) => entry.type === "completed")
+							.length,
+					0,
+				);
+				const plannedCount = submissions.reduce(
+					(sum, submission) =>
+						sum +
+						submission.entries.filter((entry) => entry.type === "planned")
+							.length,
+					0,
+				);
+				const blockerCount = submissions.reduce(
+					(sum, submission) =>
+						sum +
+						submission.entries.filter((entry) => entry.type === "blocker")
+							.length,
+					0,
+				);
+				posthog.capture("standup_submitted", {
+					date: variables.date,
+					total_entries: totalEntries,
+					completed_count: completedCount,
+					planned_count: plannedCount,
+					blocker_count: blockerCount,
+					team_count: submissions.length,
+					mode: mode,
+					is_update: existing && existing.length > 0,
+				});
+				queryClient.invalidateQueries();
+				navigate({ to: "/app/history" });
 			},
 			onError: (error) => {
-				setSubmitError(error.message || "Failed to save standup")
+				setSubmitError(error.message || "Failed to save standup");
+				posthog.captureException(
+					new Error(error.message || "Failed to save standup"),
+				);
 			},
 		}),
-	)
+	);
 
 	const updateSharedSection = useCallback(
 		(section: keyof StandupDraft, items: string[]) => {
 			setSharedDraft((prev) => ({
 				...prev,
 				[section]: items,
-			}))
+			}));
 		},
 		[],
-	)
+	);
 
 	const updateTeamSection = useCallback(
 		(teamId: string, section: keyof StandupDraft, items: string[]) => {
@@ -173,43 +234,43 @@ function StandupForm() {
 					...(prev[teamId] ?? createEmptyDraft()),
 					[section]: items,
 				},
-			}))
+			}));
 		},
 		[],
-	)
+	);
 
 	const toggleTeamSelection = (teamId: string) => {
 		setSelectedTeamIds((prev) =>
 			prev.includes(teamId)
 				? prev.filter((id) => id !== teamId)
 				: [...prev, teamId],
-		)
-	}
+		);
+	};
 
 	const selectedTeams = useMemo(
 		() => userTeams.filter((team) => selectedTeamIds.includes(team.id)),
 		[userTeams, selectedTeamIds],
-	)
+	);
 
 	const doSubmit = useCallback(() => {
-		setSubmitError("")
+		setSubmitError("");
 
 		let submissions: Array<{
-			teamId: string | null
-			entries: StandupSubmitEntry[]
-		}> = []
-		let managedScopes: Array<string | null> = [null]
+			teamId: string | null;
+			entries: StandupSubmitEntry[];
+		}> = [];
+		let managedScopes: Array<string | null> = [null];
 
 		if (userTeamIds.length === 0) {
-			submissions = [{ teamId: null, entries: entriesFromDraft(sharedDraft) }]
+			submissions = [{ teamId: null, entries: entriesFromDraft(sharedDraft) }];
 		} else if (mode === "same") {
 			if (selectedTeamIds.length === 0) {
-				setSubmitError("Select at least one team to submit for.")
-				return
+				setSubmitError("Select at least one team to submit for.");
+				return;
 			}
 
-			const sharedEntries = entriesFromDraft(sharedDraft)
-			const allTeamsSelected = selectedTeamIds.length === userTeamIds.length
+			const sharedEntries = entriesFromDraft(sharedDraft);
+			const allTeamsSelected = selectedTeamIds.length === userTeamIds.length;
 
 			submissions =
 				allTeamsSelected && userTeamIds.length > 1
@@ -217,29 +278,29 @@ function StandupForm() {
 					: selectedTeamIds.map((teamId) => ({
 							teamId,
 							entries: sharedEntries,
-						}))
+						}));
 			managedScopes =
 				allTeamsSelected && userTeamIds.length > 1
 					? [null, ...userTeamIds]
-					: [null, ...selectedTeamIds]
+					: [null, ...selectedTeamIds];
 		} else {
 			if (selectedTeamIds.length === 0) {
-				setSubmitError("Select at least one team to submit for.")
-				return
+				setSubmitError("Select at least one team to submit for.");
+				return;
 			}
 
 			submissions = selectedTeamIds.map((teamId) => ({
 				teamId,
 				entries: entriesFromDraft(teamDrafts[teamId] ?? createEmptyDraft()),
-			}))
-			managedScopes = [null, ...selectedTeamIds]
+			}));
+			managedScopes = [null, ...selectedTeamIds];
 		}
 
 		batchUpsert.mutate({
 			date: today,
 			replaceScopes: managedScopes,
 			submissions,
-		})
+		});
 	}, [
 		batchUpsert,
 		mode,
@@ -248,27 +309,27 @@ function StandupForm() {
 		teamDrafts,
 		today,
 		userTeamIds,
-	])
+	]);
 
 	const handleSubmit = (e: React.FormEvent) => {
-		e.preventDefault()
-		doSubmit()
-	}
+		e.preventDefault();
+		doSubmit();
+	};
 
 	// Cmd/Ctrl+Enter to submit from anywhere in the form.
 	useEffect(() => {
 		const handler = (e: KeyboardEvent) => {
 			if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
-				e.preventDefault()
-				doSubmit()
+				e.preventDefault();
+				doSubmit();
 			}
-		}
-		document.addEventListener("keydown", handler)
-		return () => document.removeEventListener("keydown", handler)
-	}, [doSubmit])
+		};
+		document.addEventListener("keydown", handler);
+		return () => document.removeEventListener("keydown", handler);
+	}, [doSubmit]);
 
 	const isMac =
-		typeof navigator !== "undefined" && navigator.platform.includes("Mac")
+		typeof navigator !== "undefined" && navigator.platform.includes("Mac");
 
 	const submitLabel =
 		userTeamIds.length === 0
@@ -277,9 +338,10 @@ function StandupForm() {
 				: "SUBMIT_STANDUP"
 			: mode === "different"
 				? "SUBMIT_TEAM_STANDUPS"
-				: selectedTeamIds.length === userTeamIds.length && userTeamIds.length > 1
+				: selectedTeamIds.length === userTeamIds.length &&
+						userTeamIds.length > 1
 					? "SUBMIT_SAME_FOR_ALL_TEAMS"
-					: "SUBMIT_SAME_FOR_SELECTED"
+					: "SUBMIT_SAME_FOR_SELECTED";
 
 	return (
 		<div className="mx-auto w-full max-w-[1200px] px-4 py-5 sm:p-6">
@@ -361,7 +423,9 @@ function StandupForm() {
 					<>
 						<EntrySection
 							stacked={false}
-							icon={<CheckCircle2 className="w-4 h-4 text-lime-500 dark:text-lime-400" />}
+							icon={
+								<CheckCircle2 className="w-4 h-4 text-lime-500 dark:text-lime-400" />
+							}
 							title="COMPLETED"
 							color="lime"
 							items={sharedDraft.completed}
@@ -369,7 +433,9 @@ function StandupForm() {
 							placeholder="Finished the API integration..."
 						/>
 						<EntrySection
-							icon={<Target className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />}
+							icon={
+								<Target className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
+							}
 							title="PLANNED"
 							color="cyan"
 							items={sharedDraft.planned}
@@ -377,7 +443,9 @@ function StandupForm() {
 							placeholder="Start building the dashboard..."
 						/>
 						<EntrySection
-							icon={<AlertTriangle className="w-4 h-4 text-red-500 dark:text-red-400" />}
+							icon={
+								<AlertTriangle className="w-4 h-4 text-red-500 dark:text-red-400" />
+							}
 							title="BLOCKERS"
 							color="red"
 							items={sharedDraft.blockers}
@@ -388,7 +456,7 @@ function StandupForm() {
 				) : selectedTeams.length > 0 ? (
 					<div className="space-y-6">
 						{selectedTeams.map((team) => {
-							const teamDraft = teamDrafts[team.id] ?? createEmptyDraft()
+							const teamDraft = teamDrafts[team.id] ?? createEmptyDraft();
 							return (
 								<div
 									key={team.id}
@@ -399,7 +467,9 @@ function StandupForm() {
 									</div>
 									<EntrySection
 										stacked={false}
-										icon={<CheckCircle2 className="w-4 h-4 text-lime-500 dark:text-lime-400" />}
+										icon={
+											<CheckCircle2 className="w-4 h-4 text-lime-500 dark:text-lime-400" />
+										}
 										title="COMPLETED"
 										color="lime"
 										items={teamDraft.completed}
@@ -409,7 +479,9 @@ function StandupForm() {
 										placeholder="Finished the API integration..."
 									/>
 									<EntrySection
-										icon={<Target className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />}
+										icon={
+											<Target className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />
+										}
 										title="PLANNED"
 										color="cyan"
 										items={teamDraft.planned}
@@ -419,7 +491,9 @@ function StandupForm() {
 										placeholder="Start building the dashboard..."
 									/>
 									<EntrySection
-										icon={<AlertTriangle className="w-4 h-4 text-red-500 dark:text-red-400" />}
+										icon={
+											<AlertTriangle className="w-4 h-4 text-red-500 dark:text-red-400" />
+										}
 										title="BLOCKERS"
 										color="red"
 										items={teamDraft.blockers}
@@ -429,7 +503,7 @@ function StandupForm() {
 										placeholder="Waiting on design review..."
 									/>
 								</div>
-							)
+							);
 						})}
 					</div>
 				) : (
@@ -459,7 +533,7 @@ function StandupForm() {
 				</div>
 			</form>
 		</div>
-	)
+	);
 }
 
 function EntrySection({
@@ -471,71 +545,71 @@ function EntrySection({
 	placeholder,
 	stacked = true,
 }: {
-	icon: React.ReactNode
-	title: string
-	color: string
-	items: string[]
-	onChange: (items: string[]) => void
-	placeholder: string
-	stacked?: boolean
+	icon: React.ReactNode;
+	title: string;
+	color: string;
+	items: string[];
+	onChange: (items: string[]) => void;
+	placeholder: string;
+	stacked?: boolean;
 }) {
-	const inputRefs = useRef<(HTMLInputElement | null)[]>([])
+	const inputRefs = useRef<(HTMLInputElement | null)[]>([]);
 
 	const focusItem = useCallback((index: number) => {
 		requestAnimationFrame(() => {
-			inputRefs.current[index]?.focus()
-		})
-	}, [])
+			inputRefs.current[index]?.focus();
+		});
+	}, []);
 
 	const addItem = (afterIndex?: number) => {
-		const insertAt = afterIndex !== undefined ? afterIndex + 1 : items.length
-		const newItems = [...items]
-		newItems.splice(insertAt, 0, "")
-		onChange(newItems)
-		focusItem(insertAt)
-	}
+		const insertAt = afterIndex !== undefined ? afterIndex + 1 : items.length;
+		const newItems = [...items];
+		newItems.splice(insertAt, 0, "");
+		onChange(newItems);
+		focusItem(insertAt);
+	};
 
 	const removeItem = (index: number) => {
 		if (items.length <= 1) {
-			onChange([""])
-			focusItem(0)
-			return
+			onChange([""]);
+			focusItem(0);
+			return;
 		}
-		onChange(items.filter((_, i) => i !== index))
-		focusItem(Math.max(0, index - 1))
-	}
+		onChange(items.filter((_, i) => i !== index));
+		focusItem(Math.max(0, index - 1));
+	};
 
 	const updateItem = (index: number, value: string) => {
-		const newItems = [...items]
-		newItems[index] = value
-		onChange(newItems)
-	}
+		const newItems = [...items];
+		newItems[index] = value;
+		onChange(newItems);
+	};
 
 	const handleKeyDown = (e: React.KeyboardEvent, index: number) => {
 		if (e.key === "Enter") {
-			e.preventDefault()
-			addItem(index)
+			e.preventDefault();
+			addItem(index);
 		} else if (
 			e.key === "Backspace" &&
 			items[index] === "" &&
 			items.length > 1
 		) {
-			e.preventDefault()
-			removeItem(index)
+			e.preventDefault();
+			removeItem(index);
 		} else if (e.key === "ArrowDown") {
-			e.preventDefault()
-			if (index < items.length - 1) focusItem(index + 1)
+			e.preventDefault();
+			if (index < items.length - 1) focusItem(index + 1);
 		} else if (e.key === "ArrowUp") {
-			e.preventDefault()
-			if (index > 0) focusItem(index - 1)
+			e.preventDefault();
+			if (index > 0) focusItem(index - 1);
 		}
-	}
+	};
 
 	const colorClasses: Record<string, string> = {
 		lime: "text-lime-600 dark:text-lime-400",
 		cyan: "text-cyan-600 dark:text-cyan-400",
 		red: "text-red-500 dark:text-red-400",
-	}
+	};
 
 	return (
 		<div
@@ -555,10 +629,12 @@ function EntrySection({
 			<div className="space-y-2">
 				{items.map((item, index) => (
 					<div key={index} className="group flex items-start gap-2">
-						<span className="pt-2 text-sm font-mono text-ds-text-tertiary">&gt;</span>
+						<span className="pt-2 text-sm font-mono text-ds-text-tertiary">
+							&gt;
+						</span>
 						<input
 							ref={(el) => {
-								inputRefs.current[index] = el
+								inputRefs.current[index] = el;
 							}}
 							value={item}
 							onChange={(e) => updateItem(index, e.target.value)}
@@ -586,5 +662,5 @@ function EntrySection({
 				</button>
 			</div>
 		</div>
-	)
+	);
 }

@@ -1,9 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router"
-import { Copy } from "lucide-react"
-import { toast } from "sonner"
-import { useDocsKey } from "@/components/docs/docs-key-context"
-import { REST_ENDPOINTS, type RestEndpointDoc } from "@/lib/docs-content"
-import { buildPageSeo } from "@/lib/seo"
+import { createFileRoute } from "@tanstack/react-router";
+import { Copy } from "lucide-react";
+import { toast } from "sonner";
+import { useDocsKey } from "@/components/docs/docs-key-context";
+import { REST_ENDPOINTS, type RestEndpointDoc } from "@/lib/docs-content";
+import { buildPageSeo } from "@/lib/seo";
 
 const docsRestSeo = buildPageSeo({
 	title: "REST API Reference | DailyStand Docs",
@@ -11,43 +11,43 @@ const docsRestSeo = buildPageSeo({
 		"Endpoint reference for the DailyStand standup API, including auth headers, request payloads, and cURL examples.",
 	path: "/docs/rest",
 	ogPage: "docs",
-})
+});
 
 export const Route = createFileRoute("/docs/rest")({
 	component: DocsRestPage,
 	head: () => ({ meta: docsRestSeo.meta, links: docsRestSeo.links }),
-})
+});
 
 function buildCurlSnippet(
 	endpoint: RestEndpointDoc,
 	baseUrl: string,
 	key: string,
 ): string {
-	const query = endpoint.queryHint ? `?${endpoint.queryHint}` : ""
+	const query = endpoint.queryHint ? `?${endpoint.queryHint}` : "";
 	if (endpoint.method === "GET") {
 		return `curl -s "${baseUrl}${endpoint.path}${query}" \\
-  -H "x-api-key: ${key}"`
+  -H "x-api-key: ${key}"`;
 	}
 
-	const body = endpoint.bodyExample ?? "{}"
+	const body = endpoint.bodyExample ?? "{}";
 	return `curl -s -X POST "${baseUrl}${endpoint.path}" \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: ${key}" \\
-  -d '${body}'`
+  -d '${body}'`;
 }
 
 function DocsRestPage() {
-	const { apiKey, baseUrl } = useDocsKey()
-	const key = apiKey.trim() || "YOUR_API_KEY"
+	const { apiKey, baseUrl } = useDocsKey();
+	const key = apiKey.trim() || "YOUR_API_KEY";
 
 	const copySnippet = async (snippet: string) => {
 		try {
-			await navigator.clipboard.writeText(snippet)
-			toast.success("cURL copied")
+			await navigator.clipboard.writeText(snippet);
+			toast.success("cURL copied");
 		} catch {
-			toast.error("Clipboard unavailable")
+			toast.error("Clipboard unavailable");
 		}
-	}
+	};
 
 	return (
 		<div className="space-y-6">
@@ -95,7 +95,7 @@ function DocsRestPage() {
 
 			<div className="space-y-4">
 				{REST_ENDPOINTS.map((endpoint) => {
-					const snippet = buildCurlSnippet(endpoint, baseUrl, key)
+					const snippet = buildCurlSnippet(endpoint, baseUrl, key);
 					return (
 						<section
 							key={endpoint.id}
@@ -141,13 +141,13 @@ function DocsRestPage() {
 									COPY
 								</button>
 								<pre className="overflow-x-auto border-[2px] border-ds-border bg-ds-surface p-4 pr-4 text-[11px] leading-relaxed text-ds-fg sm:pr-20 sm:text-xs">
-{snippet}
+									{snippet}
 								</pre>
 							</div>
 						</section>
-					)
+					);
 				})}
 			</div>
 		</div>
-	)
+	);
 }

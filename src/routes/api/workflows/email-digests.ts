@@ -101,12 +101,12 @@ export const Route = createFileRoute("/api/workflows/email-digests")({
 				if (!secret || !secretsMatch(secret, provided)) return unauthorized();
 
 				let cadence: "daily" | "weekly" | "all" = "all";
-				if (
-					request.headers.get("content-type")?.includes("application/json")
-				) {
+				if (request.headers.get("content-type")?.includes("application/json")) {
 					const parsed = bodySchema.safeParse(await request.json());
 					if (!parsed.success) {
-						return badRequest("Invalid body. cadence must be daily, weekly, or all.");
+						return badRequest(
+							"Invalid body. cadence must be daily, weekly, or all.",
+						);
 					}
 					cadence = parsed.data?.cadence ?? "all";
 				}

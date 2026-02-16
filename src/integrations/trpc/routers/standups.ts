@@ -140,8 +140,10 @@ function teamScopeCondition(teamId: string | null) {
 }
 
 function teamOrGeneralScopeCondition(teamId: string) {
-	return or(eq(standupEntry.teamId, teamId), isNull(standupEntry.teamId)) ??
-		teamScopeCondition(teamId);
+	return (
+		or(eq(standupEntry.teamId, teamId), isNull(standupEntry.teamId)) ??
+		teamScopeCondition(teamId)
+	);
 }
 
 function chooseEntriesForTeam<T extends { teamId: string | null }>(
@@ -236,7 +238,10 @@ async function assertActorCanReadTeamScope(
 	const [targetTeam, organizationMembership, scopedTeamMembership] =
 		await Promise.all([
 			db.query.team.findFirst({
-				where: and(eq(team.id, teamId), eq(team.organizationId, organizationId)),
+				where: and(
+					eq(team.id, teamId),
+					eq(team.organizationId, organizationId),
+				),
 				columns: { id: true },
 			}),
 			db.query.member.findFirst({
@@ -247,7 +252,10 @@ async function assertActorCanReadTeamScope(
 				columns: { role: true },
 			}),
 			db.query.teamMember.findFirst({
-				where: and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)),
+				where: and(
+					eq(teamMember.teamId, teamId),
+					eq(teamMember.userId, userId),
+				),
 				columns: { teamId: true },
 			}),
 		]);

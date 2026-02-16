@@ -1,55 +1,70 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router"
-import { useState } from "react"
-import { authClient } from "@/lib/auth-client"
-import { Terminal } from "lucide-react"
+import { usePostHog } from "@posthog/react";
+import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { Terminal } from "lucide-react";
+import { useState } from "react";
+import { authClient } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/auth/sign-in")({
 	validateSearch: (search) => ({
 		invitationId:
-			typeof search.invitationId === "string"
-				? search.invitationId
-				: undefined,
+			typeof search.invitationId === "string" ? search.invitationId : undefined,
 		email: typeof search.email === "string" ? search.email : undefined,
 	}),
 	component: SignIn,
-})
+});
 
 function SignIn() {
-	const navigate = useNavigate()
-	const search = Route.useSearch()
-	const [email, setEmail] = useState(search.email ?? "")
-	const [password, setPassword] = useState("")
-	const [error, setError] = useState("")
-	const [loading, setLoading] = useState(false)
+	const navigate = useNavigate();
+	const posthog = usePostHog();
+	const search = Route.useSearch();
+	const [email, setEmail] = useState(search.email ?? "");
+	const [password, setPassword] = useState("");
+	const [error, setError] = useState("");
+	const [loading, setLoading] = useState(false);
 
 	const handleSubmit = async (e: React.FormEvent) => {
-		e.preventDefault()
-		setError("")
-		setLoading(true)
+		e.preventDefault();
+		setError("");
+		setLoading(true);
 
-		const result = await authClient.signIn.email({ email, password })
+		const result = await authClient.signIn.email({ email, password });
 
 		if (result.error) {
-			setError(result.error.message ?? "Sign in failed")
-			setLoading(false)
-			return
+			setError(result.error.message ?? "Sign in failed");
+			setLoading(false);
+			posthog.captureException(
+				new Error(result.error.message ?? "Sign in failed"),
+			);
+			return;
 		}
 
 		if (search.invitationId) {
 			const inviteResult = await authClient.organization.acceptInvitation({
 				invitationId: search.invitationId,
-			})
+			});
 			if (inviteResult.error) {
 				setError(
-					inviteResult.error.message ?? "Signed in, but invite acceptance failed",
-				)
-				setLoading(false)
-				return
+					inviteResult.error.message ??
+						"Signed in, but invite acceptance failed",
+				);
+				setLoading(false);
+				return;
 			}
 		}
 
-		navigate({ to: "/app" })
-	}
+		// Identify the user and capture sign-in event
+		const userId = result.data?.user?.id;
+		if (userId) {
+			posthog.identify(userId, {
+				email: email,
+			});
+		}
+		posthog.capture("user_signed_in", {
+			has_invitation: Boolean(search.invitationId),
+		});
+
+		navigate({ to: "/app" });
+	};
 
 	return (
 		<div className="min-h-screen bg-ds-bg text-ds-fg selection:bg-ds-selection-bg selection:text-ds-selection-fg font-mono flex items-center justify-center p-4 sm:p-6">
@@ -70,8 +85,8 @@ function SignIn() {
 					</p>
 					{search.invitationId && (
 						<p className="mb-8 border border-ds-accent/50 bg-ds-accent/10 p-3 text-xs text-ds-accent">
-							You were invited to join a team. Sign in with the invited email
-							to accept access automatically.
+							You were invited to join a team. Sign in with the invited email to
+							accept access automatically.
 						</p>
 					)}
 
@@ -139,5 +154,5 @@ function SignIn() {
 				</div>
 			</div>
 		</div>
-	)
+	);
 }

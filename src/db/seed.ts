@@ -442,16 +442,13 @@ async function seedDemoOrg(hashedPassword: string) {
 		const memberCount = Array.from(userTeams.values()).filter((memberships) =>
 			memberships.includes(teamIds[t]),
 		).length;
-		console.log(
-			`  Team ${DEMO_TEAMS[t]} members: ${memberCount}`,
-		);
+		console.log(`  Team ${DEMO_TEAMS[t]} members: ${memberCount}`);
 	}
 
 	await db.insert(schema.emailDigestPreference).values(
 		userIds.map((userId, index) => {
 			const enabled = index % 6 !== 5;
-			const cadence: "daily" | "weekly" =
-				index % 3 === 0 ? "daily" : "weekly";
+			const cadence: "daily" | "weekly" = index % 3 === 0 ? "daily" : "weekly";
 			return {
 				userId,
 				organizationId: orgId,
@@ -520,7 +517,9 @@ async function seedDemoOrg(hashedPassword: string) {
 			const memberships = userTeams.get(userIds[u]) ?? [];
 			if (memberships.length === 0) continue;
 
-			const teamTargets = new Set<string>([memberships[day % memberships.length]]);
+			const teamTargets = new Set<string>([
+				memberships[day % memberships.length],
+			]);
 			if (memberships.length > 1 && (day % 2 === 0 || Math.random() < 0.45)) {
 				teamTargets.add(memberships[(day + 1) % memberships.length]);
 			}

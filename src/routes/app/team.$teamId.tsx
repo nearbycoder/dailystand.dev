@@ -1,44 +1,44 @@
-import { createFileRoute } from "@tanstack/react-router"
-import { useTRPC } from "@/integrations/trpc/react"
-import { useQuery } from "@tanstack/react-query"
-import { AutoLinkText } from "@/components/auto-link-text"
-import { useState, useMemo } from "react"
+import { useQuery } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
 import {
-	CheckCircle2,
-	Target,
 	AlertTriangle,
-	Users,
+	Check,
+	CheckCircle2,
 	ChevronLeft,
 	ChevronRight,
 	ChevronsLeft,
 	Copy,
-	Check,
-} from "lucide-react"
+	Target,
+	Users,
+} from "lucide-react";
+import { useMemo, useState } from "react";
+import { AutoLinkText } from "@/components/auto-link-text";
+import { useTRPC } from "@/integrations/trpc/react";
 
 export const Route = createFileRoute("/app/team/$teamId")({
 	component: TeamView,
-})
+});
 
-const PAGE_SIZE = 5 // days per page
+const PAGE_SIZE = 5; // days per page
 
 type TeamDayStandup = {
-	user: { id: string; name: string; image: string | null }
-	completed: string[]
-	planned: string[]
-	blockers: string[]
-}
+	user: { id: string; name: string; image: string | null };
+	completed: string[];
+	planned: string[];
+	blockers: string[];
+};
 
 function formatDateHeading(dateStr: string): string {
-	const date = new Date(dateStr + "T12:00:00")
-	const today = new Date()
-	const yesterday = new Date()
-	yesterday.setDate(today.getDate() - 1)
+	const date = new Date(dateStr + "T12:00:00");
+	const today = new Date();
+	const yesterday = new Date();
+	yesterday.setDate(today.getDate() - 1);
 
-	const todayStr = today.toISOString().split("T")[0]
-	const yesterdayStr = yesterday.toISOString().split("T")[0]
+	const todayStr = today.toISOString().split("T")[0];
+	const yesterdayStr = yesterday.toISOString().split("T")[0];
 
-	if (dateStr === todayStr) return "TODAY"
-	if (dateStr === yesterdayStr) return "YESTERDAY"
+	if (dateStr === todayStr) return "TODAY";
+	if (dateStr === yesterdayStr) return "YESTERDAY";
 
 	return date
 		.toLocaleDateString("en-US", {
@@ -46,34 +46,34 @@ function formatDateHeading(dateStr: string): string {
 			month: "short",
 			day: "numeric",
 		})
-		.toUpperCase()
+		.toUpperCase();
 }
 
 function formatDateSub(dateStr: string): string {
-	const date = new Date(dateStr + "T12:00:00")
+	const date = new Date(dateStr + "T12:00:00");
 	return date.toLocaleDateString("en-US", {
 		weekday: "long",
 		year: "numeric",
 		month: "long",
 		day: "numeric",
-	})
+	});
 }
 
 function getDateRange(page: number): { startDate: string; endDate: string } {
-	const end = new Date()
-	end.setDate(end.getDate() - page * PAGE_SIZE)
-	const start = new Date(end)
-	start.setDate(start.getDate() - (PAGE_SIZE - 1))
+	const end = new Date();
+	end.setDate(end.getDate() - page * PAGE_SIZE);
+	const start = new Date(end);
+	start.setDate(start.getDate() - (PAGE_SIZE - 1));
 
 	return {
 		startDate: start.toISOString().split("T")[0],
 		endDate: end.toISOString().split("T")[0],
-	}
+	};
 }
 
 function getSectionMarkdown(label: string, items: string[]): string[] {
-	if (items.length === 0) return []
-	return [label, ...items.map((item) => `- ${item}`), ""]
+	if (items.length === 0) return [];
+	return [label, ...items.map((item) => `- ${item}`), ""];
 }
 
 function buildDayMarkdown({
@@ -81,27 +81,27 @@ function buildDayMarkdown({
 	date,
 	standups,
 }: {
-	teamName: string
-	date: string
-	standups: TeamDayStandup[]
+	teamName: string;
+	date: string;
+	standups: TeamDayStandup[];
 }): string {
-	const headingDate = formatDateSub(date)
-	const lines: string[] = [`# ${teamName} - ${headingDate}`, ""]
+	const headingDate = formatDateSub(date);
+	const lines: string[] = [`# ${teamName} - ${headingDate}`, ""];
 
 	const sortedStandups = [...standups].sort((a, b) =>
 		a.user.name.localeCompare(b.user.name),
-	)
+	);
 
 	for (const standup of sortedStandups) {
-		lines.push(`## ${standup.user.name}`)
+		lines.push(`## ${standup.user.name}`);
 		lines.push(
 			...getSectionMarkdown("### Completed", standup.completed),
 			...getSectionMarkdown("### Planned", standup.planned),
 			...getSectionMarkdown("### Blockers", standup.blockers),
-		)
+		);
 	}
 
-	return lines.join("\n").trim()
+	return lines.join("\n").trim();
 }
 
 async function copyTextToClipboard(text: string) {
@@ -110,35 +110,35 @@ async function copyTextToClipboard(text: string) {
 		navigator.clipboard &&
 		typeof navigator.clipboard.writeText === "function"
 	) {
-		await navigator.clipboard.writeText(text)
-		return
+		await navigator.clipboard.writeText(text);
+		return;
 	}
 
 	if (typeof document === "undefined") {
-		throw new Error("Clipboard unavailable")
+		throw new Error("Clipboard unavailable");
 	}
 
-	const textarea = document.createElement("textarea")
-	textarea.value = text
-	textarea.setAttribute("readonly", "")
-	textarea.style.position = "fixed"
-	textarea.style.left = "-9999px"
-	document.body.appendChild(textarea)
-	textarea.select()
+	const textarea = document.createElement("textarea");
+	textarea.value = text;
+	textarea.setAttribute("readonly", "");
+	textarea.style.position = "fixed";
+	textarea.style.left = "-9999px";
+	document.body.appendChild(textarea);
+	textarea.select();
 
-	const copied = document.execCommand("copy")
-	document.body.removeChild(textarea)
-	if (!copied) throw new Error("Failed to copy markdown")
+	const copied = document.execCommand("copy");
+	document.body.removeChild(textarea);
+	if (!copied) throw new Error("Failed to copy markdown");
 }
 
 function TeamView() {
-	const { teamId } = Route.useParams()
-	const trpc = useTRPC()
-	const [page, setPage] = useState(0)
+	const { teamId } = Route.useParams();
+	const trpc = useTRPC();
+	const [page, setPage] = useState(0);
 
-	const { startDate, endDate } = useMemo(() => getDateRange(page), [page])
+	const { startDate, endDate } = useMemo(() => getDateRange(page), [page]);
 
-	const { data: teams } = useQuery(trpc.teams.list.queryOptions())
+	const { data: teams } = useQuery(trpc.teams.list.queryOptions());
 	const {
 		data: timelineData,
 		isLoading,
@@ -151,42 +151,42 @@ function TeamView() {
 			teamId,
 		}),
 		retry: false,
-	})
+	});
 	const { data: members } = useQuery(
 		trpc.teams.getMembers.queryOptions({ teamId }),
-	)
+	);
 
-	const team = teams?.find((t) => t.id === teamId)
+	const team = teams?.find((t) => t.id === teamId);
 
 	// Build all dates in range (so empty days show too)
 	const allDates = useMemo(() => {
-		const dates: string[] = []
-		const cur = new Date(endDate + "T12:00:00")
-		const stop = new Date(startDate + "T12:00:00")
+		const dates: string[] = [];
+		const cur = new Date(endDate + "T12:00:00");
+		const stop = new Date(startDate + "T12:00:00");
 		while (cur >= stop) {
-			dates.push(cur.toISOString().split("T")[0])
-			cur.setDate(cur.getDate() - 1)
+			dates.push(cur.toISOString().split("T")[0]);
+			cur.setDate(cur.getDate() - 1);
 		}
-		return dates
-	}, [startDate, endDate])
+		return dates;
+	}, [startDate, endDate]);
 
 	const dataByDate = useMemo(() => {
 		const map = new Map<
 			string,
 			{
-				user: { id: string; name: string; image: string | null }
-				completed: string[]
-				planned: string[]
-				blockers: string[]
+				user: { id: string; name: string; image: string | null };
+				completed: string[];
+				planned: string[];
+				blockers: string[];
 			}[]
-		>()
+		>();
 		if (timelineData) {
 			for (const day of timelineData) {
-				map.set(day.date, day.standups)
+				map.set(day.date, day.standups);
 			}
 		}
-		return map
-	}, [timelineData])
+		return map;
+	}, [timelineData]);
 
 	return (
 		<div className="mx-auto w-full max-w-[1200px] px-4 py-5 sm:p-6">
@@ -278,27 +278,27 @@ function TeamView() {
 						: "Unable to load team standups."}
 				</div>
 			) : (
-					<div className="space-y-0">
-						{allDates.map((date) => {
-							const standups = dataByDate.get(date)
-							return (
-								<DaySection
+				<div className="space-y-0">
+					{allDates.map((date) => {
+						const standups = dataByDate.get(date);
+						return (
+							<DaySection
 								key={date}
 								date={date}
-									teamName={team?.name ?? "Team"}
-									standups={standups ?? []}
-								/>
-							)
-						})}
-					</div>
-				)}
+								teamName={team?.name ?? "Team"}
+								standups={standups ?? []}
+							/>
+						);
+					})}
+				</div>
+			)}
 
 			{/* Keyboard hint */}
 			<div className="mt-6 text-center text-[10px] text-ds-muted3 font-bold tracking-widest">
 				// SHOWING {PAGE_SIZE} DAYS PER PAGE
 			</div>
 		</div>
-	)
+	);
 }
 
 function DaySection({
@@ -306,34 +306,36 @@ function DaySection({
 	teamName,
 	standups,
 }: {
-	date: string
-	teamName: string
-	standups: TeamDayStandup[]
+	date: string;
+	teamName: string;
+	standups: TeamDayStandup[];
 }) {
-	const isToday = date === new Date().toISOString().split("T")[0]
-	const hasStandups = standups.length > 0
-	const [copyState, setCopyState] = useState<"idle" | "copied" | "error">("idle")
+	const isToday = date === new Date().toISOString().split("T")[0];
+	const hasStandups = standups.length > 0;
+	const [copyState, setCopyState] = useState<"idle" | "copied" | "error">(
+		"idle",
+	);
 	const isWeekend = (() => {
-		const d = new Date(date + "T12:00:00").getDay()
-		return d === 0 || d === 6
-	})()
+		const d = new Date(date + "T12:00:00").getDay();
+		return d === 0 || d === 6;
+	})();
 
 	const handleCopyMarkdown = async () => {
-		if (!hasStandups) return
+		if (!hasStandups) return;
 		try {
 			const markdown = buildDayMarkdown({
 				teamName,
 				date,
 				standups,
-			})
-			await copyTextToClipboard(markdown)
-			setCopyState("copied")
-			setTimeout(() => setCopyState("idle"), 1800)
+			});
+			await copyTextToClipboard(markdown);
+			setCopyState("copied");
+			setTimeout(() => setCopyState("idle"), 1800);
 		} catch {
-			setCopyState("error")
-			setTimeout(() => setCopyState("idle"), 1800)
+			setCopyState("error");
+			setTimeout(() => setCopyState("idle"), 1800);
 		}
-	}
+	};
 
 	return (
 		<div className="border-[3px] border-ds-muted3 -mt-[3px]">
@@ -350,7 +352,9 @@ function DaySection({
 					>
 						{formatDateHeading(date)}
 					</span>
-					<span className="text-[11px] text-ds-text-tertiary">{formatDateSub(date)}</span>
+					<span className="text-[11px] text-ds-text-tertiary">
+						{formatDateSub(date)}
+					</span>
 				</div>
 				<div className="flex items-center gap-2">
 					<span className="text-xs font-bold text-ds-text-tertiary tracking-wider">
@@ -447,7 +451,7 @@ function DaySection({
 				</div>
 			)}
 		</div>
-	)
+	);
 }
 
 const colorMap = {
@@ -469,7 +473,7 @@ const colorMap = {
 		text: "text-red-500 dark:text-red-400",
 		link: "underline decoration-red-500 dark:decoration-red-400 underline-offset-2 transition-colors hover:text-red-500 hover:decoration-red-500 dark:hover:text-red-400",
 	},
-} as const
+} as const;
 
 function EntryColumn({
 	icon,
@@ -477,12 +481,12 @@ function EntryColumn({
 	color,
 	items,
 }: {
-	icon: React.ReactNode
-	label: string
-	color: "lime" | "cyan" | "red"
-	items: string[]
+	icon: React.ReactNode;
+	label: string;
+	color: "lime" | "cyan" | "red";
+	items: string[];
 }) {
-	const c = colorMap[color]
+	const c = colorMap[color];
 
 	return (
 		<div>
@@ -510,5 +514,5 @@ function EntryColumn({
 				))}
 			</div>
 		</div>
-	)
+	);
 }

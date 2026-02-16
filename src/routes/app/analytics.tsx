@@ -1,30 +1,30 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
-import { useTRPC } from "@/integrations/trpc/react"
-import { getLocalDateString } from "@/lib/date"
-import { useMutation, useQuery } from "@tanstack/react-query"
-import { useEffect, useMemo, useRef, useState } from "react"
-import type { ReactNode } from "react"
-import type { inferRouterOutputs } from "@trpc/server"
-import type { TRPCRouter } from "@/integrations/trpc/router"
-import { toast } from "sonner"
+import { useMutation, useQuery } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import type { inferRouterOutputs } from "@trpc/server";
 import {
 	ArrowRight,
 	Building2,
 	CalendarDays,
-	ChevronDown,
 	CheckCircle2,
+	ChevronDown,
 	FileDown,
 	PenSquare,
 	Target,
-	TriangleAlert,
 	TrendingDown,
 	TrendingUp,
+	TriangleAlert,
 	UsersRound,
-} from "lucide-react"
+} from "lucide-react";
+import type { ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
+import { useTRPC } from "@/integrations/trpc/react";
+import type { TRPCRouter } from "@/integrations/trpc/router";
+import { getLocalDateString } from "@/lib/date";
 
 export const Route = createFileRoute("/app/analytics")({
 	component: Dashboard,
-})
+});
 
 const RANGE_OPTIONS = [
 	{ value: 7 as const, label: "7D" },
@@ -32,106 +32,102 @@ const RANGE_OPTIONS = [
 	{ value: 30 as const, label: "30D" },
 	{ value: 60 as const, label: "60D" },
 	{ value: 90 as const, label: "90D" },
-]
+];
 
-type RouterOutputs = inferRouterOutputs<TRPCRouter>
-type AnalyticsResponse = RouterOutputs["standups"]["getAnalytics"]
+type RouterOutputs = inferRouterOutputs<TRPCRouter>;
+type AnalyticsResponse = RouterOutputs["standups"]["getAnalytics"];
 
 function formatDate(dateString: string): string {
 	return new Date(`${dateString}T12:00:00`).toLocaleDateString("en-US", {
 		month: "short",
 		day: "numeric",
-	})
+	});
 }
 
 function formatPercent(value: number, decimals = 0): string {
-	return `${(value * 100).toFixed(decimals)}%`
+	return `${(value * 100).toFixed(decimals)}%`;
 }
 
 function formatDelta(value: number): string {
-	const sign = value > 0 ? "+" : ""
-	return `${sign}${(value * 100).toFixed(0)}%`
+	const sign = value > 0 ? "+" : "";
+	return `${sign}${(value * 100).toFixed(0)}%`;
 }
 
 function shiftDate(dateString: string, offsetDays: number): string {
-	const date = new Date(`${dateString}T12:00:00`)
-	date.setDate(date.getDate() + offsetDays)
-	return date.toISOString().split("T")[0]
+	const date = new Date(`${dateString}T12:00:00`);
+	date.setDate(date.getDate() + offsetDays);
+	return date.toISOString().split("T")[0];
 }
 
-function downloadTextFile(
-	filename: string,
-	content: string,
-	mimeType: string,
-) {
-	if (typeof window === "undefined") return
-	const blob = new Blob([content], { type: mimeType })
-	const url = window.URL.createObjectURL(blob)
-	const anchor = document.createElement("a")
-	anchor.href = url
-	anchor.download = filename
-	document.body.appendChild(anchor)
-	anchor.click()
-	document.body.removeChild(anchor)
-	window.URL.revokeObjectURL(url)
+function downloadTextFile(filename: string, content: string, mimeType: string) {
+	if (typeof window === "undefined") return;
+	const blob = new Blob([content], { type: mimeType });
+	const url = window.URL.createObjectURL(blob);
+	const anchor = document.createElement("a");
+	anchor.href = url;
+	anchor.download = filename;
+	document.body.appendChild(anchor);
+	anchor.click();
+	document.body.removeChild(anchor);
+	window.URL.revokeObjectURL(url);
 }
 
 function Dashboard() {
-	const trpc = useTRPC()
-	const today = useMemo(() => getLocalDateString(), [])
-	const defaultExportStart = useMemo(() => shiftDate(today, -29), [today])
-	const [rangeDays, setRangeDays] = useState<7 | 14 | 30 | 60 | 90>(30)
-	const [selectedTeamId, setSelectedTeamId] = useState("all")
-	const [exportTeamId, setExportTeamId] = useState("all")
-	const [exportStartDate, setExportStartDate] = useState(defaultExportStart)
-	const [exportEndDate, setExportEndDate] = useState(today)
+	const trpc = useTRPC();
+	const today = useMemo(() => getLocalDateString(), []);
+	const defaultExportStart = useMemo(() => shiftDate(today, -29), [today]);
+	const [rangeDays, setRangeDays] = useState<7 | 14 | 30 | 60 | 90>(30);
+	const [selectedTeamId, setSelectedTeamId] = useState("all");
+	const [exportTeamId, setExportTeamId] = useState("all");
+	const [exportStartDate, setExportStartDate] = useState(defaultExportStart);
+	const [exportEndDate, setExportEndDate] = useState(today);
 	const [activeOverlay, setActiveOverlay] = useState<
 		"metrics" | "activity" | "teams" | "contributors" | "keywords" | null
-	>(null)
+	>(null);
 
-	const { data: teams } = useQuery(trpc.teams.list.queryOptions())
+	const { data: teams } = useQuery(trpc.teams.list.queryOptions());
 	const { data: hasSubmitted } = useQuery(
 		trpc.standups.hasSubmittedToday.queryOptions({ date: today }),
-	)
+	);
 	const analyticsQuery = useQuery(
 		trpc.standups.getAnalytics.queryOptions({
 			rangeDays,
 			teamId: selectedTeamId === "all" ? undefined : selectedTeamId,
 		}),
-	)
+	);
 	const exportMutation = useMutation(
 		trpc.standups.exportRange.mutationOptions(),
-	)
-	const analytics: AnalyticsResponse | undefined = analyticsQuery.data
+	);
+	const analytics: AnalyticsResponse | undefined = analyticsQuery.data;
 
 	useEffect(() => {
-		if (selectedTeamId === "all") return
-		if (!teams || teams.length === 0) return
+		if (selectedTeamId === "all") return;
+		if (!teams || teams.length === 0) return;
 		if (!teams.some((team) => team.id === selectedTeamId)) {
-			setSelectedTeamId("all")
+			setSelectedTeamId("all");
 		}
-	}, [selectedTeamId, teams])
+	}, [selectedTeamId, teams]);
 
 	useEffect(() => {
-		if (exportTeamId === "all") return
-		if (!teams || teams.length === 0) return
+		if (exportTeamId === "all") return;
+		if (!teams || teams.length === 0) return;
 		if (!teams.some((team) => team.id === exportTeamId)) {
-			setExportTeamId("all")
+			setExportTeamId("all");
 		}
-	}, [exportTeamId, teams])
+	}, [exportTeamId, teams]);
 
 	const teamOptions = useMemo(() => {
-		const base = [{ id: "all", name: "ALL_TEAMS" }]
-		if (!teams) return base
+		const base = [{ id: "all", name: "ALL_TEAMS" }];
+		if (!teams) return base;
 		return [
 			...base,
 			...teams.map((team) => ({ id: team.id, name: team.name.toUpperCase() })),
-		]
-	}, [teams])
+		];
+	}, [teams]);
 
 	const periodLabel = analytics
 		? `${formatDate(analytics.period.startDate)} - ${formatDate(analytics.period.endDate)}`
-		: "ANALYZING..."
+		: "ANALYZING...";
 
 	const completionToPlanRatio = analytics
 		? analytics.totals.planned > 0
@@ -139,10 +135,10 @@ function Dashboard() {
 			: analytics.totals.completed > 0
 				? 1
 				: 0
-		: 0
+		: 0;
 
 	const recentTaskSamples = useMemo(() => {
-		if (!analytics) return []
+		if (!analytics) return [];
 		return [...analytics.dailyDrilldown]
 			.reverse()
 			.flatMap((day) =>
@@ -151,21 +147,21 @@ function Dashboard() {
 					...task,
 				})),
 			)
-			.slice(0, 24)
-	}, [analytics])
+			.slice(0, 24);
+	}, [analytics]);
 
 	const handleExport = async (format: "markdown" | "csv") => {
 		if (!exportStartDate || !exportEndDate) {
 			toast.error("Missing date range", {
 				description: "Please select both start and end dates before exporting.",
-			})
-			return
+			});
+			return;
 		}
 		if (exportStartDate > exportEndDate) {
 			toast.error("Invalid date range", {
 				description: "Start date must be before or equal to end date.",
-			})
-			return
+			});
+			return;
 		}
 
 		try {
@@ -174,21 +170,21 @@ function Dashboard() {
 				endDate: exportEndDate,
 				teamId: exportTeamId === "all" ? undefined : exportTeamId,
 				format,
-			})
+			});
 
-			downloadTextFile(result.filename, result.content, result.mimeType)
+			downloadTextFile(result.filename, result.content, result.mimeType);
 			toast.success(`${format.toUpperCase()} export downloaded`, {
 				description: `${exportStartDate} to ${exportEndDate}`,
-			})
+			});
 		} catch (error) {
 			toast.error("Export failed", {
 				description:
 					error instanceof Error
 						? error.message
 						: "Unable to generate export data.",
-			})
+			});
 		}
-	}
+	};
 
 	return (
 		<div className="mx-auto w-full max-w-[1200px] px-4 py-5 sm:p-6">
@@ -240,7 +236,7 @@ function Dashboard() {
 
 					<div className="flex flex-wrap gap-2">
 						{RANGE_OPTIONS.map((option) => {
-							const isActive = rangeDays === option.value
+							const isActive = rangeDays === option.value;
 							return (
 								<button
 									key={option.value}
@@ -254,7 +250,7 @@ function Dashboard() {
 								>
 									{option.label}
 								</button>
-							)
+							);
 						})}
 					</div>
 				</div>
@@ -272,9 +268,9 @@ function Dashboard() {
 						<button
 							type="button"
 							onClick={() => {
-								setExportStartDate(analytics.period.startDate)
-								setExportEndDate(analytics.period.endDate)
-								setExportTeamId(selectedTeamId)
+								setExportStartDate(analytics.period.startDate);
+								setExportEndDate(analytics.period.endDate);
+								setExportTeamId(selectedTeamId);
 							}}
 							className="border-[2px] border-ds-muted3 px-2 py-1 text-[9px] font-extrabold tracking-widest text-ds-text-secondary transition-colors hover:border-ds-accent hover:text-ds-accent"
 						>
@@ -340,7 +336,9 @@ function Dashboard() {
 							<PenSquare className="h-4 w-4" />
 						</div>
 						<div>
-							<div className="text-xs font-extrabold tracking-widest">STANDUP_PENDING</div>
+							<div className="text-xs font-extrabold tracking-widest">
+								STANDUP_PENDING
+							</div>
 							<p className="mt-1 text-xs text-ds-muted">
 								Your update is missing for today.
 							</p>
@@ -370,8 +368,8 @@ function Dashboard() {
 							<InfoPopover title="How Tracking Works">
 								<p className="text-xs text-ds-muted">
 									Metrics are computed from raw standup entries in the selected
-									date/team scope. Participation is active users divided by scoped
-									member count.
+									date/team scope. Participation is active users divided by
+									scoped member count.
 								</p>
 							</InfoPopover>
 						</div>
@@ -489,19 +487,21 @@ function Dashboard() {
 										PEOPLE_BEHIND_DATA
 									</h3>
 									<div className="space-y-2">
-										{analytics.contributorDrilldown.slice(0, 10).map((person) => (
-											<div
-												key={person.userId}
-												className="flex items-center justify-between border border-ds-muted3 px-2 py-1.5 text-xs"
-											>
-												<span className="font-bold text-ds-text-secondary">
-													{person.name}
-												</span>
-												<span className="text-ds-text-tertiary">
-													{person.entries} entries
-												</span>
-											</div>
-										))}
+										{analytics.contributorDrilldown
+											.slice(0, 10)
+											.map((person) => (
+												<div
+													key={person.userId}
+													className="flex items-center justify-between border border-ds-muted3 px-2 py-1.5 text-xs"
+												>
+													<span className="font-bold text-ds-text-secondary">
+														{person.name}
+													</span>
+													<span className="text-ds-text-tertiary">
+														{person.entries} entries
+													</span>
+												</div>
+											))}
 									</div>
 								</div>
 								<div>
@@ -532,10 +532,14 @@ function Dashboard() {
 						>
 							<div className="space-y-3">
 								{[...analytics.dailyDrilldown].reverse().map((day) => (
-									<div key={day.date} className="border-[2px] border-ds-muted3 p-3">
+									<div
+										key={day.date}
+										className="border-[2px] border-ds-muted3 p-3"
+									>
 										<div className="mb-2 flex flex-wrap items-center justify-between gap-2">
 											<div className="text-xs font-extrabold tracking-widest text-ds-text-secondary">
-												{formatDate(day.date).toUpperCase()} • {day.total} ENTRIES
+												{formatDate(day.date).toUpperCase()} • {day.total}{" "}
+												ENTRIES
 											</div>
 											<div className="text-[10px] font-bold tracking-widest text-ds-text-tertiary">
 												{day.activeUsers} ACTIVE_USERS
@@ -599,8 +603,12 @@ function Dashboard() {
 											</div>
 										</div>
 										<div className="mb-2 grid grid-cols-2 gap-2 text-[10px] font-bold tracking-widest">
-											<span>PARTICIPATION {formatPercent(team.participationRate)}</span>
-											<span>BLOCKER_RATE {formatPercent(team.blockerRate, 1)}</span>
+											<span>
+												PARTICIPATION {formatPercent(team.participationRate)}
+											</span>
+											<span>
+												BLOCKER_RATE {formatPercent(team.blockerRate, 1)}
+											</span>
 										</div>
 										<div className="mb-2 text-[10px] font-bold tracking-widest text-ds-text-tertiary">
 											TOP_PEOPLE:{" "}
@@ -636,7 +644,10 @@ function Dashboard() {
 						>
 							<div className="space-y-3">
 								{analytics.contributorDrilldown.map((person) => (
-									<div key={person.userId} className="border-[2px] border-ds-muted3 p-3">
+									<div
+										key={person.userId}
+										className="border-[2px] border-ds-muted3 p-3"
+									>
 										<div className="mb-2 flex flex-wrap items-center justify-between gap-2">
 											<div className="text-xs font-extrabold tracking-widest text-ds-text-secondary">
 												{person.name.toUpperCase()}
@@ -681,7 +692,10 @@ function Dashboard() {
 						>
 							<div className="space-y-3">
 								{analytics.keywordDrilldown.map((keyword) => (
-									<div key={keyword.term} className="border-[2px] border-ds-muted3 p-3">
+									<div
+										key={keyword.term}
+										className="border-[2px] border-ds-muted3 p-3"
+									>
 										<div className="mb-2 flex flex-wrap items-center justify-between gap-2">
 											<div className="text-xs font-extrabold tracking-widest text-ds-text-secondary">
 												{keyword.term.toUpperCase()}
@@ -709,7 +723,7 @@ function Dashboard() {
 				</>
 			)}
 		</div>
-	)
+	);
 }
 
 function DashboardSkeleton() {
@@ -726,31 +740,31 @@ function DashboardSkeleton() {
 			<div className="h-64 animate-pulse border-[3px] border-ds-muted3 bg-ds-surface/20" />
 			<div className="h-72 animate-pulse border-[3px] border-ds-muted3 bg-ds-surface/20" />
 		</div>
-	)
+	);
 }
 
 function InfoPopover({
 	title,
 	children,
 }: {
-	title: string
-	children: ReactNode
+	title: string;
+	children: ReactNode;
 }) {
-	const [open, setOpen] = useState(false)
-	const rootRef = useRef<HTMLDivElement | null>(null)
+	const [open, setOpen] = useState(false);
+	const rootRef = useRef<HTMLDivElement | null>(null);
 
 	useEffect(() => {
-		if (!open) return
+		if (!open) return;
 		const onPointerDown = (event: PointerEvent) => {
-			if (!rootRef.current) return
-			const target = event.target
+			if (!rootRef.current) return;
+			const target = event.target;
 			if (target instanceof Node && !rootRef.current.contains(target)) {
-				setOpen(false)
+				setOpen(false);
 			}
-		}
-		window.addEventListener("pointerdown", onPointerDown)
-		return () => window.removeEventListener("pointerdown", onPointerDown)
-	}, [open])
+		};
+		window.addEventListener("pointerdown", onPointerDown);
+		return () => window.removeEventListener("pointerdown", onPointerDown);
+	}, [open]);
 
 	return (
 		<div ref={rootRef} className="relative flex shrink-0 items-center">
@@ -771,7 +785,7 @@ function InfoPopover({
 				</div>
 			) : null}
 		</div>
-	)
+	);
 }
 
 function AnalyticsOverlay({
@@ -780,18 +794,18 @@ function AnalyticsOverlay({
 	onClose,
 	children,
 }: {
-	title: string
-	subtitle: string
-	onClose: () => void
-	children: ReactNode
+	title: string;
+	subtitle: string;
+	onClose: () => void;
+	children: ReactNode;
 }) {
 	useEffect(() => {
 		const onKeyDown = (event: KeyboardEvent) => {
-			if (event.key === "Escape") onClose()
-		}
-		window.addEventListener("keydown", onKeyDown)
-		return () => window.removeEventListener("keydown", onKeyDown)
-	}, [onClose])
+			if (event.key === "Escape") onClose();
+		};
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, [onClose]);
 
 	return (
 		<div className="fixed inset-0 z-50 bg-black/65 p-4 backdrop-blur-sm">
@@ -812,7 +826,7 @@ function AnalyticsOverlay({
 				<div className="min-h-0 flex-1 overflow-y-auto p-4">{children}</div>
 			</div>
 		</div>
-	)
+	);
 }
 
 function DataMetricCard({
@@ -820,9 +834,9 @@ function DataMetricCard({
 	value,
 	description,
 }: {
-	label: string
-	value: string
-	description: string
+	label: string;
+	value: string;
+	description: string;
 }) {
 	return (
 		<div className="border-[2px] border-ds-muted3 p-3">
@@ -832,7 +846,7 @@ function DataMetricCard({
 			<p className="mt-1 text-base font-extrabold">{value}</p>
 			<p className="mt-1 text-xs text-ds-muted">{description}</p>
 		</div>
-	)
+	);
 }
 
 function TaskLine({
@@ -841,22 +855,24 @@ function TaskLine({
 	type,
 	content,
 }: {
-	date: string
-	userName: string
-	type: "completed" | "planned" | "blocker"
-	content: string
+	date: string;
+	userName: string;
+	type: "completed" | "planned" | "blocker";
+	content: string;
 }) {
 	const toneClass =
 		type === "completed"
 			? "text-lime-600 dark:text-lime-400"
 			: type === "planned"
 				? "text-cyan-600 dark:text-cyan-400"
-				: "text-red-500 dark:text-red-400"
+				: "text-red-500 dark:text-red-400";
 
 	return (
 		<div className="border border-ds-muted3 px-2 py-1.5 text-xs">
 			<div className="mb-1 flex items-center justify-between gap-2">
-				<span className={`text-[10px] font-extrabold tracking-widest ${toneClass}`}>
+				<span
+					className={`text-[10px] font-extrabold tracking-widest ${toneClass}`}
+				>
 					{type.toUpperCase()}
 				</span>
 				<span className="text-[10px] font-bold tracking-widest text-ds-text-tertiary">
@@ -866,7 +882,7 @@ function TaskLine({
 			<div className="font-bold text-ds-text-secondary">{userName}</div>
 			<div className="mt-0.5 text-ds-muted">{content}</div>
 		</div>
-	)
+	);
 }
 
 function MetricTile({
@@ -875,10 +891,10 @@ function MetricTile({
 	icon,
 	tone,
 }: {
-	label: string
-	value: string
-	icon: ReactNode
-	tone: "lime" | "cyan" | "red" | "neutral"
+	label: string;
+	value: string;
+	icon: ReactNode;
+	tone: "lime" | "cyan" | "red" | "neutral";
 }) {
 	const toneClass =
 		tone === "lime"
@@ -887,7 +903,7 @@ function MetricTile({
 				? "text-cyan-600 dark:text-cyan-400"
 				: tone === "red"
 					? "text-red-500 dark:text-red-400"
-					: "text-ds-text-secondary"
+					: "text-ds-text-secondary";
 
 	return (
 		<div className="border-[3px] border-ds-muted3 px-3 py-2.5">
@@ -899,28 +915,31 @@ function MetricTile({
 			</div>
 			<div className="text-lg font-extrabold tracking-tight">{value}</div>
 		</div>
-	)
+	);
 }
 
 function DailyTrendPanel({
 	dailyTrend,
 	onOpenOverlay,
 }: {
-	dailyTrend: AnalyticsResponse["dailyTrend"]
-	onOpenOverlay: () => void
+	dailyTrend: AnalyticsResponse["dailyTrend"];
+	onOpenOverlay: () => void;
 }) {
-	const maxTotal = Math.max(...dailyTrend.map((day) => day.total), 1)
+	const maxTotal = Math.max(...dailyTrend.map((day) => day.total), 1);
 
 	return (
 		<div className="border-[3px] border-ds-muted3 p-4 sm:p-5">
 			<div className="mb-4 flex flex-wrap items-center justify-between gap-3">
 				<div>
 					<div className="flex items-center gap-2">
-						<h2 className="text-sm font-extrabold tracking-widest">ACTIVITY_WAVE</h2>
+						<h2 className="text-sm font-extrabold tracking-widest">
+							ACTIVITY_WAVE
+						</h2>
 						<InfoPopover title="Activity Wave Tracking">
 							<p className="text-xs text-ds-muted">
-								Each bar stacks completed, planned, and blocker entry counts for a
-								day. Heights are normalized to the max total in the visible window.
+								Each bar stacks completed, planned, and blocker entry counts for
+								a day. Heights are normalized to the max total in the visible
+								window.
 							</p>
 						</InfoPopover>
 					</div>
@@ -930,13 +949,16 @@ function DailyTrendPanel({
 				</div>
 				<div className="flex items-center gap-3 text-[10px] font-bold tracking-widest">
 					<span className="flex items-center gap-1 text-lime-600 dark:text-lime-400">
-						<span className="h-2 w-2 bg-lime-500 dark:bg-lime-400" />DONE
+						<span className="h-2 w-2 bg-lime-500 dark:bg-lime-400" />
+						DONE
 					</span>
 					<span className="flex items-center gap-1 text-cyan-600 dark:text-cyan-400">
-						<span className="h-2 w-2 bg-cyan-500 dark:bg-cyan-400" />PLAN
+						<span className="h-2 w-2 bg-cyan-500 dark:bg-cyan-400" />
+						PLAN
 					</span>
 					<span className="flex items-center gap-1 text-red-500 dark:text-red-400">
-						<span className="h-2 w-2 bg-red-500 dark:bg-red-400" />BLOCK
+						<span className="h-2 w-2 bg-red-500 dark:bg-red-400" />
+						BLOCK
 					</span>
 					<button
 						type="button"
@@ -951,17 +973,20 @@ function DailyTrendPanel({
 			<div className="overflow-x-auto pb-2">
 				<div className="flex min-w-max items-end gap-2">
 					{dailyTrend.map((day) => {
-						const completedHeight = (day.completed / maxTotal) * 100
-						const plannedHeight = (day.planned / maxTotal) * 100
-						const blockerHeight = (day.blockers / maxTotal) * 100
-						const date = new Date(`${day.date}T12:00:00`)
+						const completedHeight = (day.completed / maxTotal) * 100;
+						const plannedHeight = (day.planned / maxTotal) * 100;
+						const blockerHeight = (day.blockers / maxTotal) * 100;
+						const date = new Date(`${day.date}T12:00:00`);
 						const weekday = date
 							.toLocaleDateString("en-US", { weekday: "short" })
-							.toUpperCase()
-						const dayNum = date.getDate()
+							.toUpperCase();
+						const dayNum = date.getDate();
 
 						return (
-							<div key={day.date} className="flex w-7 flex-col items-center gap-1">
+							<div
+								key={day.date}
+								className="flex w-7 flex-col items-center gap-1"
+							>
 								<div
 									title={`${day.date} | total ${day.total} | active users ${day.activeUsers}`}
 									className="flex h-40 w-full flex-col justify-end border-[2px] border-ds-muted3 bg-ds-surface/20"
@@ -986,17 +1011,17 @@ function DailyTrendPanel({
 									{dayNum}
 								</span>
 							</div>
-						)
+						);
 					})}
 				</div>
 			</div>
 		</div>
-	)
+	);
 }
 
 function InsightsPanel({ analytics }: { analytics: AnalyticsResponse }) {
-	const topHotspot = analytics.blockerHotspots[0]
-	const topKeyword = analytics.keywords[0]
+	const topHotspot = analytics.blockerHotspots[0];
+	const topKeyword = analytics.keywords[0];
 
 	return (
 		<div className="border-[3px] border-ds-muted3 p-4 sm:p-5">
@@ -1005,7 +1030,8 @@ function InsightsPanel({ analytics }: { analytics: AnalyticsResponse }) {
 				<InfoPopover title="Insights Tracking">
 					<p className="text-xs text-ds-muted">
 						Completion and blocker trends compare the last up-to-7 days with the
-						previous window. Hotspots and keywords come from current scope entries.
+						previous window. Hotspots and keywords come from current scope
+						entries.
 					</p>
 				</InfoPopover>
 			</div>
@@ -1036,7 +1062,11 @@ function InsightsPanel({ analytics }: { analytics: AnalyticsResponse }) {
 				/>
 				<InsightRow
 					label="TOP_KEYWORD"
-					value={topKeyword ? `${topKeyword.term.toUpperCase()} (${topKeyword.count})` : "N/A"}
+					value={
+						topKeyword
+							? `${topKeyword.term.toUpperCase()} (${topKeyword.count})`
+							: "N/A"
+					}
 					icon={<Target className="h-3.5 w-3.5" />}
 					tone={topKeyword ? "cyan" : "neutral"}
 				/>
@@ -1061,7 +1091,9 @@ function InsightsPanel({ analytics }: { analytics: AnalyticsResponse }) {
 								<div className="h-1.5 bg-ds-surface2">
 									<div
 										className="h-full bg-red-500/85 dark:bg-red-400/85"
-										style={{ width: `${Math.min(100, team.blockerRate * 100)}%` }}
+										style={{
+											width: `${Math.min(100, team.blockerRate * 100)}%`,
+										}}
 									/>
 								</div>
 							</div>
@@ -1070,7 +1102,7 @@ function InsightsPanel({ analytics }: { analytics: AnalyticsResponse }) {
 				</div>
 			)}
 		</div>
-	)
+	);
 }
 
 function InsightRow({
@@ -1079,10 +1111,10 @@ function InsightRow({
 	icon,
 	tone,
 }: {
-	label: string
-	value: string
-	icon: ReactNode
-	tone: "lime" | "cyan" | "red" | "neutral"
+	label: string;
+	value: string;
+	icon: ReactNode;
+	tone: "lime" | "cyan" | "red" | "neutral";
 }) {
 	const toneClass =
 		tone === "lime"
@@ -1091,7 +1123,7 @@ function InsightRow({
 				? "text-cyan-600 dark:text-cyan-400"
 				: tone === "red"
 					? "text-red-500 dark:text-red-400"
-					: "text-ds-text-secondary"
+					: "text-ds-text-secondary";
 
 	return (
 		<div className="flex items-center justify-between border-[2px] border-ds-muted3 px-2.5 py-2">
@@ -1103,26 +1135,28 @@ function InsightRow({
 			</div>
 			<span className={toneClass}>{icon}</span>
 		</div>
-	)
+	);
 }
 
 function TeamPerformancePanel({
 	teamStats,
 	onOpenOverlay,
 }: {
-	teamStats: AnalyticsResponse["teamStats"]
-	onOpenOverlay: () => void
+	teamStats: AnalyticsResponse["teamStats"];
+	onOpenOverlay: () => void;
 }) {
 	return (
 		<div className="border-[3px] border-ds-muted3 p-4 sm:p-5">
 			<div className="mb-3 flex items-center justify-between">
 				<div className="flex items-center gap-2">
-					<h2 className="text-sm font-extrabold tracking-widest">TEAM_PERFORMANCE</h2>
+					<h2 className="text-sm font-extrabold tracking-widest">
+						TEAM_PERFORMANCE
+					</h2>
 					<InfoPopover title="Team Performance Tracking">
 						<p className="text-xs text-ds-muted">
 							Team metrics are aggregated from standup entries per team in the
-							selected date range. Participation uses active users divided by team
-							member count.
+							selected date range. Participation uses active users divided by
+							team member count.
 						</p>
 					</InfoPopover>
 				</div>
@@ -1141,7 +1175,10 @@ function TeamPerformancePanel({
 			</div>
 			<div className="space-y-2">
 				{teamStats.slice(0, 10).map((team) => (
-					<div key={`${team.teamId ?? "global"}-${team.teamName}`} className="border-[2px] border-ds-muted3 p-2.5">
+					<div
+						key={`${team.teamId ?? "global"}-${team.teamName}`}
+						className="border-[2px] border-ds-muted3 p-2.5"
+					>
 						<div className="mb-2 flex items-center justify-between">
 							<span className="text-xs font-extrabold tracking-wide text-ds-text-secondary">
 								{team.teamName.toUpperCase()}
@@ -1151,9 +1188,15 @@ function TeamPerformancePanel({
 							</span>
 						</div>
 						<div className="grid grid-cols-3 gap-2 text-[10px] font-bold tracking-widest">
-							<span className="text-lime-600 dark:text-lime-400">DONE {team.completed}</span>
-							<span className="text-cyan-600 dark:text-cyan-400">PLAN {team.planned}</span>
-							<span className="text-red-500 dark:text-red-400">BLOCK {team.blockers}</span>
+							<span className="text-lime-600 dark:text-lime-400">
+								DONE {team.completed}
+							</span>
+							<span className="text-cyan-600 dark:text-cyan-400">
+								PLAN {team.planned}
+							</span>
+							<span className="text-red-500 dark:text-red-400">
+								BLOCK {team.blockers}
+							</span>
 						</div>
 						<div className="mt-2 grid grid-cols-2 gap-2 text-[10px]">
 							<div>
@@ -1164,7 +1207,9 @@ function TeamPerformancePanel({
 								<div className="h-1.5 bg-ds-surface2">
 									<div
 										className="h-full bg-ds-accent"
-										style={{ width: `${Math.min(100, team.participationRate * 100)}%` }}
+										style={{
+											width: `${Math.min(100, team.participationRate * 100)}%`,
+										}}
 									/>
 								</div>
 							</div>
@@ -1176,7 +1221,9 @@ function TeamPerformancePanel({
 								<div className="h-1.5 bg-ds-surface2">
 									<div
 										className="h-full bg-red-500/85 dark:bg-red-400/85"
-										style={{ width: `${Math.min(100, team.blockerRate * 100)}%` }}
+										style={{
+											width: `${Math.min(100, team.blockerRate * 100)}%`,
+										}}
 									/>
 								</div>
 							</div>
@@ -1185,25 +1232,27 @@ function TeamPerformancePanel({
 				))}
 			</div>
 		</div>
-	)
+	);
 }
 
 function ContributorPanel({
 	contributors,
 	onOpenOverlay,
 }: {
-	contributors: AnalyticsResponse["topContributors"]
-	onOpenOverlay: () => void
+	contributors: AnalyticsResponse["topContributors"];
+	onOpenOverlay: () => void;
 }) {
 	return (
 		<div className="border-[3px] border-ds-muted3 p-4 sm:p-5">
 			<div className="mb-3 flex items-center justify-between">
 				<div className="flex items-center gap-2">
-					<h2 className="text-sm font-extrabold tracking-widest">TOP_CONTRIBUTORS</h2>
+					<h2 className="text-sm font-extrabold tracking-widest">
+						TOP_CONTRIBUTORS
+					</h2>
 					<InfoPopover title="Contributor Tracking">
 						<p className="text-xs text-ds-muted">
-							Ranking is based on total entries in the selected scope. Days posted,
-							team coverage, and task records are available in details.
+							Ranking is based on total entries in the selected scope. Days
+							posted, team coverage, and task records are available in details.
 						</p>
 					</InfoPopover>
 				</div>
@@ -1249,15 +1298,15 @@ function ContributorPanel({
 				))}
 			</div>
 		</div>
-	)
+	);
 }
 
 function KeywordPanel({
 	keywords,
 	onOpenOverlay,
 }: {
-	keywords: AnalyticsResponse["keywords"]
-	onOpenOverlay: () => void
+	keywords: AnalyticsResponse["keywords"];
+	onOpenOverlay: () => void;
 }) {
 	return (
 		<div className="border-[3px] border-ds-muted3 p-4 sm:p-5">
@@ -1295,9 +1344,11 @@ function KeywordPanel({
 						</span>
 					))
 				) : (
-					<span className="text-xs text-ds-muted">No repeated keyword patterns yet.</span>
+					<span className="text-xs text-ds-muted">
+						No repeated keyword patterns yet.
+					</span>
 				)}
 			</div>
 		</div>
-	)
+	);
 }

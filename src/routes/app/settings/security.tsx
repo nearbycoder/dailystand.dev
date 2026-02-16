@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
 import { LockKeyhole, ShieldCheck } from "lucide-react";
+import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/app/settings/security")({
@@ -56,9 +56,7 @@ function SecuritySettingsPage() {
 				<h1 className="text-2xl font-extrabold tracking-tighter sm:text-3xl">
 					SECURITY
 				</h1>
-				<p className="text-ds-muted text-sm mt-1">
-					// UPDATE ACCOUNT PASSWORD
-				</p>
+				<p className="text-ds-muted text-sm mt-1">// UPDATE ACCOUNT PASSWORD</p>
 			</div>
 
 			<div className="border-[3px] border-ds-border p-4 sm:p-6">
@@ -127,9 +125,7 @@ function SecuritySettingsPage() {
 						<input
 							type="checkbox"
 							checked={revokeOtherSessions}
-							onChange={(event) =>
-								setRevokeOtherSessions(event.target.checked)
-							}
+							onChange={(event) => setRevokeOtherSessions(event.target.checked)}
 							className="h-3.5 w-3.5 accent-ds-accent"
 						/>
 						REVOKE_OTHER_SESSIONS

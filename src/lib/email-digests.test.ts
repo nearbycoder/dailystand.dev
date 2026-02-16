@@ -57,7 +57,10 @@ describe("runDigestWorkflow", () => {
 	it("returns immediately when resend is not configured", async () => {
 		isResendConfiguredMock.mockReturnValue(false);
 
-		const result = await runDigestWorkflow("daily", new Date("2026-02-16T12:00:00Z"));
+		const result = await runDigestWorkflow(
+			"daily",
+			new Date("2026-02-16T12:00:00Z"),
+		);
 		expect(result).toEqual({
 			cadence: "daily",
 			evaluated: 0,
@@ -86,7 +89,10 @@ describe("runDigestWorkflow", () => {
 		]);
 		dbMock.query.member.findFirst.mockResolvedValue(null);
 
-		const result = await runDigestWorkflow("daily", new Date("2026-02-16T12:00:00Z"));
+		const result = await runDigestWorkflow(
+			"daily",
+			new Date("2026-02-16T12:00:00Z"),
+		);
 		expect(result).toEqual({
 			cadence: "daily",
 			evaluated: 1,
@@ -118,7 +124,10 @@ describe("runDigestWorkflow", () => {
 			plan: "free",
 		});
 
-		const result = await runDigestWorkflow("daily", new Date("2026-02-16T12:00:00Z"));
+		const result = await runDigestWorkflow(
+			"daily",
+			new Date("2026-02-16T12:00:00Z"),
+		);
 		expect(result).toEqual({
 			cadence: "daily",
 			evaluated: 1,

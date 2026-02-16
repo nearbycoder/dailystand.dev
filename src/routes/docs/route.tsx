@@ -1,11 +1,14 @@
-import { Link, Outlet, createFileRoute } from "@tanstack/react-router"
-import { BookText, Eye, EyeOff, KeyRound, Terminal } from "lucide-react"
-import { ThemeToggle } from "@/components/theme-toggle"
-import { DocsKeyProvider, useDocsKey } from "@/components/docs/docs-key-context"
+import { createFileRoute, Link, Outlet } from "@tanstack/react-router";
+import { BookText, Eye, EyeOff, KeyRound, Terminal } from "lucide-react";
+import {
+	DocsKeyProvider,
+	useDocsKey,
+} from "@/components/docs/docs-key-context";
+import { ThemeToggle } from "@/components/theme-toggle";
 
 export const Route = createFileRoute("/docs")({
 	component: DocsRouteLayout,
-})
+});
 
 const docsNavItems = [
 	{
@@ -28,18 +31,19 @@ const docsNavItems = [
 		label: "API_EXPLORER",
 		description: "Live test calls",
 	},
-]
+];
 
 function DocsRouteLayout() {
 	return (
 		<DocsKeyProvider>
 			<DocsShell />
 		</DocsKeyProvider>
-	)
+	);
 }
 
 function DocsShell() {
-	const { apiKey, setApiKey, showApiKey, setShowApiKey, baseUrl } = useDocsKey()
+	const { apiKey, setApiKey, showApiKey, setShowApiKey, baseUrl } =
+		useDocsKey();
 
 	return (
 		<div className="min-h-screen bg-ds-bg text-ds-fg font-mono selection:bg-ds-selection-bg selection:text-ds-selection-fg">
@@ -47,7 +51,9 @@ function DocsShell() {
 				<div className="mx-auto flex w-full max-w-[1500px] flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
 					<div className="flex items-center gap-2">
 						<Terminal className="h-5 w-5 text-ds-accent" />
-						<span className="text-lg font-extrabold tracking-tighter">DOCS</span>
+						<span className="text-lg font-extrabold tracking-tighter">
+							DOCS
+						</span>
 						<span className="hidden text-xs font-bold tracking-widest text-ds-muted2 sm:inline">
 							// PUBLIC API + MCP
 						</span>
@@ -133,7 +139,9 @@ function DocsShell() {
 										"block min-w-[175px] shrink-0 border-[3px] border-ds-accent bg-ds-accent/10 p-3 lg:mb-2 lg:min-w-0",
 								}}
 							>
-								<div className="text-xs font-extrabold tracking-widest">{item.label}</div>
+								<div className="text-xs font-extrabold tracking-widest">
+									{item.label}
+								</div>
 								<div className="mt-1 text-[10px] font-bold tracking-widest text-ds-muted2">
 									{item.description}
 								</div>
@@ -146,5 +154,5 @@ function DocsShell() {
 				</main>
 			</div>
 		</div>
-	)
+	);
 }

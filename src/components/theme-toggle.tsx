@@ -1,14 +1,14 @@
-import { useTheme } from "@/lib/theme"
-import { Monitor, Moon, Sun } from "lucide-react"
+import { Monitor, Moon, Sun } from "lucide-react";
+import { useTheme } from "@/lib/theme";
 
 export function ThemeToggle() {
-	const { theme, setTheme } = useTheme()
+	const { theme, setTheme } = useTheme();
 
 	const options = [
 		{ value: "system" as const, icon: Monitor, label: "SYS" },
 		{ value: "dark" as const, icon: Moon, label: "DRK" },
 		{ value: "light" as const, icon: Sun, label: "LGT" },
-	]
+	];
 
 	return (
 		<div className="flex border-[2px] border-ds-border overflow-hidden">
@@ -27,5 +27,5 @@ export function ThemeToggle() {
 				</button>
 			))}
 		</div>
-	)
+	);
 }

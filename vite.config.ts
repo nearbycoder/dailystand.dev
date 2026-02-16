@@ -19,7 +19,17 @@ const config = defineConfig(({ mode }) => {
 	);
 
 	return {
-		...(allowedHosts.length > 0 ? { server: { allowedHosts } } : {}),
+		server: {
+			...(allowedHosts.length > 0 ? { allowedHosts } : {}),
+			proxy: {
+				"/ingest": {
+					target: "https://us.i.posthog.com",
+					changeOrigin: true,
+					rewrite: (path) => path.replace(/^\/ingest/, ""),
+					secure: false,
+				},
+			},
+		},
 		resolve: {
 			alias: {
 				"@": fileURLToPath(new URL("./src", import.meta.url)),

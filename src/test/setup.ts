@@ -1,34 +1,34 @@
-import "@testing-library/jest-dom/vitest"
-import { cleanup } from "@testing-library/react"
-import { afterEach, vi } from "vitest"
+import "@testing-library/jest-dom/vitest";
+import { cleanup } from "@testing-library/react";
+import { afterEach, vi } from "vitest";
 
 afterEach(() => {
-	cleanup()
-})
+	cleanup();
+});
 
 if (typeof window !== "undefined") {
-	const storage = new Map<string, string>()
+	const storage = new Map<string, string>();
 	const localStorageMock: Storage = {
 		getItem: vi.fn((key: string) => storage.get(key) ?? null),
 		setItem: vi.fn((key: string, value: string) => {
-			storage.set(key, value)
+			storage.set(key, value);
 		}),
 		removeItem: vi.fn((key: string) => {
-			storage.delete(key)
+			storage.delete(key);
 		}),
 		clear: vi.fn(() => {
-			storage.clear()
+			storage.clear();
 		}),
 		key: vi.fn((index: number) => Array.from(storage.keys())[index] ?? null),
 		get length() {
-			return storage.size
+			return storage.size;
 		},
-	}
+	};
 
 	Object.defineProperty(window, "localStorage", {
 		value: localStorageMock,
 		configurable: true,
-	})
+	});
 }
 
 if (typeof window !== "undefined" && !window.matchMedia) {
@@ -44,5 +44,5 @@ if (typeof window !== "undefined" && !window.matchMedia) {
 			removeEventListener: vi.fn(),
 			dispatchEvent: vi.fn(),
 		})),
-	})
+	});
 }

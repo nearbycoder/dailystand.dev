@@ -1,27 +1,27 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
-import { useTRPC } from "@/integrations/trpc/react"
-import { authClient } from "@/lib/auth-client"
-import { getLocalDateString } from "@/lib/date"
-import { AutoLinkText } from "@/components/auto-link-text"
-import { useQueries, useQuery } from "@tanstack/react-query"
-import { useMemo, type ReactNode } from "react"
-import type { inferRouterOutputs } from "@trpc/server"
-import type { TRPCRouter } from "@/integrations/trpc/router"
+import { useQueries, useQuery } from "@tanstack/react-query";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import type { inferRouterOutputs } from "@trpc/server";
 import {
 	AlertTriangle,
+	ArrowRight,
 	CheckCircle2,
 	PenSquare,
 	Target,
 	Users,
-	ArrowRight,
-} from "lucide-react"
+} from "lucide-react";
+import { type ReactNode, useMemo } from "react";
+import { AutoLinkText } from "@/components/auto-link-text";
+import { useTRPC } from "@/integrations/trpc/react";
+import type { TRPCRouter } from "@/integrations/trpc/router";
+import { authClient } from "@/lib/auth-client";
+import { getLocalDateString } from "@/lib/date";
 
 export const Route = createFileRoute("/app/")({
 	component: DashboardHome,
-})
+});
 
-type RouterOutputs = inferRouterOutputs<TRPCRouter>
-type TeamStandup = RouterOutputs["standups"]["getByDate"][number]
+type RouterOutputs = inferRouterOutputs<TRPCRouter>;
+type TeamStandup = RouterOutputs["standups"]["getByDate"][number];
 
 function formatFullDate(dateStr: string): string {
 	return new Date(`${dateStr}T12:00:00`)
@@ -31,32 +31,34 @@ function formatFullDate(dateStr: string): string {
 			day: "numeric",
 			year: "numeric",
 		})
-		.toUpperCase()
+		.toUpperCase();
 }
 
 function getStandupItemCount(standup: TeamStandup): number {
-	return standup.completed.length + standup.planned.length + standup.blockers.length
+	return (
+		standup.completed.length + standup.planned.length + standup.blockers.length
+	);
 }
 
 function DashboardHome() {
-	const trpc = useTRPC()
-	const today = useMemo(() => getLocalDateString(), [])
-	const { data: session } = authClient.useSession()
-	const viewerId = session?.user?.id
+	const trpc = useTRPC();
+	const today = useMemo(() => getLocalDateString(), []);
+	const { data: session } = authClient.useSession();
+	const viewerId = session?.user?.id;
 
 	const { data: teams, isLoading: teamsLoading } = useQuery(
 		trpc.teams.list.queryOptions(),
-	)
+	);
 	const { data: hasSubmitted } = useQuery(
 		trpc.standups.hasSubmittedToday.queryOptions({ date: today }),
-	)
+	);
 
 	const myTeams = useMemo(() => {
-		if (!teams || !viewerId) return []
+		if (!teams || !viewerId) return [];
 		return teams.filter((team) =>
 			team.members.some((member) => member.id === viewerId),
-		)
-	}, [teams, viewerId])
+		);
+	}, [teams, viewerId]);
 
 	const teamStandupQueries = useQueries({
 		queries: myTeams.map((team) =>
@@ -65,9 +67,9 @@ function DashboardHome() {
 				teamId: team.id,
 			}),
 		),
-	})
+	});
 
-	const hasTeamStandupError = teamStandupQueries.some((query) => query.isError)
+	const hasTeamStandupError = teamStandupQueries.some((query) => query.isError);
 
 	return (
 		<div className="mx-auto w-full max-w-[1200px] px-4 py-5 sm:p-6">
@@ -111,7 +113,9 @@ function DashboardHome() {
 				<div className="border-[3px] border-ds-muted3 p-6">
 					<div className="mb-2 flex items-center gap-2 text-ds-text-secondary">
 						<Users className="h-4 w-4" />
-						<span className="text-sm font-extrabold tracking-widest">NO_ASSIGNED_TEAMS</span>
+						<span className="text-sm font-extrabold tracking-widest">
+							NO_ASSIGNED_TEAMS
+						</span>
 					</div>
 					<p className="text-sm text-ds-muted">
 						You are in this organization, but not assigned to any team yet.
@@ -125,21 +129,25 @@ function DashboardHome() {
 				</div>
 			) : (
 				<div className="space-y-0">
-						{myTeams.map((team, index) => {
-							const teamQuery = teamStandupQueries[index]
-							const standups: TeamStandup[] = teamQuery?.data ?? []
-							const sortedStandups = [...standups].sort((a, b) => {
-							if (a.user.id === viewerId && b.user.id !== viewerId) return -1
-							if (b.user.id === viewerId && a.user.id !== viewerId) return 1
-							return a.user.name.localeCompare(b.user.name)
-						})
+					{myTeams.map((team, index) => {
+						const teamQuery = teamStandupQueries[index];
+						const standups: TeamStandup[] = teamQuery?.data ?? [];
+						const sortedStandups = [...standups].sort((a, b) => {
+							if (a.user.id === viewerId && b.user.id !== viewerId) return -1;
+							if (b.user.id === viewerId && a.user.id !== viewerId) return 1;
+							return a.user.name.localeCompare(b.user.name);
+						});
 						const ownStandup = standups.find(
 							(standup) =>
-								standup.user.id === viewerId && getStandupItemCount(standup) > 0,
-						)
+								standup.user.id === viewerId &&
+								getStandupItemCount(standup) > 0,
+						);
 
 						return (
-							<div key={team.id} className="-mt-[3px] border-[3px] border-ds-muted3">
+							<div
+								key={team.id}
+								className="-mt-[3px] border-[3px] border-ds-muted3"
+							>
 								<div className="flex flex-col gap-2 border-b-[3px] border-ds-muted3 px-4 py-3 sm:flex-row sm:items-center sm:justify-between sm:px-5">
 									<div className="min-w-0">
 										<Link
@@ -164,9 +172,7 @@ function DashboardHome() {
 												</span>
 												<span
 													className={
-														ownStandup
-															? "text-ds-accent"
-															: "text-ds-muted"
+														ownStandup ? "text-ds-accent" : "text-ds-muted"
 													}
 												>
 													{ownStandup ? "YOU_SUBMITTED" : "YOU_MISSING"}
@@ -237,7 +243,7 @@ function DashboardHome() {
 									</div>
 								)}
 							</div>
-						)
+						);
 					})}
 				</div>
 			)}
@@ -248,7 +254,7 @@ function DashboardHome() {
 				</p>
 			)}
 		</div>
-	)
+	);
 }
 
 const colorMap = {
@@ -270,7 +276,7 @@ const colorMap = {
 		text: "text-red-500 dark:text-red-400",
 		link: "underline decoration-red-500 dark:decoration-red-400 underline-offset-2 transition-colors hover:text-red-500 hover:decoration-red-500 dark:hover:text-red-400",
 	},
-} as const
+} as const;
 
 function EntryColumn({
 	icon,
@@ -278,25 +284,32 @@ function EntryColumn({
 	color,
 	items,
 }: {
-	icon: ReactNode
-	label: string
-	color: "lime" | "cyan" | "red"
-	items: string[]
+	icon: ReactNode;
+	label: string;
+	color: "lime" | "cyan" | "red";
+	items: string[];
 }) {
-	const c = colorMap[color]
+	const c = colorMap[color];
 
 	return (
 		<div>
 			<div className="mb-2 flex items-center gap-1.5">
 				<span className={c.text}>{icon}</span>
-				<span className={`text-[10px] font-extrabold tracking-widest ${c.text}`}>
+				<span
+					className={`text-[10px] font-extrabold tracking-widest ${c.text}`}
+				>
 					{label}
 				</span>
-				<span className="text-[10px] font-bold text-ds-text-tertiary">{items.length}</span>
+				<span className="text-[10px] font-bold text-ds-text-tertiary">
+					{items.length}
+				</span>
 			</div>
 			<div className="space-y-1.5">
 				{items.map((item, index) => (
-					<div key={index} className={`border-l-[2px] ${c.border} ${c.bg} px-2.5 py-1.5`}>
+					<div
+						key={index}
+						className={`border-l-[2px] ${c.border} ${c.bg} px-2.5 py-1.5`}
+					>
 						<span className="break-words text-xs leading-relaxed text-ds-text-secondary">
 							<AutoLinkText text={item} linkClassName={c.link} />
 						</span>
@@ -304,5 +317,5 @@ function EntryColumn({
 				))}
 			</div>
 		</div>
-	)
+	);
 }

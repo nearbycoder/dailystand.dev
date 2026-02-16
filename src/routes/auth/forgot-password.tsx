@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useState } from "react";
 import { Terminal } from "lucide-react";
+import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/auth/forgot-password")({

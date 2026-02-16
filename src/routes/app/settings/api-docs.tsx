@@ -56,7 +56,9 @@ function isObject(value: unknown): value is Record<string, unknown> {
 	return typeof value === "object" && value !== null;
 }
 
-function isPublicApiDocsResponse(value: unknown): value is PublicApiDocsResponse {
+function isPublicApiDocsResponse(
+	value: unknown,
+): value is PublicApiDocsResponse {
 	if (!isObject(value)) return false;
 	if ("success" in value && typeof value.success !== "boolean") return false;
 	if ("data" in value && value.data !== undefined && !isObject(value.data)) {
@@ -67,7 +69,11 @@ function isPublicApiDocsResponse(value: unknown): value is PublicApiDocsResponse
 
 function isMcpMetaResponse(value: unknown): value is McpMetaResponse {
 	if (!isObject(value)) return false;
-	if ("name" in value && value.name !== undefined && typeof value.name !== "string") {
+	if (
+		"name" in value &&
+		value.name !== undefined &&
+		typeof value.name !== "string"
+	) {
 		return false;
 	}
 	if (
@@ -169,20 +175,20 @@ function ApiDocsPage() {
 		const loadLiveDocs = async () => {
 			setLoadingLiveDocs(true);
 			setLiveDocsError("");
-				try {
-					const [publicResponse, mcpResponse] = await Promise.all([
-						fetch(`${apiBase}/api/public/v1`),
-						fetch(`${apiBase}/api/mcp`),
-					]);
+			try {
+				const [publicResponse, mcpResponse] = await Promise.all([
+					fetch(`${apiBase}/api/public/v1`),
+					fetch(`${apiBase}/api/mcp`),
+				]);
 
-					const [publicRaw, mcpRaw] = await Promise.all([
-						publicResponse.json().catch(() => null),
-						mcpResponse.json().catch(() => null),
-					]);
-					const publicJson = isPublicApiDocsResponse(publicRaw)
-						? publicRaw
-						: null;
-					const mcpJson = isMcpMetaResponse(mcpRaw) ? mcpRaw : null;
+				const [publicRaw, mcpRaw] = await Promise.all([
+					publicResponse.json().catch(() => null),
+					mcpResponse.json().catch(() => null),
+				]);
+				const publicJson = isPublicApiDocsResponse(publicRaw)
+					? publicRaw
+					: null;
+				const mcpJson = isMcpMetaResponse(mcpRaw) ? mcpRaw : null;
 
 				if (!isActive) return;
 
@@ -280,10 +286,10 @@ function ApiDocsPage() {
 					method: "tools/list",
 					params: {},
 				}),
-				});
+			});
 
-				const payloadRaw = await response.json().catch(() => null);
-				const payload = isMcpToolsRpcResponse(payloadRaw) ? payloadRaw : null;
+			const payloadRaw = await response.json().catch(() => null);
+			const payload = isMcpToolsRpcResponse(payloadRaw) ? payloadRaw : null;
 
 			const tools = payload?.result?.tools;
 			if (!response.ok || !Array.isArray(tools)) {

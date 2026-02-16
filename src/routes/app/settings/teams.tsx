@@ -1,76 +1,84 @@
-import { createFileRoute } from "@tanstack/react-router"
-import { useTRPC } from "@/integrations/trpc/react"
-import { useQuery, useQueryClient } from "@tanstack/react-query"
-import { authClient } from "@/lib/auth-client"
-import { useMemo, useState } from "react"
+import { usePostHog } from "@posthog/react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { createFileRoute } from "@tanstack/react-router";
 import {
 	ChevronDown,
+	Pencil,
 	Plus,
-	Users2,
+	Trash2,
 	UserMinus,
 	UserPlus,
-	Pencil,
-	Trash2,
-} from "lucide-react"
+	Users2,
+} from "lucide-react";
+import { useMemo, useState } from "react";
+import { useTRPC } from "@/integrations/trpc/react";
+import { authClient } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/app/settings/teams")({
 	component: TeamsPage,
-})
+});
 
 type TeamListItem = {
-	id: string
-	name: string
-	memberCount: number
-	members: { id: string; name: string; image: string | null }[]
-}
+	id: string;
+	name: string;
+	memberCount: number;
+	members: { id: string; name: string; image: string | null }[];
+};
 
 type OrganizationMember = {
-	id: string
-	name: string
-	email: string
-	image: string | null
-	role: string
-}
+	id: string;
+	name: string;
+	email: string;
+	image: string | null;
+	role: string;
+};
 
 function TeamsPage() {
-	const trpc = useTRPC()
-	const queryClient = useQueryClient()
-	const { data: teams, isLoading } = useQuery(trpc.teams.list.queryOptions())
+	const trpc = useTRPC();
+	const posthog = usePostHog();
+	const queryClient = useQueryClient();
+	const { data: teams, isLoading } = useQuery(trpc.teams.list.queryOptions());
 	const { data: myMembership } = useQuery(
 		trpc.org.getMyMembership.queryOptions(),
-	)
+	);
 	const { data: organizationMembers } = useQuery(
 		trpc.org.listMembers.queryOptions(),
-	)
-	const canManageTeams = myMembership?.canManageOrganization ?? false
-	const [name, setName] = useState("")
-	const [creating, setCreating] = useState(false)
-	const [error, setError] = useState("")
+	);
+	const canManageTeams = myMembership?.canManageOrganization ?? false;
+	const [name, setName] = useState("");
+	const [creating, setCreating] = useState(false);
+	const [error, setError] = useState("");
 
 	const handleCreate = async (e: React.FormEvent) => {
-		e.preventDefault()
-		setCreating(true)
-		setError("")
+		e.preventDefault();
+		setCreating(true);
+		setError("");
 
-		const result = await authClient.organization.createTeam({ name })
+		const result = await authClient.organization.createTeam({ name });
 
 		if (result.error) {
-			setError(result.error.message ?? "Failed to create team")
+			setError(result.error.message ?? "Failed to create team");
+			posthog.captureException(
+				new Error(result.error.message ?? "Failed to create team"),
+			);
 		} else {
-			setName("")
-			queryClient.invalidateQueries()
+			posthog.capture("team_created", {
+				team_name: name,
+			});
+			setName("");
+			queryClient.invalidateQueries();
 		}
-		setCreating(false)
-	}
+		setCreating(false);
+	};
 
 	const organizationMembersMap = useMemo(
 		() => new Map((organizationMembers ?? []).map((m) => [m.id, m])),
 		[organizationMembers],
-	)
+	);
 
 	const refreshData = async () => {
-		await queryClient.invalidateQueries()
-	}
+		await queryClient.invalidateQueries();
+	};
 
 	return (
 		<div className="mx-auto w-full max-w-[1200px] px-4 py-5 sm:p-6">
@@ -135,30 +143,30 @@ function TeamsPage() {
 						/>
 					))}
 				</div>
-				) : teams && teams.length > 0 ? (
-					<div className="space-y-0">
-						{teams.map((team) => (
-							<TeamCard
-								key={team.id}
-								team={team}
-								canManage={canManageTeams}
-								organizationMembers={organizationMembers ?? []}
-								organizationMembersMap={organizationMembersMap}
-								onChanged={refreshData}
-							/>
-						))}
-					</div>
-				) : (
-					<div className="border-[3px] border-ds-border p-8 text-center sm:p-12">
-						<p className="text-ds-muted text-sm">
-							{canManageTeams
-								? "NO_TEAMS // Create your first team above."
-								: "NO_TEAMS // No teams available in this organization yet."}
-						</p>
-					</div>
-				)}
-			</div>
-		)
+			) : teams && teams.length > 0 ? (
+				<div className="space-y-0">
+					{teams.map((team) => (
+						<TeamCard
+							key={team.id}
+							team={team}
+							canManage={canManageTeams}
+							organizationMembers={organizationMembers ?? []}
+							organizationMembersMap={organizationMembersMap}
+							onChanged={refreshData}
+						/>
+					))}
+				</div>
+			) : (
+				<div className="border-[3px] border-ds-border p-8 text-center sm:p-12">
+					<p className="text-ds-muted text-sm">
+						{canManageTeams
+							? "NO_TEAMS // Create your first team above."
+							: "NO_TEAMS // No teams available in this organization yet."}
+					</p>
+				</div>
+			)}
+		</div>
+	);
 }
 
 function TeamCard({
@@ -168,112 +176,130 @@ function TeamCard({
 	organizationMembersMap,
 	onChanged,
 }: {
-	team: TeamListItem
-	canManage: boolean
-	organizationMembers: OrganizationMember[]
-	organizationMembersMap: Map<string, OrganizationMember>
-	onChanged: () => Promise<void>
+	team: TeamListItem;
+	canManage: boolean;
+	organizationMembers: OrganizationMember[];
+	organizationMembersMap: Map<string, OrganizationMember>;
+	onChanged: () => Promise<void>;
 }) {
-	const [expanded, setExpanded] = useState(false)
-	const [draftName, setDraftName] = useState(team.name)
-	const [selectedUserId, setSelectedUserId] = useState("")
-	const [busyAction, setBusyAction] = useState<string | null>(null)
-	const [actionError, setActionError] = useState("")
+	const posthog = usePostHog();
+	const [expanded, setExpanded] = useState(false);
+	const [draftName, setDraftName] = useState(team.name);
+	const [selectedUserId, setSelectedUserId] = useState("");
+	const [busyAction, setBusyAction] = useState<string | null>(null);
+	const [actionError, setActionError] = useState("");
 
 	const teamMemberIds = useMemo(
 		() => new Set(team.members.map((member) => member.id)),
 		[team.members],
-	)
+	);
 
 	const availableMembers = useMemo(
-		() =>
-			organizationMembers.filter((member) => !teamMemberIds.has(member.id)),
+		() => organizationMembers.filter((member) => !teamMemberIds.has(member.id)),
 		[organizationMembers, teamMemberIds],
-	)
+	);
 
 	const runAction = async (action: string, fn: () => Promise<boolean>) => {
-		setActionError("")
-		setBusyAction(action)
+		setActionError("");
+		setBusyAction(action);
 		try {
-			const didChange = await fn()
+			const didChange = await fn();
 			if (didChange) {
-				await onChanged()
+				await onChanged();
 			}
 		} catch {
 			// Action errors are handled with in-panel messages.
 		} finally {
-			setBusyAction(null)
+			setBusyAction(null);
 		}
-	}
+	};
 
 	const handleRename = async () => {
-		if (!canManage) return
-		const nextName = draftName.trim()
-		if (!nextName || nextName === team.name) return
+		if (!canManage) return;
+		const nextName = draftName.trim();
+		if (!nextName || nextName === team.name) return;
 		await runAction("rename", async () => {
 			const result = await authClient.organization.updateTeam({
 				teamId: team.id,
 				data: { name: nextName },
-			})
+			});
 			if (result.error) {
-				setActionError(result.error.message ?? "Failed to rename team")
-				return false
+				setActionError(result.error.message ?? "Failed to rename team");
+				return false;
 			}
-			setDraftName(nextName)
-			return true
-		})
-	}
+			setDraftName(nextName);
+			return true;
+		});
+	};
 
 	const handleAddMember = async () => {
-		if (!canManage) return
-		if (!selectedUserId) return
+		if (!canManage) return;
+		if (!selectedUserId) return;
+		const memberToAdd = organizationMembersMap.get(selectedUserId);
 		await runAction(`add:${selectedUserId}`, async () => {
 			const result = await authClient.organization.addTeamMember({
 				teamId: team.id,
 				userId: selectedUserId,
-			})
+			});
 			if (result.error) {
-				setActionError(result.error.message ?? "Failed to add member")
-				return false
+				setActionError(result.error.message ?? "Failed to add member");
+				posthog.captureException(
+					new Error(result.error.message ?? "Failed to add member"),
+				);
+				return false;
 			}
-			setSelectedUserId("")
-			return true
-		})
-	}
+			posthog.capture("team_member_added", {
+				team_id: team.id,
+				team_name: team.name,
+				member_email: memberToAdd?.email,
+			});
+			setSelectedUserId("");
+			return true;
+		});
+	};
 
 	const handleRemoveMember = async (userId: string) => {
-		if (!canManage) return
+		if (!canManage) return;
+		const memberToRemove = organizationMembersMap.get(userId);
 		await runAction(`remove:${userId}`, async () => {
 			const result = await authClient.organization.removeTeamMember({
 				teamId: team.id,
 				userId,
-			})
+			});
 			if (result.error) {
-				setActionError(result.error.message ?? "Failed to remove member")
-				return false
+				setActionError(result.error.message ?? "Failed to remove member");
+				posthog.captureException(
+					new Error(result.error.message ?? "Failed to remove member"),
+				);
+				return false;
 			}
-			return true
-		})
-	}
+			posthog.capture("team_member_removed", {
+				team_id: team.id,
+				team_name: team.name,
+				member_email: memberToRemove?.email,
+			});
+			return true;
+		});
+	};
 
 	const handleDeleteTeam = async () => {
-		if (!canManage) return
+		if (!canManage) return;
 		const shouldDelete = window.confirm(
 			`Delete team "${team.name}"? This removes team assignments.`,
-		)
-		if (!shouldDelete) return
+		);
+		if (!shouldDelete) return;
 
 		await runAction("delete", async () => {
 			const result = await authClient.organization.removeTeam({
 				teamId: team.id,
-			})
+			});
 			if (result.error) {
-				setActionError(result.error.message ?? "Failed to delete team")
-				return false
+				setActionError(result.error.message ?? "Failed to delete team");
+				return false;
 			}
-			return true
-		})
-	}
+			return true;
+		});
+	};
 
 	return (
 		<div className="-mt-[3px] border-[3px] border-ds-border p-4 transition-colors hover:border-ds-muted2 sm:p-6">
@@ -403,7 +429,7 @@ function TeamCard({
 						{team.members.length > 0 ? (
 							<div className="space-y-2">
 								{team.members.map((member) => {
-									const memberDetails = organizationMembersMap.get(member.id)
+									const memberDetails = organizationMembersMap.get(member.id);
 									return (
 										<div
 											key={member.id}
@@ -429,7 +455,7 @@ function TeamCard({
 												</button>
 											)}
 										</div>
-									)
+									);
 								})}
 							</div>
 						) : (
@@ -461,5 +487,5 @@ function TeamCard({
 				</div>
 			)}
 		</div>
-	)
+	);
 }

@@ -44,7 +44,9 @@ describe("workflow email-digests route", () => {
 
 	it("rejects unauthorized GET requests", async () => {
 		const response = handlers().GET({
-			request: new Request("https://dailystand.dev/api/workflows/email-digests"),
+			request: new Request(
+				"https://dailystand.dev/api/workflows/email-digests",
+			),
 		});
 		expect(response.status).toBe(401);
 		await expect(response.json()).resolves.toMatchObject({
@@ -54,11 +56,14 @@ describe("workflow email-digests route", () => {
 
 	it("accepts authorized GET requests and returns endpoint metadata", async () => {
 		const response = handlers().GET({
-			request: new Request("https://dailystand.dev/api/workflows/email-digests", {
-				headers: {
-					"x-workflow-secret": "secret_123",
+			request: new Request(
+				"https://dailystand.dev/api/workflows/email-digests",
+				{
+					headers: {
+						"x-workflow-secret": "secret_123",
+					},
 				},
-			}),
+			),
 		});
 
 		expect(response.status).toBe(200);
@@ -73,14 +78,17 @@ describe("workflow email-digests route", () => {
 
 	it("returns bad request for invalid cadence payloads", async () => {
 		const response = await handlers().POST({
-			request: new Request("https://dailystand.dev/api/workflows/email-digests", {
-				method: "POST",
-				headers: {
-					"x-workflow-secret": "secret_123",
-					"content-type": "application/json",
+			request: new Request(
+				"https://dailystand.dev/api/workflows/email-digests",
+				{
+					method: "POST",
+					headers: {
+						"x-workflow-secret": "secret_123",
+						"content-type": "application/json",
+					},
+					body: JSON.stringify({ cadence: "hourly" }),
 				},
-				body: JSON.stringify({ cadence: "hourly" }),
-			}),
+			),
 		});
 
 		expect(response.status).toBe(400);
@@ -100,14 +108,17 @@ describe("workflow email-digests route", () => {
 		});
 
 		const response = await handlers().POST({
-			request: new Request("https://dailystand.dev/api/workflows/email-digests", {
-				method: "POST",
-				headers: {
-					"x-workflow-secret": "secret_123",
-					"content-type": "application/json",
+			request: new Request(
+				"https://dailystand.dev/api/workflows/email-digests",
+				{
+					method: "POST",
+					headers: {
+						"x-workflow-secret": "secret_123",
+						"content-type": "application/json",
+					},
+					body: JSON.stringify({ cadence: "daily" }),
 				},
-				body: JSON.stringify({ cadence: "daily" }),
-			}),
+			),
 		});
 
 		expect(response.status).toBe(200);
@@ -133,12 +144,15 @@ describe("workflow email-digests route", () => {
 			.mockRejectedValueOnce(new Error("weekly failed"));
 
 		const response = await handlers().POST({
-			request: new Request("https://dailystand.dev/api/workflows/email-digests", {
-				method: "POST",
-				headers: {
-					"x-workflow-secret": "secret_123",
+			request: new Request(
+				"https://dailystand.dev/api/workflows/email-digests",
+				{
+					method: "POST",
+					headers: {
+						"x-workflow-secret": "secret_123",
+					},
 				},
-			}),
+			),
 		});
 
 		expect(runDigestWorkflowMock).toHaveBeenCalledTimes(2);

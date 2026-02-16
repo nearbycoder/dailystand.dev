@@ -1,3 +1,4 @@
+import { usePostHog } from "@posthog/react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createFileRoute, Link } from "@tanstack/react-router";
 import {
@@ -89,7 +90,9 @@ function isCreatedApiKeyRecord(value: unknown): value is CreatedApiKeyRecord {
 	return isApiKeyRecord(value) && typeof key === "string" && key.length > 0;
 }
 
-function isExpirationOptionValue(value: string): value is ExpirationOptionValue {
+function isExpirationOptionValue(
+	value: string,
+): value is ExpirationOptionValue {
 	return EXPIRATION_OPTIONS.some((option) => option.value === value);
 }
 
@@ -119,6 +122,7 @@ function summarizePermissions(
 
 function ApiKeysPage() {
 	const queryClient = useQueryClient();
+	const posthog = usePostHog();
 	const [name, setName] = useState("Integration key");
 	const [expiresInOption, setExpiresInOption] =
 		useState<ExpirationOptionValue>("90");
@@ -189,12 +193,18 @@ function ApiKeysPage() {
 		onSuccess: (created) => {
 			setCreateError("");
 			setNewKeyValue(created.key);
+			posthog.capture("api_key_created", {
+				key_name: created.name,
+				expires_at: created.expiresAt,
+				has_member_manage_scope: includeMemberManage,
+			});
 			void queryClient.invalidateQueries({
 				queryKey: ["settings", "api-keys"],
 			});
 		},
 		onError: (error) => {
 			setCreateError(error.message);
+			posthog.captureException(new Error(error.message));
 		},
 	});
 
@@ -206,11 +216,18 @@ function ApiKeysPage() {
 			if (result.error || !result.data?.success) {
 				throw new Error(result.error?.message ?? "Failed to revoke API key.");
 			}
+			return keyId;
 		},
-		onSuccess: () => {
+		onSuccess: (keyId) => {
+			posthog.capture("api_key_revoked", {
+				key_id: keyId,
+			});
 			void queryClient.invalidateQueries({
 				queryKey: ["settings", "api-keys"],
 			});
+		},
+		onError: (error) => {
+			posthog.captureException(error);
 		},
 	});
 
@@ -274,16 +291,16 @@ function ApiKeysPage() {
 						className="md:col-span-3 min-w-0 border-[3px] border-ds-muted3 bg-ds-input-bg px-4 py-2.5 text-sm text-ds-fg placeholder:text-ds-muted2 focus:border-ds-accent focus:outline-none"
 					/>
 					<div className="relative min-w-0">
-							<select
-								value={expiresInOption}
-								onChange={(event) => {
-									const nextValue = event.target.value;
-									if (isExpirationOptionValue(nextValue)) {
-										setExpiresInOption(nextValue);
-									}
-								}}
-								className="w-full appearance-none border-[3px] border-ds-muted3 bg-ds-input-bg px-4 py-2.5 pr-10 text-sm text-ds-fg focus:border-ds-accent focus:outline-none"
-							>
+						<select
+							value={expiresInOption}
+							onChange={(event) => {
+								const nextValue = event.target.value;
+								if (isExpirationOptionValue(nextValue)) {
+									setExpiresInOption(nextValue);
+								}
+							}}
+							className="w-full appearance-none border-[3px] border-ds-muted3 bg-ds-input-bg px-4 py-2.5 pr-10 text-sm text-ds-fg focus:border-ds-accent focus:outline-none"
+						>
 							{EXPIRATION_OPTIONS.map((option) => (
 								<option key={option.value} value={option.value}>
 									{option.label.toUpperCase()}

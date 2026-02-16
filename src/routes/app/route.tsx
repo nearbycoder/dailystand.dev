@@ -1,109 +1,114 @@
+import { useQuery } from "@tanstack/react-query";
 import {
 	createFileRoute,
 	Link,
 	Outlet,
 	useNavigate,
-} from "@tanstack/react-router"
-import { authClient } from "@/lib/auth-client"
-import { useMemo, useState } from "react"
+} from "@tanstack/react-router";
 import {
-	LayoutDashboard,
 	BarChart3,
-	PenSquare,
-	Users,
 	History,
-	Settings,
+	LayoutDashboard,
 	LogOut,
-	Plus,
-	Terminal,
 	Menu,
-} from "lucide-react"
-import { useTRPC } from "@/integrations/trpc/react"
-import { useQuery } from "@tanstack/react-query"
-import { ThemeToggle } from "@/components/theme-toggle"
+	PenSquare,
+	Plus,
+	Settings,
+	Terminal,
+	Users,
+} from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
 	Sheet,
 	SheetContent,
 	SheetDescription,
 	SheetHeader,
 	SheetTitle,
-} from "@/components/ui/sheet"
+} from "@/components/ui/sheet";
+import { useTRPC } from "@/integrations/trpc/react";
+import { authClient } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/app")({
 	component: AppLayout,
-})
+});
 
 function AppLayout() {
-	const { data: session, isPending } = authClient.useSession()
-	const navigate = useNavigate()
+	const { data: session, isPending } = authClient.useSession();
+	const navigate = useNavigate();
+	const [isHydrated, setIsHydrated] = useState(false);
 
-	if (isPending) {
+	useEffect(() => {
+		setIsHydrated(true);
+	}, []);
+
+	if (!isHydrated || isPending) {
 		return (
 			<div className="min-h-screen bg-ds-bg text-ds-fg font-mono flex items-center justify-center">
 				<span className="text-ds-accent animate-pulse">LOADING...</span>
 			</div>
-		)
+		);
 	}
 
 	if (!session?.user) {
 		navigate({
 			to: "/auth/sign-in",
 			search: { invitationId: undefined, email: undefined },
-		})
-		return null
+		});
+		return null;
 	}
 
-	const activeOrgId = session.session.activeOrganizationId
+	const activeOrgId = session.session.activeOrganizationId;
 
 	if (!activeOrgId) {
-		return <OrgSetup />
+		return <OrgSetup />;
 	}
 
-	return <AppShell session={session} />
+	return <AppShell session={session} />;
 }
 
 function OrgSetup() {
-	const trpc = useTRPC()
-	const [orgName, setOrgName] = useState("")
-	const [orgSlug, setOrgSlug] = useState("")
-	const [loading, setLoading] = useState(false)
-	const [error, setError] = useState("")
-	const { data: orgs } = authClient.useListOrganizations()
+	const trpc = useTRPC();
+	const [orgName, setOrgName] = useState("");
+	const [orgSlug, setOrgSlug] = useState("");
+	const [loading, setLoading] = useState(false);
+	const [error, setError] = useState("");
+	const { data: orgs } = authClient.useListOrganizations();
 	const { data: memberships } = useQuery(
 		trpc.org.listMyMemberships.queryOptions(),
-	)
-	const organizations = orgs ?? []
-	const hasOrganizations = organizations.length > 0
+	);
+	const organizations = orgs ?? [];
+	const hasOrganizations = organizations.length > 0;
 	const canCreateOrganization =
 		(memberships?.length ?? 0) === 0 ||
-		(memberships ?? []).some((membership) => membership.canManageOrganization)
+		(memberships ?? []).some((membership) => membership.canManageOrganization);
 
 	const handleCreate = async (e: React.FormEvent) => {
-		e.preventDefault()
-		setLoading(true)
-		setError("")
+		e.preventDefault();
+		setLoading(true);
+		setError("");
 
 		const result = await authClient.organization.create({
 			name: orgName,
 			slug: orgSlug || orgName.toLowerCase().replace(/\s+/g, "-"),
-		})
+		});
 
 		if (result.error) {
-			setError(result.error.message ?? "Failed to create organization")
-			setLoading(false)
-			return
+			setError(result.error.message ?? "Failed to create organization");
+			setLoading(false);
+			return;
 		}
 
 		await authClient.organization.setActive({
 			organizationId: result.data.id,
-		})
-		window.location.reload()
-	}
+		});
+		window.location.reload();
+	};
 
 	const handleSelect = async (orgId: string) => {
-		await authClient.organization.setActive({ organizationId: orgId })
-		window.location.reload()
-	}
+		await authClient.organization.setActive({ organizationId: orgId });
+		window.location.reload();
+	};
 
 	return (
 		<div className="min-h-screen bg-ds-bg text-ds-fg selection:bg-ds-selection-bg selection:text-ds-selection-fg font-mono flex items-center justify-center p-4 sm:p-6">
@@ -119,9 +124,7 @@ function OrgSetup() {
 					<h1 className="mb-2 text-2xl font-extrabold tracking-tighter">
 						{hasOrganizations ? "SELECT_ORG" : "CREATE_ORG"}
 					</h1>
-					<p className="mb-8 text-sm text-ds-muted">
-						// set up your workspace
-					</p>
+					<p className="mb-8 text-sm text-ds-muted">// set up your workspace</p>
 
 					{hasOrganizations && (
 						<div className="space-y-2 mb-8">
@@ -167,10 +170,10 @@ function OrgSetup() {
 									placeholder="Acme Corp"
 									value={orgName}
 									onChange={(e) => {
-										setOrgName(e.target.value)
+										setOrgName(e.target.value);
 										setOrgSlug(
 											e.target.value.toLowerCase().replace(/\s+/g, "-"),
-										)
+										);
 									}}
 									required
 									className="w-full bg-ds-input-bg border-[3px] border-ds-muted3 px-4 py-3 text-ds-fg font-mono text-sm focus:border-ds-accent focus:outline-none transition-colors placeholder:text-ds-muted2"
@@ -201,37 +204,39 @@ function OrgSetup() {
 				</div>
 			</div>
 		</div>
-	)
+	);
 }
 
 function AppShell({
 	session,
-}: { session: NonNullable<ReturnType<typeof authClient.useSession>["data"]> }) {
-	const navigate = useNavigate()
-	const trpc = useTRPC()
-	const { data: teams } = useQuery(trpc.teams.list.queryOptions())
-	const { data: orgMembers } = useQuery(trpc.org.listMembers.queryOptions())
-	const [mobileNavOpen, setMobileNavOpen] = useState(false)
-	const viewerId = session.user.id
+}: {
+	session: NonNullable<ReturnType<typeof authClient.useSession>["data"]>;
+}) {
+	const navigate = useNavigate();
+	const trpc = useTRPC();
+	const { data: teams } = useQuery(trpc.teams.list.queryOptions());
+	const { data: orgMembers } = useQuery(trpc.org.listMembers.queryOptions());
+	const [mobileNavOpen, setMobileNavOpen] = useState(false);
+	const viewerId = session.user.id;
 
 	const canViewAllTeams = useMemo(() => {
 		const currentMember = (orgMembers ?? []).find(
 			(member) => member.userId === viewerId,
-		)
-		if (!currentMember?.role) return false
+		);
+		if (!currentMember?.role) return false;
 		const roleParts = currentMember.role
 			.split(",")
 			.map((part) => part.trim().toLowerCase())
-			.filter(Boolean)
-		return roleParts.includes("owner") || roleParts.includes("admin")
-	}, [orgMembers, viewerId])
+			.filter(Boolean);
+		return roleParts.includes("owner") || roleParts.includes("admin");
+	}, [orgMembers, viewerId]);
 
 	const handleSignOut = async () => {
-		await authClient.signOut()
-		navigate({ to: "/" })
-	}
+		await authClient.signOut();
+		navigate({ to: "/" });
+	};
 
-	const closeMobileNav = () => setMobileNavOpen(false)
+	const closeMobileNav = () => setMobileNavOpen(false);
 
 	return (
 		<div className="min-h-screen bg-ds-bg text-ds-fg selection:bg-ds-selection-bg selection:text-ds-selection-fg font-mono md:flex md:h-svh md:overflow-hidden">
@@ -291,7 +296,7 @@ function AppShell({
 				</main>
 			</div>
 		</div>
-	)
+	);
 }
 
 function SidebarContent({
@@ -302,39 +307,43 @@ function SidebarContent({
 	onSignOut,
 	onNavigate,
 }: {
-	session: NonNullable<ReturnType<typeof authClient.useSession>["data"]>
+	session: NonNullable<ReturnType<typeof authClient.useSession>["data"]>;
 	teams:
 		| {
-				id: string
-				name: string
+				id: string;
+				name: string;
 				members?: {
-					id: string
-					name: string
-					image: string | null
-				}[]
+					id: string;
+					name: string;
+					image: string | null;
+				}[];
 		  }[]
-		| undefined
-	viewerId: string
-	canViewAllTeams: boolean
-	onSignOut: () => Promise<void>
-	onNavigate?: () => void
+		| undefined;
+	viewerId: string;
+	canViewAllTeams: boolean;
+	onSignOut: () => Promise<void>;
+	onNavigate?: () => void;
 }) {
 	const myTeams = useMemo(() => {
-		if (!teams || teams.length === 0) return []
+		if (!teams || teams.length === 0) return [];
 		return teams.filter((team) =>
 			team.members?.some((member) => member.id === viewerId),
-		)
-	}, [teams, viewerId])
+		);
+	}, [teams, viewerId]);
 	const otherTeams = useMemo(() => {
-		if (!teams || teams.length === 0) return []
-		const myTeamIds = new Set(myTeams.map((team) => team.id))
-		return teams.filter((team) => !myTeamIds.has(team.id))
-	}, [teams, myTeams])
+		if (!teams || teams.length === 0) return [];
+		const myTeamIds = new Set(myTeams.map((team) => team.id));
+		return teams.filter((team) => !myTeamIds.has(team.id));
+	}, [teams, myTeams]);
 
 	return (
 		<div className="flex h-full min-h-0 flex-col">
 			<div className="border-b-[3px] border-ds-border-strong p-4">
-				<Link to="/app" className="flex items-center gap-2" onClick={onNavigate}>
+				<Link
+					to="/app"
+					className="flex items-center gap-2"
+					onClick={onNavigate}
+				>
 					<Terminal className="h-5 w-5 text-ds-accent" />
 					<span className="font-extrabold tracking-tighter">DAILYSTAND</span>
 				</Link>
@@ -384,15 +393,15 @@ function SidebarContent({
 						))}
 					</>
 				)}
-					{canViewAllTeams && otherTeams.length > 0 && (
-						<>
-							<div className="px-4 py-3 text-xs font-bold tracking-widest text-ds-muted2">
-								// ALL_TEAMS
-							</div>
-							{otherTeams.map((team) => (
-								<NavLink
-									key={`all-${team.id}`}
-									to="/app/team/$teamId"
+				{canViewAllTeams && otherTeams.length > 0 && (
+					<>
+						<div className="px-4 py-3 text-xs font-bold tracking-widest text-ds-muted2">
+							// ALL_TEAMS
+						</div>
+						{otherTeams.map((team) => (
+							<NavLink
+								key={`all-${team.id}`}
+								to="/app/team/$teamId"
 								params={{ teamId: team.id }}
 								icon={Users}
 								label={team.name.toUpperCase()}
@@ -420,7 +429,9 @@ function SidebarContent({
 						{session.user.name?.charAt(0).toUpperCase() ?? "U"}
 					</div>
 					<div className="min-w-0 flex-1">
-						<div className="truncate text-xs font-bold">{session.user.name}</div>
+						<div className="truncate text-xs font-bold">
+							{session.user.name}
+						</div>
 						<div className="truncate text-[10px] text-ds-muted">
 							{session.user.email}
 						</div>
@@ -428,8 +439,8 @@ function SidebarContent({
 				</div>
 				<button
 					onClick={async () => {
-						onNavigate?.()
-						await onSignOut()
+						onNavigate?.();
+						await onSignOut();
 					}}
 					className="flex w-full items-center gap-2 px-2 py-1.5 text-xs font-bold text-ds-muted transition-colors hover:text-red-400"
 				>
@@ -438,7 +449,7 @@ function SidebarContent({
 				</button>
 			</div>
 		</div>
-	)
+	);
 }
 
 type StaticNavTarget =
@@ -446,33 +457,40 @@ type StaticNavTarget =
 	| "/app/analytics"
 	| "/app/standup"
 	| "/app/history"
-	| "/app/settings"
+	| "/app/settings";
 
-type TeamNavTarget = "/app/team/$teamId"
+type TeamNavTarget = "/app/team/$teamId";
 
 type NavLinkProps =
 	| {
-			to: StaticNavTarget
-			params?: undefined
-			icon: React.ComponentType<{ className?: string }>
-			label: string
-			exact?: boolean
-			onNavigate?: () => void
+			to: StaticNavTarget;
+			params?: undefined;
+			icon: React.ComponentType<{ className?: string }>;
+			label: string;
+			exact?: boolean;
+			onNavigate?: () => void;
 	  }
 	| {
-			to: TeamNavTarget
-			params: { teamId: string }
-			icon: React.ComponentType<{ className?: string }>
-			label: string
-			exact?: boolean
-			onNavigate?: () => void
-	  }
+			to: TeamNavTarget;
+			params: { teamId: string };
+			icon: React.ComponentType<{ className?: string }>;
+			label: string;
+			exact?: boolean;
+			onNavigate?: () => void;
+	  };
 
-function NavLink({ to, params, icon: Icon, label, exact, onNavigate }: NavLinkProps) {
+function NavLink({
+	to,
+	params,
+	icon: Icon,
+	label,
+	exact,
+	onNavigate,
+}: NavLinkProps) {
 	const baseClassName =
-		"flex items-center gap-3 px-4 py-2.5 text-xs font-bold tracking-wider text-ds-text-tertiary transition-all hover:bg-ds-surface hover:text-ds-fg"
+		"flex items-center gap-3 px-4 py-2.5 text-xs font-bold tracking-wider text-ds-text-tertiary transition-all hover:bg-ds-surface hover:text-ds-fg";
 	const activeClassName =
-		"flex items-center gap-3 border-l-[3px] border-ds-accent bg-ds-accent/5 px-4 py-2.5 text-xs font-bold tracking-wider text-ds-accent"
+		"flex items-center gap-3 border-l-[3px] border-ds-accent bg-ds-accent/5 px-4 py-2.5 text-xs font-bold tracking-wider text-ds-accent";
 
 	if (to === "/app/team/$teamId") {
 		return (
@@ -489,7 +507,7 @@ function NavLink({ to, params, icon: Icon, label, exact, onNavigate }: NavLinkPr
 				<Icon className="w-4 h-4" />
 				<span className="truncate">{label}</span>
 			</Link>
-		)
+		);
 	}
 
 	return (
@@ -505,5 +523,5 @@ function NavLink({ to, params, icon: Icon, label, exact, onNavigate }: NavLinkPr
 			<Icon className="w-4 h-4" />
 			<span className="truncate">{label}</span>
 		</Link>
-	)
+	);
 }

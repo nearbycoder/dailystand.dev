@@ -1,8 +1,8 @@
-import { createFileRoute } from "@tanstack/react-router"
-import { Copy, KeyRound, Rocket } from "lucide-react"
-import { toast } from "sonner"
-import { useDocsKey } from "@/components/docs/docs-key-context"
-import { buildPageSeo } from "@/lib/seo"
+import { createFileRoute } from "@tanstack/react-router";
+import { Copy, KeyRound, Rocket } from "lucide-react";
+import { toast } from "sonner";
+import { useDocsKey } from "@/components/docs/docs-key-context";
+import { buildPageSeo } from "@/lib/seo";
 
 const docsIndexSeo = buildPageSeo({
 	title: "Standup API + MCP Quickstart | DailyStand Docs",
@@ -10,19 +10,19 @@ const docsIndexSeo = buildPageSeo({
 		"Quickstart guide for the DailyStand public API and MCP server. Authenticate with API keys and run your first standup automation calls.",
 	path: "/docs",
 	ogPage: "docs",
-})
+});
 
 export const Route = createFileRoute("/docs/")({
 	component: DocsQuickstartPage,
 	head: () => ({ meta: docsIndexSeo.meta, links: docsIndexSeo.links }),
-})
+});
 
 function DocsQuickstartPage() {
-	const { apiKey, baseUrl } = useDocsKey()
-	const key = apiKey.trim() || "YOUR_API_KEY"
+	const { apiKey, baseUrl } = useDocsKey();
+	const key = apiKey.trim() || "YOUR_API_KEY";
 
 	const quickCurl = `curl -s "${baseUrl}/api/public/v1/me" \\
-  -H "x-api-key: ${key}"`
+  -H "x-api-key: ${key}"`;
 
 	const quickMcp = `curl -s -X POST "${baseUrl}/api/mcp" \\
   -H "Content-Type: application/json" \\
@@ -32,16 +32,16 @@ function DocsQuickstartPage() {
     "id": 1,
     "method": "tools/list",
     "params": {}
-  }'`
+  }'`;
 
 	const copyBlock = async (value: string) => {
 		try {
-			await navigator.clipboard.writeText(value)
-			toast.success("Copied snippet")
+			await navigator.clipboard.writeText(value);
+			toast.success("Copied snippet");
 		} catch {
-			toast.error("Clipboard unavailable")
+			toast.error("Clipboard unavailable");
 		}
-	}
+	};
 
 	return (
 		<div className="space-y-6">
@@ -112,7 +112,7 @@ function DocsQuickstartPage() {
 						COPY
 					</button>
 					<pre className="overflow-x-auto border-[2px] border-ds-border bg-ds-surface p-4 pr-4 text-[11px] leading-relaxed text-ds-fg sm:pr-20 sm:text-xs">
-{quickCurl}
+						{quickCurl}
 					</pre>
 				</div>
 			</section>
@@ -131,10 +131,10 @@ function DocsQuickstartPage() {
 						COPY
 					</button>
 					<pre className="overflow-x-auto border-[2px] border-ds-border bg-ds-surface p-4 pr-4 text-[11px] leading-relaxed text-ds-fg sm:pr-20 sm:text-xs">
-{quickMcp}
+						{quickMcp}
 					</pre>
 				</div>
 			</section>
 		</div>
-	)
+	);
 }

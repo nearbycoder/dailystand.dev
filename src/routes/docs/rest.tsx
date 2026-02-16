@@ -70,7 +70,9 @@ function DocsRestPage() {
 						<div className="text-[10px] font-bold tracking-widest text-ds-muted2">
 							AUTH HEADER
 						</div>
-						<div className="mt-1 text-xs font-bold">x-api-key: ds_...</div>
+						<div className="mt-1 text-xs font-bold">
+							x-api-key or Authorization: Bearer
+						</div>
 					</div>
 					<div className="border-[2px] border-ds-border p-3">
 						<div className="text-[10px] font-bold tracking-widest text-ds-muted2">

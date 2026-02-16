@@ -386,7 +386,7 @@ async function handleDocs(request: Request) {
 			bearerSupported: true,
 		},
 		endpoints: {
-			me: "GET /api/public/v1/me?orgId=<optional>",
+			me: "GET /api/public/v1/me",
 			teams: "GET /api/public/v1/teams?orgId=<optional>",
 			myTeams: "GET /api/public/v1/teams/mine?orgId=<optional>",
 			standupsDay:

@@ -1533,8 +1533,9 @@ function handleGet(request: Request): Response {
 		},
 		notes: [
 			"Call initialize first, then tools/list and tools/call.",
+			"Org/member discovery tools: list_organizations, list_teams, list_my_teams, list_org_members.",
 			"Owner-only tools: add_organization_member, assign_user_to_team, remove_user_from_team.",
-			"Member tools: list_my_teams, submit_my_standup, get_my_standup, get_my_standup_history, get_team_standup_day, get_team_standup_history.",
+			"Standup tools: submit_my_standup, get_my_standup, get_my_standup_history, get_team_standup_day, get_team_standup_history.",
 		],
 	});
 }

@@ -70,7 +70,9 @@ function DocsMcpPage() {
 						<div className="text-[10px] font-bold tracking-widest text-ds-muted2">
 							AUTH
 						</div>
-						<div className="mt-1 text-xs font-bold">x-api-key header</div>
+						<div className="mt-1 text-xs font-bold">
+							x-api-key or Authorization: Bearer
+						</div>
 					</div>
 					<div className="border-[2px] border-ds-border p-3">
 						<div className="text-[10px] font-bold tracking-widest text-ds-muted2">
@@ -146,7 +148,7 @@ function DocsMcpPage() {
 								{tool.name}
 							</div>
 							<div className="mt-1 text-[10px] font-bold tracking-widest text-ds-muted2">
-								{tool.access === "owner_or_admin" ? "OWNER/ADMIN" : "MEMBER"} //{" "}
+								{tool.access === "owner" ? "OWNER" : "MEMBER"} //{" "}
 								{tool.requiredScope}
 							</div>
 							<div className="mt-2 text-xs text-ds-muted">
@@ -180,9 +182,7 @@ function DocsMcpPage() {
 										{tool.name}
 									</td>
 									<td className="px-3 py-2 text-ds-muted">
-										{tool.access === "owner_or_admin"
-											? "OWNER/ADMIN"
-											: "MEMBER"}
+										{tool.access === "owner" ? "OWNER" : "MEMBER"}
 									</td>
 									<td className="px-3 py-2 text-ds-muted">
 										{tool.requiredScope}

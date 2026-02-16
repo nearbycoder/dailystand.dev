@@ -187,6 +187,11 @@ Auth:
 - `x-api-key: <key>` header, or
 - `Authorization: Bearer <key>`
 
+Org scope:
+
+- For users in a single organization, `orgId` is optional.
+- For users in multiple organizations, `orgId` is required on org-scoped endpoints.
+
 Core endpoints:
 
 - `GET /api/public/v1` (docs metadata)
@@ -212,7 +217,7 @@ Flow:
 
 Tooling includes:
 
-- Team/org discovery: `list_organizations`, `list_teams`, `list_my_teams`
+- Team/org discovery: `list_organizations`, `list_teams`, `list_my_teams`, `list_org_members`
 - Member/team management (owner-only): `add_organization_member`, `assign_user_to_team`, `remove_user_from_team`
 - Standup read/write: `submit_my_standup`, `get_my_standup`, `get_my_standup_history`, `get_team_standup_day`, `get_team_standup_history`
 

@@ -348,6 +348,14 @@ function ApiDocsPage() {
   -H "x-api-key: {{API_KEY}}"`,
 		},
 		{
+			id: "rest-team-standups-history",
+			title: "Read Team Standups (History)",
+			description: "Read standup history for a date window and optional team.",
+			scope: "dailystand.standups:read",
+			template: `curl -s "${apiBase}/api/public/v1/standups/history?orgId=ORG_ID&teamId=TEAM_ID&startDate=2026-02-01&endDate=2026-02-16" \\
+  -H "x-api-key: {{API_KEY}}"`,
+		},
+		{
 			id: "rest-submit",
 			title: "Submit Standup",
 			description:
@@ -381,7 +389,7 @@ function ApiDocsPage() {
 			id: "mcp-init",
 			title: "MCP Initialize",
 			description: "Handshake with the server before listing/calling tools.",
-			scope: "dailystand.profile:read",
+			scope: "public (no scope)",
 			template: `curl -s -X POST "${apiBase}/api/mcp" \\
   -H "Content-Type: application/json" \\
   -H "x-api-key: {{API_KEY}}" \\
@@ -408,6 +416,26 @@ function ApiDocsPage() {
 	  }'`,
 		},
 		{
+			id: "mcp-list-org-members",
+			title: "MCP List Organization Members",
+			description: "List organization members with roles.",
+			scope: "dailystand.teams:read",
+			template: `curl -s -X POST "${apiBase}/api/mcp" \\
+  -H "Content-Type: application/json" \\
+  -H "x-api-key: {{API_KEY}}" \\
+  -d '{
+    "jsonrpc": "2.0",
+    "id": 3,
+    "method": "tools/call",
+    "params": {
+      "name": "list_org_members",
+      "arguments": {
+        "orgId": "ORG_ID"
+      }
+    }
+  }'`,
+		},
+		{
 			id: "mcp-my-teams",
 			title: "MCP List My Teams",
 			description: "Get only your team memberships for one organization.",
@@ -417,7 +445,7 @@ function ApiDocsPage() {
   -H "x-api-key: {{API_KEY}}" \\
   -d '{
     "jsonrpc": "2.0",
-    "id": 3,
+    "id": 4,
     "method": "tools/call",
     "params": {
       "name": "list_my_teams",
@@ -437,7 +465,7 @@ function ApiDocsPage() {
   -H "x-api-key: {{API_KEY}}" \\
   -d '{
     "jsonrpc": "2.0",
-    "id": 4,
+    "id": 5,
     "method": "tools/call",
     "params": {
       "name": "submit_my_standup",
@@ -462,7 +490,7 @@ function ApiDocsPage() {
   -H "x-api-key: {{API_KEY}}" \\
   -d '{
     "jsonrpc": "2.0",
-    "id": 5,
+    "id": 6,
     "method": "tools/call",
     "params": {
       "name": "get_my_standup_history",
@@ -485,7 +513,7 @@ function ApiDocsPage() {
   -H "x-api-key: {{API_KEY}}" \\
   -d '{
     "jsonrpc": "2.0",
-    "id": 6,
+    "id": 7,
     "method": "tools/call",
     "params": {
       "name": "get_team_standup_day",
@@ -507,7 +535,7 @@ function ApiDocsPage() {
   -H "x-api-key: {{API_KEY}}" \\
   -d '{
     "jsonrpc": "2.0",
-    "id": 7,
+    "id": 8,
     "method": "tools/call",
     "params": {
       "name": "assign_user_to_team",
@@ -762,16 +790,21 @@ function ApiDocsPage() {
 								<td className="px-2 py-2">Owner</td>
 								<td className="px-2 py-2">dailystand.members:manage</td>
 							</tr>
-							<tr className="border-b border-ds-muted3/70">
-								<td className="px-2 py-2">Assign/remove team members</td>
-								<td className="px-2 py-2">Owner</td>
-								<td className="px-2 py-2">dailystand.members:manage</td>
-							</tr>
-							<tr className="border-b border-ds-muted3/70">
-								<td className="px-2 py-2">Read own team memberships</td>
-								<td className="px-2 py-2">Member</td>
-								<td className="px-2 py-2">dailystand.teams:read</td>
-							</tr>
+								<tr className="border-b border-ds-muted3/70">
+									<td className="px-2 py-2">Assign/remove team members</td>
+									<td className="px-2 py-2">Owner</td>
+									<td className="px-2 py-2">dailystand.members:manage</td>
+								</tr>
+								<tr className="border-b border-ds-muted3/70">
+									<td className="px-2 py-2">List organization members</td>
+									<td className="px-2 py-2">Member</td>
+									<td className="px-2 py-2">dailystand.teams:read</td>
+								</tr>
+								<tr className="border-b border-ds-muted3/70">
+									<td className="px-2 py-2">Read own team memberships</td>
+									<td className="px-2 py-2">Member</td>
+									<td className="px-2 py-2">dailystand.teams:read</td>
+								</tr>
 							<tr className="border-b border-ds-muted3/70">
 								<td className="px-2 py-2">Submit own standup</td>
 								<td className="px-2 py-2">Member</td>

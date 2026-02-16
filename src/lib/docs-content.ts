@@ -22,7 +22,7 @@ export type McpMethodDoc = {
 export type McpToolDoc = {
 	name: string;
 	requiredScope: string;
-	access: "member" | "owner_or_admin";
+	access: "member" | "owner";
 	description: string;
 };
 
@@ -32,7 +32,7 @@ export const REST_ENDPOINTS: RestEndpointDoc[] = [
 		label: "API Root",
 		method: "GET",
 		path: "/api/public/v1",
-		scope: "dailystand.profile:read",
+		scope: "public (no scope)",
 		description: "API version, auth model, scopes, and endpoint catalog.",
 	},
 	{
@@ -127,7 +127,7 @@ export const MCP_METHODS: McpMethodDoc[] = [
 		method: "initialize",
 		description: "Start MCP handshake and get protocol capabilities.",
 		notes: [
-			"Call this first.",
+			"No API key scope required.",
 			"Response includes protocolVersion and serverInfo.",
 		],
 		payloadExample: JSON.stringify(
@@ -181,10 +181,9 @@ export const MCP_METHODS: McpMethodDoc[] = [
 						orgId: "ORG_ID",
 						teamId: "TEAM_ID",
 						date: "2026-02-16",
-						entries: [
-							{ type: "completed", content: "Finished request explorer page" },
-							{ type: "planned", content: "Add API docs examples" },
-						],
+						completed: ["Finished request explorer page"],
+						planned: ["Add API docs examples"],
+						blockers: [],
 					},
 				},
 			},
@@ -215,27 +214,27 @@ export const MCP_TOOLS: McpToolDoc[] = [
 	},
 	{
 		name: "list_org_members",
-		requiredScope: "dailystand.members:manage",
-		access: "owner_or_admin",
+		requiredScope: "dailystand.teams:read",
+		access: "member",
 		description: "List organization members with roles.",
 	},
 	{
 		name: "add_organization_member",
 		requiredScope: "dailystand.members:manage",
-		access: "owner_or_admin",
-		description: "Invite/add an organization member (owner/admin only).",
+		access: "owner",
+		description: "Add an existing user to an organization (owner only).",
 	},
 	{
 		name: "assign_user_to_team",
 		requiredScope: "dailystand.members:manage",
-		access: "owner_or_admin",
-		description: "Assign a user to team (owner/admin only).",
+		access: "owner",
+		description: "Assign an organization member to a team (owner only).",
 	},
 	{
 		name: "remove_user_from_team",
 		requiredScope: "dailystand.members:manage",
-		access: "owner_or_admin",
-		description: "Remove a user from a team (owner/admin only).",
+		access: "owner",
+		description: "Remove an organization member from a team (owner only).",
 	},
 	{
 		name: "submit_my_standup",
@@ -253,7 +252,7 @@ export const MCP_TOOLS: McpToolDoc[] = [
 		name: "get_my_standup_history",
 		requiredScope: "dailystand.standups:read",
 		access: "member",
-		description: "Get current user's standup history for date ranges.",
+		description: "Get current user's standup history with optional team scope.",
 	},
 	{
 		name: "get_team_standup_day",

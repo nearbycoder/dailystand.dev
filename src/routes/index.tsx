@@ -1,6 +1,6 @@
-import { createFileRoute, Link } from "@tanstack/react-router"
-import { authClient } from "@/lib/auth-client"
-import { ThemeToggle } from "@/components/theme-toggle"
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { authClient } from "@/lib/auth-client";
+import { ThemeToggle } from "@/components/theme-toggle";
 import {
 	Check,
 	ArrowRight,
@@ -10,11 +10,14 @@ import {
 	Clock,
 	Shield,
 	Zap,
-} from "lucide-react"
+	Bot,
+	Github,
+	Server,
+} from "lucide-react";
 
 export const Route = createFileRoute("/")({
 	component: LandingPage,
-})
+});
 
 const features = [
 	{
@@ -49,11 +52,17 @@ const features = [
 	},
 	{
 		icon: <ArrowRight className="w-5 h-5" />,
-		title: "Integrations",
+		title: "Integrations (Coming Soon)",
 		description:
-			"Connect with Slack, email digests, and more on Business plans.",
+			"Slack, Linear, and email digests are coming soon for Business plans.",
 	},
-]
+	{
+		icon: <Bot className="w-5 h-5" />,
+		title: "MCP + AI Standups",
+		description:
+			"Use MCP tools with AI to generate and submit your daily standups automatically.",
+	},
+];
 
 const plans = [
 	{
@@ -64,33 +73,35 @@ const plans = [
 	},
 	{
 		name: "PRO",
-		price: "$8",
-		period: "/user/mo",
+		price: "$16",
+		period: "/mo",
 		popular: true,
 		features: [
 			"Unlimited teams",
-			"25 members",
+			"15 members",
 			"90-day history",
 			"Basic analytics",
 		],
 	},
 	{
 		name: "BUSINESS",
-		price: "$12",
-		period: "/user/mo",
+		price: "$65",
+		period: "/mo",
 		features: [
-			"Unlimited everything",
-			"1-year history",
+			"Unlimited teams",
+			"Unlimited members",
+			"Unlimited history",
 			"Advanced analytics",
-			"Slack integration",
+			"Slack integration (coming soon)",
+			"Linear integration (coming soon)",
 			"Priority support",
 		],
 	},
-]
+];
 
 function LandingPage() {
-	const { data: session } = authClient.useSession()
-	const isLoggedIn = !!session?.user
+	const { data: session } = authClient.useSession();
+	const isLoggedIn = !!session?.user;
 
 	return (
 		<div className="min-h-screen bg-ds-bg text-ds-fg selection:bg-ds-selection-bg selection:text-ds-selection-fg font-mono">
@@ -148,9 +159,9 @@ function LandingPage() {
 							// THINK_DIFFERENT
 						</div>
 						<p className="text-lg font-extrabold leading-snug tracking-tight text-ds-fg sm:text-2xl">
-							&quot;The ones who see things differently... they push the human race forward.
-							The people who are crazy enough to think they can change the world are the
-							ones who do.&quot;
+							&quot;The ones who see things differently... they push the human
+							race forward. The people who are crazy enough to think they can
+							change the world are the ones who do.&quot;
 						</p>
 						<p className="mt-3 text-[10px] font-bold tracking-widest text-ds-muted sm:text-xs">
 							// APPLE AD (1997)
@@ -160,6 +171,25 @@ function LandingPage() {
 						Replace awkward daily meetings with quick async updates. Keep your
 						team aligned, identify blockers early, and ship faster.
 					</p>
+					<div className="mt-6 inline-flex items-center gap-2 border-[3px] border-ds-accent bg-ds-accent/10 px-4 py-2 text-xs font-extrabold tracking-widest text-ds-accent sm:text-sm">
+						<Bot className="h-4 w-4" />
+						MCP_SUPPORT // AI CAN GENERATE ALL OF YOUR DAILY_STANDS
+					</div>
+					<div className="mt-4 flex w-full flex-col gap-3 sm:w-auto sm:flex-row">
+						<div className="inline-flex items-center gap-2 border-[3px] border-ds-border-strong bg-ds-surface px-4 py-2 text-xs font-extrabold tracking-widest text-ds-fg sm:text-sm">
+							<Server className="h-4 w-4 text-ds-accent" />
+							OPEN_SOURCE // SELF_HOSTED
+						</div>
+						<a
+							href="https://github.com/nearbycoder/dailystand.dev"
+							target="_blank"
+							rel="noreferrer"
+							className="inline-flex items-center justify-center gap-2 border-[3px] border-ds-border-strong px-4 py-2 text-xs font-extrabold tracking-widest text-ds-text-tertiary transition-colors hover:border-ds-accent hover:text-ds-accent sm:text-sm"
+						>
+							<Github className="h-4 w-4" />
+							VIEW_ON_GITHUB
+						</a>
+					</div>
 					<div className="mt-8 flex w-full gap-4 sm:mt-10 sm:w-auto">
 						<Link to="/auth/sign-up" className="w-full sm:w-auto">
 							<button className="w-full bg-ds-accent px-8 py-4 text-base font-extrabold tracking-wider text-ds-accent-fg transition-colors hover:bg-ds-accent-hover sm:w-auto sm:text-lg">
@@ -263,9 +293,25 @@ function LandingPage() {
 						<Terminal className="w-4 h-4 text-ds-accent" />
 						DAILYSTAND
 					</div>
-					<span>&copy; {new Date().getFullYear()} // ALL RIGHTS RESERVED</span>
+					<div className="flex flex-wrap items-center gap-3">
+						<Link
+							to="/privacy"
+							className="font-bold tracking-wider text-ds-muted transition-colors hover:text-ds-accent"
+						>
+							PRIVACY
+						</Link>
+						<span className="text-ds-muted2">/</span>
+						<Link
+							to="/terms"
+							className="font-bold tracking-wider text-ds-muted transition-colors hover:text-ds-accent"
+						>
+							TERMS
+						</Link>
+						<span className="text-ds-muted2 hidden sm:inline">|</span>
+						<span>&copy; {new Date().getFullYear()} // ALL RIGHTS RESERVED</span>
+					</div>
 				</div>
 			</footer>
 		</div>
-	)
+	);
 }

@@ -2,123 +2,232 @@
 
 ![DailyStand](public/screenshot.png)
 
-Async daily standup app for teams. Employees join organizations, get assigned to teams, and post daily updates — what they completed, what they're working on next, and any blockers.
+Open source, self-hostable async standups for modern teams.
 
-## Features
+- GitHub: [nearbycoder/dailystand.dev](https://github.com/nearbycoder/dailystand.dev)
 
-- **Daily standups** — One standup per user per day with three sections: completed, planned, and blockers. Re-submitting replaces the previous entry.
-- **Organizations & teams** — Create an org, invite members, organize into teams.
-- **Team timelines** — Paginated multi-day view of team standups with navigation (older/newer/today).
-- **Personal history** — Browse your own standup history.
-- **Dark/light/system theme** — Brutalist design with a bold lime accent, switchable between dark, light, and system preference.
-- **Subscription tiers** — Free, Pro ($8/user/mo), and Business ($12/user/mo) via Stripe with enforced limits on teams, members, and history retention.
+## What is included now
 
-## Tech Stack
+- Daily standups with `completed`, `planned`, `blockers`
+- Multi-team submission modes:
+  - submit the same update to multiple teams
+  - submit different updates per team
+- Dashboard focused on your teams and today's team standups
+- Advanced analytics at `/app/analytics` with overlays/popovers and drilldowns
+- Team and personal history with markdown copy flows
+- Export analytics range to markdown or CSV
+- Per-day public share links for personal standups, with retract support
+- Auto-linking for URLs in standup content (including domains like `x.com`)
+- API keys (with expiring or non-expiring tokens)
+- Public REST API (`/api/public/v1/*`)
+- MCP server (`/api/mcp`) authenticated by API key
+- Organization/team/member management UI (including search/filter/pagination on members)
+- Stripe-backed billing (optional) via Better Auth Stripe plugin
+- Landing page messaging for MCP+AI workflows and open-source/self-hosted deployment
+- Integrations roadmap callouts for Slack + Linear (coming soon)
+- Privacy and Terms pages
+- Fully responsive app shell + pages
 
-- [TanStack Start](https://tanstack.com/start) — SSR React framework with file-based routing
-- [tRPC v11](https://trpc.io) — End-to-end typesafe API layer
-- [Drizzle ORM](https://orm.drizzle.team) — TypeScript ORM with PostgreSQL
-- [BetterAuth](https://www.better-auth.com) — Authentication with organization/team and Stripe plugins
-- [Tailwind CSS v4](https://tailwindcss.com) — Utility-first styling with custom design tokens
-- [Stripe](https://stripe.com) — Subscription billing
+## Pricing and enforced limits
 
-## Getting Started
+Current plans:
 
-### Prerequisites
+| Plan | Price | Team limit | Member limit | History window |
+|---|---|---:|---:|---:|
+| Free | $0 | 1 | 5 | 7 days |
+| Pro | $16/mo | Unlimited | 15 | 90 days |
+| Business | $65/mo | Unlimited | Unlimited | Unlimited |
 
-- [Bun](https://bun.sh) runtime
-- PostgreSQL database
-- Stripe account (for billing features)
+Limits are enforced across:
 
-### Setup
+- UI flows
+- tRPC procedures
+- Public API
+- MCP tools
 
-1. Install dependencies:
+## Tech stack
 
-   ```bash
-   bun install
-   ```
+- [TanStack Start](https://tanstack.com/start)
+- [TanStack Router + Query](https://tanstack.com/router)
+- [tRPC v11](https://trpc.io)
+- [Drizzle ORM](https://orm.drizzle.team) + PostgreSQL
+- [Better Auth](https://www.better-auth.com) (organization, API key, Stripe plugins)
+- [Stripe](https://stripe.com) (optional, for paid plans)
+- [Tailwind CSS v4](https://tailwindcss.com)
+- [Sonner](https://sonner.emilkowal.ski/) for toasts
 
-2. Create `.env.local` with the required variables:
+## Quick start
 
-   ```
-   DATABASE_URL=postgresql://user:pass@localhost:5432/dailystand
-   BETTER_AUTH_SECRET=your-secret-here
-   BETTER_AUTH_URL=http://localhost:3000
-   STRIPE_SECRET_KEY=sk_test_...
-   STRIPE_WEBHOOK_SECRET=whsec_...
-   ```
+### 1) Install deps
 
-   Generate an auth secret:
+```bash
+bun install
+```
 
-   ```bash
-   bunx --bun @better-auth/cli secret
-   ```
+### 2) Configure environment
 
-3. Push the database schema:
+Create `.env.local`:
 
-   ```bash
-   bun run db:push
-   ```
+```bash
+DATABASE_URL=postgresql://user:pass@localhost:5432/dailystand
+BETTER_AUTH_URL=http://localhost:3000
+BETTER_AUTH_SECRET=your-secret-here
+BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000
+ALLOWED_HOSTS=localhost,127.0.0.1
+API_ALLOWED_ORIGINS=http://localhost:3000
 
-4. (Optional) Seed with test data:
+# Optional: enable billing
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRO_PRICE_ID=price_...
+STRIPE_BUSINESS_PRICE_ID=price_...
+```
 
-   ```bash
-   bun run db:seed
-   ```
+Generate a Better Auth secret:
 
-   This creates 5 users, 1 org (Acme Corp), 2 teams, and ~170 standup entries. Default password: `password123`.
+```bash
+bunx --bun @better-auth/cli secret
+```
 
-5. Start the dev server:
+Notes:
 
-   ```bash
-   bun run dev
-   ```
+- Stripe is optional. If Stripe env vars are missing, billing flows are disabled.
+- Dev host allowlist currently includes `43c61fda6a66.ngrok.app` in Vite and Better Auth config.
 
-   Open [http://localhost:3000](http://localhost:3000).
+### 3) Push schema
+
+```bash
+bun run db:push
+```
+
+### 4) Seed data (optional)
+
+```bash
+bun run db:seed
+```
+
+`db:seed` now resets the database before inserting data.
+
+Seed includes:
+
+- Demo org: `Acme Corp` (5 users, 2 teams)
+- Enterprise org: `Northstar Enterprise` (10 teams, 100 users, business subscription, large standup volume)
+- Default password for all seeded users: `password123`
+
+### 5) Run app
+
+```bash
+bun run dev
+```
+
+Open [http://localhost:3000](http://localhost:3000)
+
+## API keys, REST API, and MCP
+
+Create keys from `/app/settings/api-keys`.
+
+- Expiration options include fixed-day presets and `Never expires`.
+- API key copy actions surface Sonner toasts.
+- Default key scope is least-privilege (`profile`, `teams`, `standups`, `analytics`); owner member-management scope can be added explicitly when creating a key.
+
+### Public API
+
+Base: `/api/public/v1`
+
+Auth:
+
+- `x-api-key: <key>` header, or
+- `Authorization: Bearer <key>`
+
+Core endpoints:
+
+- `GET /api/public/v1` (docs metadata)
+- `GET /api/public/v1/me`
+- `GET /api/public/v1/teams`
+- `GET /api/public/v1/teams/mine`
+- `GET /api/public/v1/standups/day`
+- `GET /api/public/v1/standups/history`
+- `POST /api/public/v1/standups`
+- `GET /api/public/v1/analytics`
+
+When using team-scoped read/write operations, access is limited to teams the API key user belongs to.
+
+### MCP server
+
+Endpoint: `/api/mcp` (JSON-RPC over HTTP POST)
+
+Flow:
+
+1. `initialize`
+2. `tools/list`
+3. `tools/call`
+
+Tooling includes:
+
+- Team/org discovery: `list_organizations`, `list_teams`, `list_my_teams`
+- Member/team management (owner-only): `add_organization_member`, `assign_user_to_team`, `remove_user_from_team`
+- Standup read/write: `submit_my_standup`, `get_my_standup`, `get_my_standup_history`, `get_team_standup_day`, `get_team_standup_history`
+
+Reference docs are available in-app at `/app/settings/api-docs`.
+
+## Standup and history behavior
+
+- Standup date uses local browser date (`YYYY-MM-DD`) for timezone-safe "today" behavior.
+- Submitting a daily standup navigates to history.
+- Team members can copy team day updates as markdown.
+- Users can copy:
+  - one history day as markdown
+  - all personal history as markdown
+- Users can create/retract a public share URL for a specific day (`/share/:token`).
+- Shared links are public and do not require sign-in.
+
+## Analytics
+
+Analytics route: `/app/analytics`
+
+Includes:
+
+- range filters (`7/14/30/60/90`)
+- team scope filters
+- metric overlays and drilldowns
+- task/person detail overlays
+- export panel for markdown/CSV with custom date range and team filter
+
+Exports honor plan history limits.
 
 ## Scripts
 
 | Command | Description |
 |---|---|
 | `bun run dev` | Start dev server on port 3000 |
-| `bun run build` | Production build |
+| `bun run build` | Build for production |
+| `bun run preview` | Preview production build |
 | `bun run start` | Start production server |
-| `bun run db:push` | Push Drizzle schema to database |
-| `bun run db:generate` | Generate Drizzle migrations |
-| `bun run db:studio` | Open Drizzle Studio |
-| `bun run db:seed` | Seed database with test data |
+| `bun run test` | Run tests |
 | `bun run lint` | Lint with Biome |
 | `bun run format` | Format with Biome |
-| `bun run test` | Run tests with Vitest |
+| `bun run check` | Biome check |
+| `bun run db:push` | Push schema to DB |
+| `bun run db:generate` | Generate Drizzle migrations |
+| `bun run db:migrate` | Run migrations |
+| `bun run db:pull` | Pull schema from DB |
+| `bun run db:studio` | Open Drizzle Studio |
+| `bun run db:seed` | Reset and seed DB |
 
-## Project Structure
+## Key routes
 
-```
-src/
-├── components/          # Shared UI components (theme toggle, etc.)
-├── db/
-│   ├── schema.ts        # Drizzle schema (auth tables + standupEntry)
-│   ├── auth-schema.ts   # BetterAuth generated tables
-│   └── seed.ts          # Database seed script
-├── integrations/
-│   ├── trpc/
-│   │   ├── router.ts    # Main tRPC router
-│   │   ├── init.ts      # tRPC context & procedures
-│   │   └── routers/     # standups, teams, org sub-routers
-│   └── tanstack-query/  # React Query + tRPC provider
-├── lib/
-│   ├── auth.ts          # BetterAuth server config
-│   ├── auth-client.ts   # BetterAuth client
-│   └── theme.tsx        # Theme provider (dark/light/system)
-├── routes/
-│   ├── index.tsx         # Landing page with pricing
-│   ├── auth/             # Sign in & sign up
-│   └── app/              # Authenticated app routes
-│       ├── route.tsx     # App layout with sidebar
-│       ├── index.tsx     # Dashboard
-│       ├── standup.tsx   # Submit standup form
-│       ├── history.tsx   # Personal history
-│       ├── team.$teamId.tsx  # Team timeline
-│       └── settings/     # Org settings, billing, members, teams
-└── styles.css            # Tailwind config + DS theme tokens
-```
+- Landing: `/`
+- Dashboard: `/app`
+- Standup: `/app/standup`
+- History: `/app/history`
+- Team timeline: `/app/team/:teamId`
+- Analytics: `/app/analytics`
+- Settings:
+  - `/app/settings`
+  - `/app/settings/billing`
+  - `/app/settings/members`
+  - `/app/settings/teams`
+  - `/app/settings/api-keys`
+  - `/app/settings/api-docs`
+- Public share: `/share/:token`
+- Legal: `/privacy`, `/terms`

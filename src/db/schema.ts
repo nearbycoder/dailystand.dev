@@ -1,4 +1,4 @@
-import { relations } from "drizzle-orm"
+import { relations } from "drizzle-orm";
 import {
 	date,
 	index,
@@ -7,10 +7,11 @@ import {
 	text,
 	timestamp,
 	uniqueIndex,
-} from "drizzle-orm/pg-core"
+} from "drizzle-orm/pg-core";
 
-export * from "./auth-schema"
-import { user, organization, team } from "./auth-schema"
+export * from "./auth-schema";
+
+import { organization, team, user } from "./auth-schema";
 
 export const standupEntry = pgTable(
 	"standup_entry",
@@ -40,7 +41,7 @@ export const standupEntry = pgTable(
 			table.date,
 		),
 	],
-)
+);
 
 export const standupEntryRelations = relations(standupEntry, ({ one }) => ({
 	user: one(user, {
@@ -55,7 +56,7 @@ export const standupEntryRelations = relations(standupEntry, ({ one }) => ({
 		fields: [standupEntry.teamId],
 		references: [team.id],
 	}),
-}))
+}));
 
 export const standupShare = pgTable(
 	"standup_share",
@@ -70,6 +71,7 @@ export const standupShare = pgTable(
 			.references(() => organization.id, { onDelete: "cascade" }),
 		date: date("date").notNull(),
 		createdAt: timestamp("created_at").defaultNow().notNull(),
+		expiresAt: timestamp("expires_at"),
 		revokedAt: timestamp("revoked_at"),
 	},
 	(table) => [
@@ -80,8 +82,9 @@ export const standupShare = pgTable(
 			table.date,
 		),
 		index("standup_share_user_org_idx").on(table.userId, table.organizationId),
+		index("standup_share_expires_idx").on(table.expiresAt),
 	],
-)
+);
 
 export const standupShareRelations = relations(standupShare, ({ one }) => ({
 	user: one(user, {
@@ -92,4 +95,4 @@ export const standupShareRelations = relations(standupShare, ({ one }) => ({
 		fields: [standupShare.organizationId],
 		references: [organization.id],
 	}),
-}))
+}));

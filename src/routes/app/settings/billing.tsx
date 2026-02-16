@@ -1,12 +1,14 @@
-import { createFileRoute } from "@tanstack/react-router"
-import { useTRPC } from "@/integrations/trpc/react"
-import { useQuery } from "@tanstack/react-query"
-import { authClient } from "@/lib/auth-client"
-import { Check, Zap } from "lucide-react"
+import { createFileRoute } from "@tanstack/react-router";
+import { useTRPC } from "@/integrations/trpc/react";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { authClient } from "@/lib/auth-client";
+import { toast } from "sonner";
+import { Check, RotateCcw, Settings2, TriangleAlert, Zap } from "lucide-react";
+import { useState } from "react";
 
 export const Route = createFileRoute("/app/settings/billing")({
 	component: BillingPage,
-})
+});
 
 const plans = [
 	{
@@ -19,12 +21,12 @@ const plans = [
 	{
 		name: "PRO",
 		id: "pro",
-		price: "$8",
-		period: "/user/mo",
+		price: "$16",
+		period: "/mo",
 		popular: true,
 		features: [
 			"Unlimited teams",
-			"25 members",
+			"15 members",
 			"90-day history",
 			"Basic analytics",
 		],
@@ -32,31 +34,98 @@ const plans = [
 	{
 		name: "BUSINESS",
 		id: "business",
-		price: "$12",
-		period: "/user/mo",
+		price: "$65",
+		period: "/mo",
 		features: [
-			"Unlimited everything",
-			"1-year history",
+			"Unlimited teams",
+			"Unlimited members",
+			"Unlimited history",
 			"Advanced analytics",
 			"Slack integration",
 			"Priority support",
 		],
 	},
-]
+];
+
+const planRank: Record<string, number> = {
+	free: 0,
+	pro: 1,
+	business: 2,
+};
 
 function BillingPage() {
-	const trpc = useTRPC()
-	const { data: sub } = useQuery(trpc.org.getSubscription.queryOptions())
-	const currentPlan = sub?.plan ?? "free"
+	const trpc = useTRPC();
+	const queryClient = useQueryClient();
+	const subQuery = trpc.org.getSubscription.queryOptions();
+	const { data: sub } = useQuery(subQuery);
+	const currentPlan = sub?.plan ?? "free";
+	const [busyAction, setBusyAction] = useState<string | null>(null);
+
+	const getReferenceParams = () => {
+		if (sub?.scope === "organization" && sub.referenceId) {
+			return {
+				customerType: "organization" as const,
+				referenceId: sub.referenceId,
+			};
+		}
+		return {};
+	};
+
+	const runAction = async (key: string, fn: () => Promise<unknown>) => {
+		setBusyAction(key);
+		try {
+			await fn();
+		} catch (error) {
+			const message = error instanceof Error ? error.message : "Action failed";
+			toast.error(message);
+		} finally {
+			setBusyAction(null);
+		}
+	};
 
 	const handleUpgrade = async (planName: string) => {
-		if (planName === "free") return
-		await authClient.subscription.upgrade({
-			plan: planName,
-			successUrl: window.location.href,
-			cancelUrl: window.location.href,
-		})
-	}
+		if (planName === "free") return;
+		await runAction(`upgrade:${planName}`, () =>
+			authClient.subscription.upgrade({
+				plan: planName,
+				successUrl: window.location.href,
+				cancelUrl: window.location.href,
+				...getReferenceParams(),
+			}),
+		);
+	};
+
+	const handleManagePortal = async () => {
+		await runAction("portal", () =>
+			authClient.subscription.billingPortal({
+				returnUrl: window.location.href,
+				...getReferenceParams(),
+			}),
+		);
+	};
+
+	const handleCancel = async () => {
+		await runAction("cancel", () =>
+			authClient.subscription.cancel({
+				returnUrl: window.location.href,
+				...getReferenceParams(),
+			}),
+		);
+	};
+
+	const handleRestore = async () => {
+		await runAction("restore", () =>
+			authClient.subscription.restore({
+				...getReferenceParams(),
+			}),
+		);
+		await queryClient.invalidateQueries({ queryKey: subQuery.queryKey });
+		toast.success("Subscription restored");
+	};
+
+	const isPaidPlan = currentPlan !== "free";
+	const hasPendingCancel = !!sub?.cancelAtPeriodEnd;
+	const isOrgScoped = sub?.scope === "organization";
 
 	return (
 		<div className="mx-auto w-full max-w-[1200px] px-4 py-5 sm:p-6">
@@ -69,9 +138,65 @@ function BillingPage() {
 				</p>
 			</div>
 
+			{isPaidPlan && (
+				<div className="mb-6 border-[3px] border-ds-border p-4 sm:p-5">
+					<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+						<div>
+							<div className="font-extrabold tracking-wider text-sm">
+								CURRENT_SUBSCRIPTION: {String(currentPlan).toUpperCase()}
+							</div>
+							<div className="text-ds-muted text-xs mt-1">
+								{isOrgScoped ? "ORG_SCOPED" : "USER_SCOPED"}
+								{sub?.periodEnd
+									? ` // PERIOD_END: ${new Date(sub.periodEnd).toLocaleString()}`
+									: ""}
+							</div>
+							{hasPendingCancel && (
+								<div className="mt-2 inline-flex items-center gap-2 text-xs font-bold tracking-wider text-red-500">
+									<TriangleAlert className="h-3.5 w-3.5" />
+									CANCELS_AT_PERIOD_END
+								</div>
+							)}
+						</div>
+						<div className="flex flex-wrap items-center gap-2">
+							<button
+								onClick={handleManagePortal}
+								disabled={busyAction !== null}
+								className="border-[3px] border-ds-border px-3 py-2 text-xs font-extrabold tracking-wider hover:bg-ds-surface disabled:opacity-50"
+							>
+								<Settings2 className="mr-2 inline h-3.5 w-3.5" />
+								MANAGE_IN_STRIPE
+							</button>
+							{hasPendingCancel ? (
+								<button
+									onClick={handleRestore}
+									disabled={busyAction !== null}
+									className="border-[3px] border-ds-accent px-3 py-2 text-xs font-extrabold tracking-wider text-ds-accent hover:bg-ds-accent hover:text-ds-accent-fg disabled:opacity-50"
+								>
+									<RotateCcw className="mr-2 inline h-3.5 w-3.5" />
+									RESTORE
+								</button>
+							) : (
+								<button
+									onClick={handleCancel}
+									disabled={busyAction !== null}
+									className="border-[3px] border-red-500 px-3 py-2 text-xs font-extrabold tracking-wider text-red-500 hover:bg-red-500 hover:text-black disabled:opacity-50"
+								>
+									CANCEL_PLAN
+								</button>
+							)}
+						</div>
+					</div>
+				</div>
+			)}
+
 			<div className="grid grid-cols-1 md:grid-cols-3 gap-0">
 				{plans.map((plan) => {
-					const isCurrent = plan.id === currentPlan
+					const isCurrent = plan.id === currentPlan;
+					const upgradeKey = `upgrade:${plan.id}`;
+					const currentRank = planRank[currentPlan] ?? 0;
+					const targetRank = planRank[plan.id] ?? 0;
+					const isDowngrade = targetRank < currentRank;
 					return (
 						<div
 							key={plan.id}
@@ -129,21 +254,28 @@ function BillingPage() {
 								) : (
 									<button
 										onClick={() => handleUpgrade(plan.id)}
-										className={`w-full py-3 font-extrabold text-sm tracking-wider transition-all duration-150 flex items-center justify-center gap-2 ${
+										disabled={busyAction !== null}
+										className={`w-full py-3 font-extrabold text-sm tracking-wider transition-all duration-150 flex items-center justify-center gap-2 disabled:opacity-50 ${
 											plan.popular
 												? "bg-ds-bg text-ds-accent hover:opacity-90"
 												: "border-[3px] border-ds-border-strong hover:bg-ds-border-strong hover:text-ds-bg"
 										}`}
 									>
 										<Zap className="w-4 h-4" />
-										UPGRADE
+										{busyAction === upgradeKey
+											? isDowngrade
+												? "DOWNGRADING..."
+												: "UPGRADING..."
+											: isDowngrade
+												? "DOWNGRADE"
+												: "UPGRADE"}
 									</button>
 								)}
 							</div>
 						</div>
-					)
+					);
 				})}
 			</div>
 		</div>
-	)
+	);
 }

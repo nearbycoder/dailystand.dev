@@ -1,42 +1,46 @@
-import { orgProcedure } from "../init"
-import { db } from "@/db"
-import { organization, member, subscription } from "@/db/schema"
-import { eq } from "drizzle-orm"
+import { eq } from "drizzle-orm";
+import { db } from "@/db";
+import { member, organization } from "@/db/schema";
+import { resolveOrganizationPlanLimits } from "@/lib/plan-limits";
+import { orgProcedure } from "../init";
 
 export const orgRouter = {
 	getDetails: orgProcedure.query(async ({ ctx }) => {
 		const org = await db.query.organization.findFirst({
 			where: eq(organization.id, ctx.organizationId),
-		})
-		return org ?? null
+		});
+		return org ?? null;
 	}),
 
 	getSubscription: orgProcedure.query(async ({ ctx }) => {
-		const sub = await db.query.subscription.findFirst({
-			where: eq(subscription.referenceId, ctx.organizationId),
-		})
-		// No subscription record = free tier
-		if (!sub) {
+		const resolved = await resolveOrganizationPlanLimits({
+			organizationId: ctx.organizationId,
+			userId: ctx.session.user.id,
+		});
+
+		if (!resolved.subscription) {
 			return {
-				plan: "free" as const,
-				status: "active" as const,
-				limits: { teams: 1, members: 5, historyDays: 7 },
-			}
+				plan: resolved.plan,
+				status: resolved.status,
+				limits: resolved.limits,
+				scope: resolved.scope,
+				referenceId: resolved.referenceId,
+				cancelAt: null as Date | null,
+				periodEnd: null as Date | null,
+				cancelAtPeriodEnd: false,
+			};
 		}
-		const limits =
-			sub.plan === "business"
-				? { teams: -1, members: -1, historyDays: 365 }
-				: sub.plan === "pro"
-					? { teams: -1, members: 25, historyDays: 90 }
-					: { teams: 1, members: 5, historyDays: 7 }
 
 		return {
-			plan: sub.plan,
-			status: sub.status,
-			limits,
-			periodEnd: sub.periodEnd,
-			cancelAtPeriodEnd: sub.cancelAtPeriodEnd,
-		}
+			plan: resolved.plan,
+			status: resolved.status,
+			limits: resolved.limits,
+			periodEnd: resolved.subscription.periodEnd,
+			cancelAtPeriodEnd: resolved.subscription.cancelAtPeriodEnd ?? false,
+			cancelAt: resolved.subscription.cancelAt,
+			scope: resolved.scope,
+			referenceId: resolved.referenceId,
+		};
 	}),
 
 	listMembers: orgProcedure.query(async ({ ctx }) => {
@@ -47,7 +51,7 @@ export const orgRouter = {
 					columns: { id: true, name: true, email: true, image: true },
 				},
 			},
-		})
+		});
 		return members.map((m) => ({
 			memberId: m.id,
 			userId: m.user.id,
@@ -56,6 +60,6 @@ export const orgRouter = {
 			name: m.user.name,
 			email: m.user.email,
 			image: m.user.image,
-		}))
+		}));
 	}),
-}
+};

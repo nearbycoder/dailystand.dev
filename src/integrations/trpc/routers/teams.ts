@@ -1,8 +1,8 @@
-import { z } from "zod"
-import { orgProcedure } from "../init"
-import { db } from "@/db"
-import { team, teamMember, user } from "@/db/schema"
-import { eq, and } from "drizzle-orm"
+import { and, eq } from "drizzle-orm";
+import { z } from "zod";
+import { db } from "@/db";
+import { team, teamMember } from "@/db/schema";
+import { orgProcedure } from "../init";
 
 export const teamsRouter = {
 	list: orgProcedure.query(async ({ ctx }) => {
@@ -17,18 +17,29 @@ export const teamsRouter = {
 					},
 				},
 			},
-		})
+		});
 		return teams.map((t) => ({
 			id: t.id,
 			name: t.name,
 			memberCount: t.teamMembers.length,
 			members: t.teamMembers.map((tm) => tm.user),
-		}))
+		}));
 	}),
 
 	getMembers: orgProcedure
 		.input(z.object({ teamId: z.string() }))
-		.query(async ({ input }) => {
+		.query(async ({ ctx, input }) => {
+			const targetTeam = await db.query.team.findFirst({
+				where: and(
+					eq(team.id, input.teamId),
+					eq(team.organizationId, ctx.organizationId),
+				),
+				columns: { id: true },
+			});
+			if (!targetTeam) {
+				return [];
+			}
+
 			const members = await db.query.teamMember.findMany({
 				where: eq(teamMember.teamId, input.teamId),
 				with: {
@@ -36,7 +47,7 @@ export const teamsRouter = {
 						columns: { id: true, name: true, email: true, image: true },
 					},
 				},
-			})
-			return members.map((m) => m.user)
+			});
+			return members.map((m) => m.user);
 		}),
-}
+};

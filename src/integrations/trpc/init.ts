@@ -1,9 +1,20 @@
 import { initTRPC, TRPCError } from "@trpc/server";
 import superjson from "superjson";
-import type { auth } from "@/lib/auth";
+
+export interface TRPCSession {
+	user: {
+		id: string;
+		email: string;
+		name: string | null;
+		image?: string | null;
+	};
+	session: {
+		activeOrganizationId?: string | null;
+	};
+}
 
 export interface TRPCContext {
-	session: Awaited<ReturnType<typeof auth.api.getSession>> | null;
+	session: TRPCSession | null;
 }
 
 const t = initTRPC.context<TRPCContext>().create({

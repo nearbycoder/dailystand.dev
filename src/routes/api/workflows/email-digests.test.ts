@@ -42,6 +42,27 @@ describe("workflow email-digests route", () => {
 		delete process.env.WORKFLOW_SECRET;
 	});
 
+	it("supports WORKFLOW_SECRET fallback when EMAIL_DIGEST_WORKFLOW_SECRET is unset", async () => {
+		delete process.env.EMAIL_DIGEST_WORKFLOW_SECRET;
+		process.env.WORKFLOW_SECRET = "fallback_secret";
+
+		const response = handlers().GET({
+			request: new Request(
+				"https://dailystand.dev/api/workflows/email-digests",
+				{
+					headers: {
+						"x-workflow-secret": "fallback_secret",
+					},
+				},
+			),
+		});
+
+		expect(response.status).toBe(200);
+		await expect(response.json()).resolves.toMatchObject({
+			success: true,
+		});
+	});
+
 	it("rejects unauthorized GET requests", async () => {
 		const response = handlers().GET({
 			request: new Request(
@@ -130,6 +151,34 @@ describe("workflow email-digests route", () => {
 				cadence: "daily",
 			},
 		});
+	});
+
+	it("accepts bearer authorization as workflow secret", async () => {
+		runDigestWorkflowMock.mockResolvedValue({
+			cadence: "weekly",
+			attempted: 2,
+			sent: 2,
+			skipped: 0,
+			errors: [],
+		});
+
+		const response = await handlers().POST({
+			request: new Request(
+				"https://dailystand.dev/api/workflows/email-digests",
+				{
+					method: "POST",
+					headers: {
+						authorization: "Bearer secret_123",
+						"content-type": "application/json",
+					},
+					body: JSON.stringify({ cadence: "weekly" }),
+				},
+			),
+		});
+
+		expect(response.status).toBe(200);
+		expect(runDigestWorkflowMock).toHaveBeenCalledTimes(1);
+		expect(runDigestWorkflowMock).toHaveBeenCalledWith("weekly");
 	});
 
 	it("runs both cadences by default and reports server errors", async () => {

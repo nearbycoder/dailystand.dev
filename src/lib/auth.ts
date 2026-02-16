@@ -25,6 +25,24 @@ const resetPasswordTokenExpiresInSeconds = (() => {
 	return Math.floor(value);
 })();
 
+function parseBooleanEnv(value: string | undefined): boolean | null {
+	if (!value) return null;
+	const normalized = value.trim().toLowerCase();
+	if (["1", "true", "yes", "on"].includes(normalized)) return true;
+	if (["0", "false", "no", "off"].includes(normalized)) return false;
+	return null;
+}
+
+function parsePositiveIntegerEnv(
+	value: string | undefined,
+	fallback: number,
+): number {
+	if (!value) return fallback;
+	const parsed = Number(value);
+	if (!Number.isFinite(parsed) || parsed <= 0) return fallback;
+	return Math.floor(parsed);
+}
+
 function parseCsvEnv(value?: string): string[] {
 	return (value ?? "")
 		.split(",")
@@ -46,6 +64,28 @@ const defaultApiKeyPermissions = [
 	"standups:write",
 	"analytics:read",
 ] as const;
+
+const betterAuthRateLimitEnabled =
+	parseBooleanEnv(process.env.BETTER_AUTH_RATE_LIMIT_ENABLED) ?? true;
+const betterAuthRateLimitWindowSeconds = parsePositiveIntegerEnv(
+	process.env.BETTER_AUTH_RATE_LIMIT_WINDOW,
+	60,
+);
+const betterAuthRateLimitMax = parsePositiveIntegerEnv(
+	process.env.BETTER_AUTH_RATE_LIMIT_MAX,
+	100,
+);
+
+const apiKeyRateLimitEnabled =
+	parseBooleanEnv(process.env.API_KEY_RATE_LIMIT_ENABLED) ?? true;
+const apiKeyRateLimitWindowMs = parsePositiveIntegerEnv(
+	process.env.API_KEY_RATE_LIMIT_WINDOW_MS,
+	60_000,
+);
+const apiKeyRateLimitMaxRequests = parsePositiveIntegerEnv(
+	process.env.API_KEY_RATE_LIMIT_MAX_REQUESTS,
+	120,
+);
 
 const stripePlugin =
 	stripeSecretKey && stripeWebhookSecret
@@ -193,6 +233,11 @@ export const auth = betterAuth({
 		provider: "pg",
 	}),
 	trustedOrigins,
+	rateLimit: {
+		enabled: betterAuthRateLimitEnabled,
+		window: betterAuthRateLimitWindowSeconds,
+		max: betterAuthRateLimitMax,
+	},
 	emailAndPassword: {
 		enabled: true,
 		resetPasswordTokenExpiresIn: resetPasswordTokenExpiresInSeconds,
@@ -282,9 +327,9 @@ export const auth = betterAuth({
 				maxExpiresIn: 365,
 			},
 			rateLimit: {
-				enabled: true,
-				timeWindow: 60_000,
-				maxRequests: 600,
+				enabled: apiKeyRateLimitEnabled,
+				timeWindow: apiKeyRateLimitWindowMs,
+				maxRequests: apiKeyRateLimitMaxRequests,
 			},
 			permissions: {
 				defaultPermissions: {

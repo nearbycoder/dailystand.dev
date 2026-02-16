@@ -17,7 +17,7 @@ import {
 	Terminal,
 	Users,
 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
 	Sheet,
@@ -26,6 +26,12 @@ import {
 	SheetHeader,
 	SheetTitle,
 } from "@/components/ui/sheet";
+import {
+	Tooltip,
+	TooltipContent,
+	TooltipProvider,
+	TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { useTRPC } from "@/integrations/trpc/react";
 import { authClient } from "@/lib/auth-client";
 
@@ -337,118 +343,120 @@ function SidebarContent({
 	}, [teams, myTeams]);
 
 	return (
-		<div className="flex h-full min-h-0 flex-col">
-			<div className="border-b-[3px] border-ds-border-strong p-4">
-				<Link
-					to="/app"
-					className="flex items-center gap-2"
-					onClick={onNavigate}
-				>
-					<Terminal className="h-5 w-5 text-ds-accent" />
-					<span className="font-extrabold tracking-tighter">DAILYSTAND</span>
-				</Link>
-			</div>
-
-			<nav className="min-h-0 flex-1 overflow-y-auto py-2">
-				<NavLink
-					to="/app"
-					icon={LayoutDashboard}
-					label="DASHBOARD"
-					exact
-					onNavigate={onNavigate}
-				/>
-				<NavLink
-					to="/app/analytics"
-					icon={BarChart3}
-					label="ANALYTICS"
-					onNavigate={onNavigate}
-				/>
-				<NavLink
-					to="/app/standup"
-					icon={PenSquare}
-					label="STANDUP"
-					onNavigate={onNavigate}
-				/>
-				<NavLink
-					to="/app/history"
-					icon={History}
-					label="HISTORY"
-					onNavigate={onNavigate}
-				/>
-
-				{myTeams.length > 0 && (
-					<>
-						<div className="px-4 py-3 text-xs font-bold tracking-widest text-ds-muted2">
-							// MY_TEAMS
-						</div>
-						{myTeams.map((team) => (
-							<NavLink
-								key={`my-${team.id}`}
-								to="/app/team/$teamId"
-								params={{ teamId: team.id }}
-								icon={Users}
-								label={team.name.toUpperCase()}
-								onNavigate={onNavigate}
-							/>
-						))}
-					</>
-				)}
-				{canViewAllTeams && otherTeams.length > 0 && (
-					<>
-						<div className="px-4 py-3 text-xs font-bold tracking-widest text-ds-muted2">
-							// ALL_TEAMS
-						</div>
-						{otherTeams.map((team) => (
-							<NavLink
-								key={`all-${team.id}`}
-								to="/app/team/$teamId"
-								params={{ teamId: team.id }}
-								icon={Users}
-								label={team.name.toUpperCase()}
-								onNavigate={onNavigate}
-							/>
-						))}
-					</>
-				)}
-
-				<div className="px-4 py-3 text-xs font-bold tracking-widest text-ds-muted2">
-					// CONFIG
+		<TooltipProvider delayDuration={1000} skipDelayDuration={5000}>
+			<div className="flex h-full min-h-0 flex-col">
+				<div className="border-b-[3px] border-ds-border-strong p-4">
+					<Link
+						to="/app"
+						className="flex items-center gap-2"
+						onClick={onNavigate}
+					>
+						<Terminal className="h-5 w-5 text-ds-accent" />
+						<span className="font-extrabold tracking-tighter">DAILYSTAND</span>
+					</Link>
 				</div>
-				<NavLink
-					to="/app/settings"
-					icon={Settings}
-					label="SETTINGS"
-					onNavigate={onNavigate}
-				/>
-			</nav>
 
-			<div className="shrink-0 space-y-3 border-t-[3px] border-ds-border-strong p-3">
-				<ThemeToggle />
-				<div className="flex items-center gap-2">
-					<div className="flex h-7 w-7 items-center justify-center bg-ds-accent text-xs font-extrabold text-ds-accent-fg">
-						{session.user.name?.charAt(0).toUpperCase() ?? "U"}
+				<nav className="min-h-0 flex-1 overflow-y-auto py-2">
+					<NavLink
+						to="/app"
+						icon={LayoutDashboard}
+						label="DASHBOARD"
+						exact
+						onNavigate={onNavigate}
+					/>
+					<NavLink
+						to="/app/analytics"
+						icon={BarChart3}
+						label="ANALYTICS"
+						onNavigate={onNavigate}
+					/>
+					<NavLink
+						to="/app/standup"
+						icon={PenSquare}
+						label="STANDUP"
+						onNavigate={onNavigate}
+					/>
+					<NavLink
+						to="/app/history"
+						icon={History}
+						label="HISTORY"
+						onNavigate={onNavigate}
+					/>
+
+					{myTeams.length > 0 && (
+						<>
+							<div className="px-4 py-3 text-xs font-bold tracking-widest text-ds-muted2">
+								// MY_TEAMS
+							</div>
+							{myTeams.map((team) => (
+								<NavLink
+									key={`my-${team.id}`}
+									to="/app/team/$teamId"
+									params={{ teamId: team.id }}
+									icon={Users}
+									label={team.name.toUpperCase()}
+									onNavigate={onNavigate}
+								/>
+							))}
+						</>
+					)}
+					{canViewAllTeams && otherTeams.length > 0 && (
+						<>
+							<div className="px-4 py-3 text-xs font-bold tracking-widest text-ds-muted2">
+								// ALL_TEAMS
+							</div>
+							{otherTeams.map((team) => (
+								<NavLink
+									key={`all-${team.id}`}
+									to="/app/team/$teamId"
+									params={{ teamId: team.id }}
+									icon={Users}
+									label={team.name.toUpperCase()}
+									onNavigate={onNavigate}
+								/>
+							))}
+						</>
+					)}
+
+					<div className="px-4 py-3 text-xs font-bold tracking-widest text-ds-muted2">
+						// CONFIG
 					</div>
-					<div className="min-w-0 flex-1">
-						<div className="truncate text-xs font-bold">
-							{session.user.name}
+					<NavLink
+						to="/app/settings"
+						icon={Settings}
+						label="SETTINGS"
+						onNavigate={onNavigate}
+					/>
+				</nav>
+
+				<div className="shrink-0 space-y-3 border-t-[3px] border-ds-border-strong p-3">
+					<ThemeToggle />
+					<div className="flex items-center gap-2">
+						<div className="flex h-7 w-7 items-center justify-center bg-ds-accent text-xs font-extrabold text-ds-accent-fg">
+							{session.user.name?.charAt(0).toUpperCase() ?? "U"}
 						</div>
-						<div className="truncate text-[10px] text-ds-muted">
-							{session.user.email}
+						<div className="min-w-0 flex-1">
+							<div className="truncate text-xs font-bold">
+								{session.user.name}
+							</div>
+							<div className="truncate text-[10px] text-ds-muted">
+								{session.user.email}
+							</div>
 						</div>
 					</div>
+					<button
+						onClick={async () => {
+							onNavigate?.();
+							await onSignOut();
+						}}
+						className="flex w-full items-center gap-2 px-2 py-1.5 text-xs font-bold text-ds-muted transition-colors hover:text-red-400"
+					>
+						<LogOut className="h-3 w-3" />
+						[SIGN_OUT]
+					</button>
 				</div>
-				<button
-					onClick={async () => {
-						onNavigate?.();
-						await onSignOut();
-					}}
-					className="flex w-full items-center gap-2 px-2 py-1.5 text-xs font-bold text-ds-muted transition-colors hover:text-red-400"
-				>
-					<LogOut className="h-3 w-3" />
-					[SIGN_OUT]
-				</button>
 			</div>
-		</div>
+		</TooltipProvider>
 	);
 }
 
@@ -505,7 +513,7 @@ function NavLink({
 				}}
 			>
 				<Icon className="w-4 h-4" />
-				<span className="truncate">{label}</span>
+				<NavLabelWithTooltip label={label} />
 			</Link>
 		);
 	}
@@ -521,7 +529,72 @@ function NavLink({
 			}}
 		>
 			<Icon className="w-4 h-4" />
-			<span className="truncate">{label}</span>
+			<NavLabelWithTooltip label={label} />
 		</Link>
+	);
+}
+
+function NavLabelWithTooltip({ label }: { label: string }) {
+	const labelRef = useRef<HTMLSpanElement>(null);
+	const [isTruncated, setIsTruncated] = useState(false);
+
+	const checkTruncation = () => {
+		const labelElement = labelRef.current;
+		if (!labelElement) {
+			setIsTruncated(false);
+			return;
+		}
+		setIsTruncated(labelElement.scrollWidth > labelElement.clientWidth + 1);
+	};
+
+	useEffect(() => {
+		if (label.length === 0) {
+			setIsTruncated(false);
+			return;
+		}
+
+		checkTruncation();
+
+		if (typeof ResizeObserver !== "undefined") {
+			const labelElement = labelRef.current;
+			if (!labelElement) return;
+			const observer = new ResizeObserver(checkTruncation);
+			observer.observe(labelElement);
+			return () => observer.disconnect();
+		}
+
+		window.addEventListener("resize", checkTruncation);
+		return () => window.removeEventListener("resize", checkTruncation);
+	}, [label]);
+
+	useEffect(() => {
+		if (typeof document === "undefined" || !document.fonts) return;
+		void document.fonts.ready.then(() => {
+			checkTruncation();
+		});
+	}, []);
+
+	return (
+		<Tooltip>
+			<TooltipTrigger asChild>
+				<span
+					ref={labelRef}
+					className="min-w-0 flex-1 truncate"
+					onPointerEnter={checkTruncation}
+				>
+					{label}
+				</span>
+			</TooltipTrigger>
+			{isTruncated ? (
+				<TooltipContent
+					side="right"
+					align="start"
+					sideOffset={12}
+					className="[&>svg]:hidden rounded-md border border-ds-border bg-ds-surface/98 px-2.5 py-1 font-mono text-[11px] font-bold tracking-wider text-ds-fg shadow-[0_8px_24px_rgba(0,0,0,0.35)] backdrop-blur-[1px]"
+				>
+					{label}
+				</TooltipContent>
+			) : null}
+		</Tooltip>
 	);
 }

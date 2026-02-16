@@ -130,4 +130,21 @@ describe("public api route contracts", () => {
 		});
 		expect(authVerifyApiKeyMock).not.toHaveBeenCalled();
 	});
+
+	it("returns CORS headers for allowed preflight requests", () => {
+		const response = handlers().OPTIONS({
+			request: new Request("https://dailystand.dev/api/public/v1/me", {
+				method: "OPTIONS",
+				headers: { origin: "https://allowed.example" },
+			}),
+		});
+
+		expect(response.status).toBe(204);
+		expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
+			"https://allowed.example",
+		);
+		expect(response.headers.get("Access-Control-Allow-Methods")).toContain(
+			"OPTIONS",
+		);
+	});
 });

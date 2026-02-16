@@ -162,4 +162,21 @@ describe("mcp api route contracts", () => {
 		});
 		expect(response.status).toBe(403);
 	});
+
+	it("returns CORS headers for allowed preflight requests", () => {
+		const response = handlers().OPTIONS({
+			request: new Request("https://dailystand.dev/api/mcp", {
+				method: "OPTIONS",
+				headers: { origin: "https://allowed.example" },
+			}),
+		});
+
+		expect(response.status).toBe(204);
+		expect(response.headers.get("Access-Control-Allow-Origin")).toBe(
+			"https://allowed.example",
+		);
+		expect(response.headers.get("Access-Control-Allow-Methods")).toContain(
+			"POST",
+		);
+	});
 });

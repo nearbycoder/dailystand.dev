@@ -43,7 +43,11 @@ const config = defineConfig(({ mode }) => {
 				projects: ["./tsconfig.json"],
 			}),
 			tailwindcss(),
-			tanstackStart(),
+			tanstackStart({
+				router: {
+					routeFileIgnorePattern: "\\.(test|spec)\\.(ts|tsx)$",
+				},
+			}),
 			viteReact(),
 			...(hasSentryVitePluginConfig
 				? [

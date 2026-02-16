@@ -35,23 +35,26 @@ vi.mock("@/lib/plan-limits", () => ({
 
 import { createTRPCRouter } from "../init";
 import { orgRouter } from "./org";
+import type { TRPCContext } from "../init";
 
 const router = createTRPCRouter({
 	org: orgRouter,
 });
 
 function createCaller() {
-	return router.createCaller({
+	const session: NonNullable<TRPCContext["session"]> = {
+		user: {
+			id: "user_1",
+			email: "dev@example.com",
+			name: "Dev",
+		},
 		session: {
-			user: {
-				id: "user_1",
-				email: "dev@example.com",
-				name: "Dev",
-			},
-			session: {
-				activeOrganizationId: "org_1",
-			},
-		} as any,
+			activeOrganizationId: "org_1",
+		},
+	};
+
+	return router.createCaller({
+		session,
 	});
 }
 

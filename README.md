@@ -77,6 +77,12 @@ BETTER_AUTH_SECRET=your-secret-here
 BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000
 ALLOWED_HOSTS=localhost,127.0.0.1
 API_ALLOWED_ORIGINS=http://localhost:3000
+BETTER_AUTH_RATE_LIMIT_ENABLED=true
+BETTER_AUTH_RATE_LIMIT_WINDOW=60
+BETTER_AUTH_RATE_LIMIT_MAX=100
+API_KEY_RATE_LIMIT_ENABLED=true
+API_KEY_RATE_LIMIT_WINDOW_MS=60000
+API_KEY_RATE_LIMIT_MAX_REQUESTS=120
 RESET_PASSWORD_TOKEN_EXPIRES_IN=3600
 RESEND_API_KEY=re_...
 RESEND_FROM_EMAIL=DailyStand <no-reply@your-domain.com>
@@ -119,6 +125,8 @@ Notes:
 - Set `DRY_RUN_EMAILS=false` to send real emails (with `RESEND_API_KEY` + `RESEND_FROM_EMAIL` configured).
 - If Resend env vars are missing, invite/reset links are not emailed and are logged server-side for local development.
 - `EMAIL_DIGEST_WORKFLOW_SECRET` secures the digest workflow endpoint (`/api/workflows/email-digests`).
+- Better Auth rate limiting is enabled by default (`BETTER_AUTH_RATE_LIMIT_*`) for `/api/auth/*`.
+- API key verification rate limiting is enabled by default (`API_KEY_RATE_LIMIT_*`) and applies to API key protected endpoints.
 - Sentry is optional. Client + server instrumentation is enabled when DSN env vars are configured.
 - PostHog is optional. In development it is disabled by default unless `VITE_PUBLIC_POSTHOG_ENABLE_IN_DEV=true`.
 - Source map upload is enabled only when `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT` are provided.

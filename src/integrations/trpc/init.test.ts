@@ -1,6 +1,7 @@
 import { TRPCError } from "@trpc/server";
 import { describe, expect, it } from "vitest";
 import { createTRPCRouter, orgProcedure, protectedProcedure } from "./init";
+import type { TRPCContext } from "./init";
 
 const testRouter = createTRPCRouter({
 	privatePing: protectedProcedure.query(() => "ok"),
@@ -8,7 +9,7 @@ const testRouter = createTRPCRouter({
 });
 
 function authedSession(activeOrganizationId?: string | null) {
-	return {
+	const session: NonNullable<TRPCContext["session"]> = {
 		user: {
 			id: "user_1",
 			email: "user@example.com",
@@ -17,7 +18,8 @@ function authedSession(activeOrganizationId?: string | null) {
 		session: {
 			activeOrganizationId: activeOrganizationId ?? null,
 		},
-	} as any;
+	};
+	return session;
 }
 
 describe("tRPC procedure guards", () => {

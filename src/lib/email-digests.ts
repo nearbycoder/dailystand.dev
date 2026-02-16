@@ -15,6 +15,7 @@ export type DigestCadence = "daily" | "weekly";
 
 export type DigestWorkflowResult = {
 	cadence: DigestCadence;
+	evaluated: number;
 	attempted: number;
 	sent: number;
 	skipped: number;
@@ -132,6 +133,7 @@ export async function runDigestWorkflow(
 ): Promise<DigestWorkflowResult> {
 	const result: DigestWorkflowResult = {
 		cadence,
+		evaluated: 0,
 		attempted: 0,
 		sent: 0,
 		skipped: 0,
@@ -158,7 +160,7 @@ export async function runDigestWorkflow(
 	});
 
 	for (const preference of preferences) {
-		result.attempted += 1;
+		result.evaluated += 1;
 		const timeZone = normalizeTimeZone(preference.timezone);
 
 		try {
@@ -331,6 +333,7 @@ export async function runDigestWorkflow(
 			});
 
 			const cadenceLabel = cadence === "daily" ? "Daily" : "Weekly";
+			result.attempted += 1;
 			await sendResendEmailMessage({
 				to: preference.user.email,
 				subject: `[DailyStand] ${cadenceLabel} digest • ${preference.organization.name}`,

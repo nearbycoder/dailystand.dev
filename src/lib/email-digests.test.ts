@@ -60,6 +60,7 @@ describe("runDigestWorkflow", () => {
 		const result = await runDigestWorkflow("daily", new Date("2026-02-16T12:00:00Z"));
 		expect(result).toEqual({
 			cadence: "daily",
+			evaluated: 0,
 			attempted: 0,
 			sent: 0,
 			skipped: 0,
@@ -88,7 +89,8 @@ describe("runDigestWorkflow", () => {
 		const result = await runDigestWorkflow("daily", new Date("2026-02-16T12:00:00Z"));
 		expect(result).toEqual({
 			cadence: "daily",
-			attempted: 1,
+			evaluated: 1,
+			attempted: 0,
 			sent: 0,
 			skipped: 1,
 			errors: [],
@@ -119,7 +121,8 @@ describe("runDigestWorkflow", () => {
 		const result = await runDigestWorkflow("daily", new Date("2026-02-16T12:00:00Z"));
 		expect(result).toEqual({
 			cadence: "daily",
-			attempted: 1,
+			evaluated: 1,
+			attempted: 0,
 			sent: 0,
 			skipped: 1,
 			errors: [],
@@ -195,6 +198,7 @@ describe("runDigestWorkflow", () => {
 
 		expect(result).toEqual({
 			cadence: "daily",
+			evaluated: 1,
 			attempted: 1,
 			sent: 1,
 			skipped: 0,

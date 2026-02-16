@@ -1,8 +1,11 @@
-import "dotenv/config";
-import { runDigestWorkflow } from "@/lib/email-digests";
+import { config } from "dotenv";
+
+config({ path: ".env.local" });
+config({ path: ".env" });
 
 async function main() {
 	const cadence = process.argv[2];
+	const { runDigestWorkflow } = await import("@/lib/email-digests");
 
 	if (cadence === "daily") {
 		const daily = await runDigestWorkflow("daily");

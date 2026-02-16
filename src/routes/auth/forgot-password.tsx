@@ -97,6 +97,7 @@ function ForgotPasswordPage() {
 						Back to{" "}
 						<Link
 							to="/auth/sign-in"
+							search={{ invitationId: undefined, email: undefined }}
 							className="text-ds-accent font-bold hover:underline"
 						>
 							[SIGN_IN]

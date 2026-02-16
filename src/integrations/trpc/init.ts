@@ -14,12 +14,13 @@ export const createTRPCRouter = t.router
 export const publicProcedure = t.procedure
 
 export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
-	if (!ctx.session?.user) {
+	const session = ctx.session
+	if (!session?.user) {
 		throw new TRPCError({ code: "UNAUTHORIZED" })
 	}
 	return next({
 		ctx: {
-			session: ctx.session as NonNullable<typeof ctx.session>,
+			session,
 		},
 	})
 })

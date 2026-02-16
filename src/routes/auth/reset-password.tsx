@@ -84,6 +84,7 @@ function ResetPasswordPage() {
 							</div>
 							<Link
 								to="/auth/sign-in"
+								search={{ invitationId: undefined, email: undefined }}
 								className="inline-block w-full bg-ds-accent text-ds-accent-fg py-3 text-center font-extrabold text-sm tracking-wider hover:bg-ds-accent-hover transition-colors"
 							>
 								SIGN_IN →
@@ -149,6 +150,7 @@ function ResetPasswordPage() {
 						Back to{" "}
 						<Link
 							to="/auth/sign-in"
+							search={{ invitationId: undefined, email: undefined }}
 							className="text-ds-accent font-bold hover:underline"
 						>
 							[SIGN_IN]

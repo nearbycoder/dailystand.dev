@@ -4,7 +4,11 @@ import { stripeClient } from "@better-auth/stripe/client"
 
 export const authClient = createAuthClient({
 	plugins: [
-		organizationClient(),
+		organizationClient({
+			teams: {
+				enabled: true,
+			},
+		}),
 		apiKeyClient(),
 		stripeClient({
 			subscription: true,

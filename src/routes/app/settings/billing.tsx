@@ -60,8 +60,30 @@ function BillingPage() {
 	const queryClient = useQueryClient();
 	const subQuery = trpc.org.getSubscription.queryOptions();
 	const { data: sub } = useQuery(subQuery);
+	const { data: myMembership } = useQuery(
+		trpc.org.getMyMembership.queryOptions(),
+	);
+	const canManageOrganization = myMembership?.canManageOrganization ?? false;
 	const currentPlan = sub?.plan ?? "free";
 	const [busyAction, setBusyAction] = useState<string | null>(null);
+
+	if (!canManageOrganization) {
+		return (
+			<div className="mx-auto w-full max-w-[1200px] px-4 py-5 sm:p-6">
+				<div className="mb-8">
+					<h1 className="text-2xl font-extrabold tracking-tighter sm:text-3xl">
+						BILLING
+					</h1>
+					<p className="text-ds-muted text-sm mt-1">
+						// MANAGE YOUR SUBSCRIPTION
+					</p>
+				</div>
+				<div className="border-[3px] border-ds-border p-6 text-sm text-ds-muted">
+					MEMBER_ACCESS // Billing is managed by organization owners/admins.
+				</div>
+			</div>
+		);
+	}
 
 	const getReferenceParams = () => {
 		if (sub?.scope === "organization" && sub.referenceId) {

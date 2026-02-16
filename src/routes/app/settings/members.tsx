@@ -3,11 +3,14 @@ import { useTRPC } from "@/integrations/trpc/react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { authClient } from "@/lib/auth-client"
 import { useEffect, useMemo, useState } from "react"
+import type { inferRouterOutputs } from "@trpc/server"
+import type { TRPCRouter } from "@/integrations/trpc/router"
 import { toast } from "sonner"
 import {
 	UserPlus,
 	Mail,
 	Search,
+	ChevronDown,
 	Filter,
 	Shield,
 	UserX,
@@ -18,15 +21,8 @@ export const Route = createFileRoute("/app/settings/members")({
 	component: MembersPage,
 })
 
-type OrganizationMember = {
-	memberId: string
-	userId: string
-	id: string
-	name: string
-	email: string
-	image: string | null
-	role: string
-}
+type RouterOutputs = inferRouterOutputs<TRPCRouter>
+type OrganizationMember = RouterOutputs["org"]["listMembers"][number]
 
 const BASE_ROLE_OPTIONS = ["member", "admin", "owner"] as const
 const PAGE_SIZE = 50
@@ -38,7 +34,7 @@ function MembersPage() {
 	const { data: members, isLoading } = useQuery(
 		trpc.org.listMembers.queryOptions(),
 	)
-	const memberList = (members ?? []) as OrganizationMember[]
+	const memberList: OrganizationMember[] = members ?? []
 	const [email, setEmail] = useState("")
 	const [inviting, setInviting] = useState(false)
 	const [inviteError, setInviteError] = useState("")
@@ -53,6 +49,10 @@ function MembersPage() {
 
 	const handleInvite = async (e: React.FormEvent) => {
 		e.preventDefault()
+		if (!canManageMembers) {
+			setInviteError("Only owners/admins can invite members.")
+			return
+		}
 		setInviting(true)
 		setInviteError("")
 		setInviteSuccess("")
@@ -195,43 +195,54 @@ function MembersPage() {
 				</p>
 			</div>
 
-			{/* Invite */}
-			<div className="mb-6 border-[3px] border-ds-border p-4 sm:p-6">
-				<div className="flex items-center gap-2 mb-4">
-					<UserPlus className="w-4 h-4 text-ds-accent" />
-					<span className="text-sm font-extrabold tracking-widest text-ds-accent">
-						INVITE_MEMBER
-					</span>
+				{/* Invite */}
+				<div className="mb-6 border-[3px] border-ds-border p-4 sm:p-6">
+					<div className="flex items-center gap-2 mb-4">
+						<UserPlus className="w-4 h-4 text-ds-accent" />
+						<span className="text-sm font-extrabold tracking-widest text-ds-accent">
+							INVITE_MEMBER
+						</span>
+					</div>
+					{canManageMembers ? (
+						<>
+							<form
+								onSubmit={handleInvite}
+								className="flex flex-col gap-3 sm:flex-row"
+							>
+								<input
+									type="email"
+									placeholder="colleague@company.com"
+									value={email}
+									onChange={(e) => setEmail(e.target.value)}
+									required
+									className="min-w-0 flex-1 bg-ds-input-bg border-[3px] border-ds-muted3 px-4 py-2.5 text-ds-fg font-mono text-sm transition-colors placeholder:text-ds-muted2 focus:border-ds-accent focus:outline-none"
+								/>
+								<button
+									type="submit"
+									disabled={inviting}
+									className="flex w-full shrink-0 items-center justify-center gap-2 bg-ds-accent px-6 py-2.5 text-sm font-extrabold tracking-wider text-ds-accent-fg transition-colors hover:bg-ds-accent-hover disabled:opacity-50 sm:w-auto"
+								>
+									<Mail className="w-4 h-4" />
+									{inviting ? "SENDING..." : "INVITE"}
+								</button>
+							</form>
+							{inviteError && (
+								<p className="mt-2 text-red-400 text-sm font-bold">
+									ERROR: {inviteError}
+								</p>
+							)}
+							{inviteSuccess && (
+								<p className="mt-2 text-ds-accent text-sm font-bold">
+									SUCCESS: {inviteSuccess}
+								</p>
+							)}
+						</>
+					) : (
+						<div className="text-xs font-bold tracking-wider text-ds-muted">
+							MEMBER_ACCESS // Only owners/admins can invite members.
+						</div>
+					)}
 				</div>
-				<form onSubmit={handleInvite} className="flex flex-col gap-3 sm:flex-row">
-					<input
-						type="email"
-						placeholder="colleague@company.com"
-						value={email}
-						onChange={(e) => setEmail(e.target.value)}
-						required
-						className="min-w-0 flex-1 bg-ds-input-bg border-[3px] border-ds-muted3 px-4 py-2.5 text-ds-fg font-mono text-sm transition-colors placeholder:text-ds-muted2 focus:border-ds-accent focus:outline-none"
-					/>
-					<button
-						type="submit"
-						disabled={inviting}
-						className="flex w-full shrink-0 items-center justify-center gap-2 bg-ds-accent px-6 py-2.5 text-sm font-extrabold tracking-wider text-ds-accent-fg transition-colors hover:bg-ds-accent-hover disabled:opacity-50 sm:w-auto"
-					>
-						<Mail className="w-4 h-4" />
-						{inviting ? "SENDING..." : "INVITE"}
-					</button>
-				</form>
-				{inviteError && (
-					<p className="mt-2 text-red-400 text-sm font-bold">
-						ERROR: {inviteError}
-					</p>
-				)}
-				{inviteSuccess && (
-					<p className="mt-2 text-ds-accent text-sm font-bold">
-						SUCCESS: {inviteSuccess}
-					</p>
-				)}
-			</div>
 
 			{/* Members List */}
 			<div className="border-[3px] border-ds-border">
@@ -254,7 +265,7 @@ function MembersPage() {
 							<select
 								value={roleFilter}
 								onChange={(event) => setRoleFilter(event.target.value)}
-								className="w-full appearance-none border-[2px] border-ds-muted3 bg-ds-input-bg py-2 pl-9 pr-8 text-xs font-bold uppercase tracking-widest text-ds-text-secondary focus:border-ds-accent focus:outline-none"
+								className="w-full appearance-none border-[2px] border-ds-muted3 bg-ds-input-bg py-2 pl-9 pr-10 text-xs font-bold uppercase tracking-widest text-ds-text-secondary focus:border-ds-accent focus:outline-none"
 							>
 								<option value="all">ALL_ROLES</option>
 								{roleOptions.map((role) => (
@@ -263,6 +274,9 @@ function MembersPage() {
 									</option>
 								))}
 							</select>
+							<span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-ds-text-tertiary">
+								<ChevronDown className="h-3.5 w-3.5" />
+							</span>
 						</div>
 					</div>
 				</div>
@@ -314,23 +328,28 @@ function MembersPage() {
 										</div>
 										{canManageMembers ? (
 											<>
-												<select
-													value={selectedRole}
-													onChange={(event) =>
-														updateDraftRole(
-															member.memberId,
-															event.target.value,
-														)
-													}
-													disabled={isBusy || isSelf}
-													className="border-[2px] border-ds-muted3 bg-ds-input-bg px-2 py-1 text-[10px] font-bold uppercase tracking-widest text-ds-text-secondary focus:border-ds-accent focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
-												>
-													{roleOptions.map((role) => (
-														<option key={role} value={role}>
-															{role.toUpperCase()}
-														</option>
-													))}
-												</select>
+												<div className="relative">
+													<select
+														value={selectedRole}
+														onChange={(event) =>
+															updateDraftRole(
+																member.memberId,
+																event.target.value,
+															)
+														}
+														disabled={isBusy || isSelf}
+														className="appearance-none border-[2px] border-ds-muted3 bg-ds-input-bg py-1 pl-2 pr-7 text-[10px] font-bold uppercase tracking-widest text-ds-text-secondary focus:border-ds-accent focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+													>
+														{roleOptions.map((role) => (
+															<option key={role} value={role}>
+																{role.toUpperCase()}
+															</option>
+														))}
+													</select>
+													<span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-ds-text-tertiary">
+														<ChevronDown className="h-3 w-3" />
+													</span>
+												</div>
 												<button
 													type="button"
 													onClick={() => void handleSaveRole(member)}

@@ -1562,14 +1562,29 @@ function optionsResponse(request: Request): Response {
 	});
 }
 
+function rejectIfOriginNotAllowed(request: Request): Response | null {
+	const origin = request.headers.get("origin");
+	if (!isCorsOriginAllowed(origin)) {
+		return new Response(null, { status: 403 });
+	}
+	return null;
+}
+
 export const Route = createFileRoute("/api/mcp")({
 	server: {
 		handlers: {
-			GET: ({ request }) => withCors(request, handleGet(request)),
-			POST: ({ request }) =>
-				handleRpcRequest(request).then((response) =>
+			GET: ({ request }) => {
+				const rejected = rejectIfOriginNotAllowed(request);
+				if (rejected) return rejected;
+				return withCors(request, handleGet(request));
+			},
+			POST: ({ request }) => {
+				const rejected = rejectIfOriginNotAllowed(request);
+				if (rejected) return Promise.resolve(rejected);
+				return handleRpcRequest(request).then((response) =>
 					withCors(request, response),
-				),
+				);
+			},
 			OPTIONS: ({ request }) => optionsResponse(request),
 		},
 	},

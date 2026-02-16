@@ -139,6 +139,11 @@ function teamScopeCondition(teamId: string | null) {
 		: eq(standupEntry.teamId, teamId);
 }
 
+function teamOrGeneralScopeCondition(teamId: string) {
+	return or(eq(standupEntry.teamId, teamId), isNull(standupEntry.teamId)) ??
+		teamScopeCondition(teamId);
+}
+
 function chooseEntriesForTeam<T extends { teamId: string | null }>(
 	entries: T[],
 	teamId?: string,
@@ -215,22 +220,62 @@ function assertTeamScopeAccess(
 	}
 }
 
+function canManageOrganizationRole(role: string) {
+	return role
+		.split(",")
+		.map((part) => part.trim().toLowerCase())
+		.some((part) => part === "owner" || part === "admin");
+}
+
 async function assertActorCanReadTeamScope(
 	userId: string,
 	organizationId: string,
 	teamId?: string,
 ) {
 	if (!teamId) return;
-	const allowedTeamIds = await getUserTeamIdsInOrganization(
-		userId,
-		organizationId,
-	);
-	if (!allowedTeamIds.has(teamId)) {
+	const [targetTeam, organizationMembership, scopedTeamMembership] =
+		await Promise.all([
+			db.query.team.findFirst({
+				where: and(eq(team.id, teamId), eq(team.organizationId, organizationId)),
+				columns: { id: true },
+			}),
+			db.query.member.findFirst({
+				where: and(
+					eq(member.organizationId, organizationId),
+					eq(member.userId, userId),
+				),
+				columns: { role: true },
+			}),
+			db.query.teamMember.findFirst({
+				where: and(eq(teamMember.teamId, teamId), eq(teamMember.userId, userId)),
+				columns: { teamId: true },
+			}),
+		]);
+
+	if (!targetTeam) {
 		throw new TRPCError({
-			code: "FORBIDDEN",
-			message: "You can only read standups for teams you belong to.",
+			code: "BAD_REQUEST",
+			message: "Invalid team scope for this organization.",
 		});
 	}
+
+	if (!organizationMembership) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "You are not a member of this organization.",
+		});
+	}
+
+	if (
+		scopedTeamMembership ||
+		canManageOrganizationRole(organizationMembership.role)
+	) {
+		return;
+	}
+	throw new TRPCError({
+		code: "FORBIDDEN",
+		message: "You can only read standups for your teams.",
+	});
 }
 
 function buildShareExpiryDate(now = new Date()): Date {
@@ -376,12 +421,7 @@ export const standupsRouter = {
 				eq(standupEntry.date, input.date),
 			];
 			if (input.teamId) {
-				conditions.push(
-					or(
-						eq(standupEntry.teamId, input.teamId),
-						isNull(standupEntry.teamId),
-					),
-				);
+				conditions.push(teamOrGeneralScopeCondition(input.teamId));
 			}
 
 			const entries = await db.query.standupEntry.findMany({
@@ -441,12 +481,7 @@ export const standupsRouter = {
 				conditions.push(gte(standupEntry.date, floorDate));
 			}
 			if (input.teamId) {
-				conditions.push(
-					or(
-						eq(standupEntry.teamId, input.teamId),
-						isNull(standupEntry.teamId),
-					),
-				);
+				conditions.push(teamOrGeneralScopeCondition(input.teamId));
 			}
 
 			const entries = await db.query.standupEntry.findMany({
@@ -555,12 +590,7 @@ export const standupsRouter = {
 				conditions.push(gte(standupEntry.date, floorDate));
 			}
 			if (input.teamId) {
-				conditions.push(
-					or(
-						eq(standupEntry.teamId, input.teamId),
-						isNull(standupEntry.teamId),
-					),
-				);
+				conditions.push(teamOrGeneralScopeCondition(input.teamId));
 			}
 
 			const entries = await db.query.standupEntry.findMany({

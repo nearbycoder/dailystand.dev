@@ -1,7 +1,7 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { createFileRoute } from "@tanstack/react-router";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { BellRing, Save } from "lucide-react";
+import { BellRing, ChevronDown, Save } from "lucide-react";
 import { toast } from "sonner";
 import { useTRPC } from "@/integrations/trpc/react";
 
@@ -10,6 +10,10 @@ export const Route = createFileRoute("/app/settings/notifications")({
 });
 
 type Cadence = "weekly" | "daily";
+
+function isCadence(value: string): value is Cadence {
+	return value === "weekly" || value === "daily";
+}
 
 function NotificationSettingsPage() {
 	const trpc = useTRPC();
@@ -25,10 +29,32 @@ function NotificationSettingsPage() {
 	const [cadence, setCadence] = useState<Cadence>("weekly");
 	const [timezone, setTimezone] = useState("UTC");
 
+	const timezoneOptions = useMemo(() => {
+		const browserTimezone =
+			Intl.DateTimeFormat().resolvedOptions().timeZone || "UTC";
+		let supportedTimezones: string[] = [];
+
+		try {
+			if (typeof Intl.supportedValuesOf === "function") {
+				supportedTimezones = Intl.supportedValuesOf("timeZone");
+			}
+		} catch {
+			supportedTimezones = [];
+		}
+
+		const merged = new Set<string>([
+			"UTC",
+			browserTimezone,
+			...(data?.timezone ? [data.timezone] : []),
+			...supportedTimezones,
+		]);
+		return Array.from(merged).sort((a, b) => a.localeCompare(b));
+	}, [data?.timezone]);
+
 	useEffect(() => {
 		if (!data) return;
 		setEnabled(data.enabled);
-		setCadence((data.cadence as Cadence) ?? "weekly");
+		setCadence(isCadence(data.cadence) ? data.cadence : "weekly");
 		setTimezone(
 			data.timezone ||
 				Intl.DateTimeFormat().resolvedOptions().timeZone ||
@@ -94,40 +120,60 @@ function NotificationSettingsPage() {
 							ENABLE_EMAIL_DIGESTS
 						</label>
 
-						<div>
-							<label className="mb-2 block text-xs font-bold tracking-widest text-ds-text-tertiary">
-								DIGEST_FREQUENCY
-							</label>
-							<select
-								value={cadence}
-								onChange={(event) => setCadence(event.target.value as Cadence)}
-								className="w-full max-w-[260px] bg-ds-input-bg border-[3px] border-ds-muted3 px-4 py-2.5 text-ds-fg font-mono text-sm focus:border-ds-accent focus:outline-none transition-colors"
-							>
-								<option value="weekly">WEEKLY</option>
-								<option value="daily" disabled={!isDailyAllowed}>
-									DAILY {!isDailyAllowed ? "(PAID_PLAN_REQUIRED)" : ""}
-								</option>
-							</select>
-							<p className="mt-2 text-xs text-ds-muted">
-								Free plan is limited to weekly emails. Pro and Business can use
-								daily or weekly digests.
-							</p>
-						</div>
+							<div>
+								<label className="mb-2 block text-xs font-bold tracking-widest text-ds-text-tertiary">
+									DIGEST_FREQUENCY
+								</label>
+								<div className="relative max-w-[260px]">
+									<select
+										value={cadence}
+										onChange={(event) => {
+											const nextValue = event.target.value;
+											if (isCadence(nextValue)) {
+												setCadence(nextValue);
+											}
+										}}
+										className="w-full appearance-none border-[3px] border-ds-muted3 bg-ds-input-bg px-4 py-2.5 pr-10 text-sm text-ds-fg focus:border-ds-accent focus:outline-none"
+									>
+										<option value="weekly">WEEKLY</option>
+										<option value="daily" disabled={!isDailyAllowed}>
+											DAILY {!isDailyAllowed ? "(PAID_PLAN_REQUIRED)" : ""}
+										</option>
+									</select>
+									<span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-ds-text-tertiary">
+										<ChevronDown className="h-4 w-4" />
+									</span>
+								</div>
+								<p className="mt-2 text-xs text-ds-muted">
+									Free plan is limited to weekly emails. Pro and Business can use
+									daily or weekly digests.
+								</p>
+							</div>
 
-						<div>
-							<label className="mb-2 block text-xs font-bold tracking-widest text-ds-text-tertiary">
-								TIMEZONE
-							</label>
-							<input
-								value={timezone}
-								onChange={(event) => setTimezone(event.target.value)}
-								placeholder="America/New_York"
-								className="w-full max-w-[360px] bg-ds-input-bg border-[3px] border-ds-muted3 px-4 py-2.5 text-ds-fg font-mono text-sm focus:border-ds-accent focus:outline-none transition-colors"
-							/>
-							<p className="mt-2 text-xs text-ds-muted">
-								Used for digest windows and delivery dedupe.
-							</p>
-						</div>
+							<div>
+								<label className="mb-2 block text-xs font-bold tracking-widest text-ds-text-tertiary">
+									TIMEZONE
+								</label>
+								<div className="relative max-w-[360px]">
+									<select
+										value={timezone}
+										onChange={(event) => setTimezone(event.target.value)}
+										className="w-full appearance-none border-[3px] border-ds-muted3 bg-ds-input-bg px-4 py-2.5 pr-10 text-sm text-ds-fg focus:border-ds-accent focus:outline-none"
+									>
+										{timezoneOptions.map((option) => (
+											<option key={option} value={option}>
+												{option}
+											</option>
+										))}
+									</select>
+									<span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-ds-text-tertiary">
+										<ChevronDown className="h-4 w-4" />
+									</span>
+								</div>
+								<p className="mt-2 text-xs text-ds-muted">
+									Used for digest windows and delivery dedupe.
+								</p>
+							</div>
 
 						<button
 							type="button"

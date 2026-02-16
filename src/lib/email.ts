@@ -67,9 +67,10 @@ export async function sendInviteEmail(payload: InviteEmailPayload) {
 	inviteUrl.searchParams.set("email", payload.to);
 
 	if (!isResendConfigured()) {
-		console.info(
-			`[AUTH] Invite email not sent (RESEND not configured). Accept URL for ${payload.to}: ${inviteUrl.toString()}`,
-		);
+		console.info(`[AUTH] Invite email not sent (RESEND not configured).`, {
+			recipient: payload.to,
+			organization: payload.organizationName,
+		});
 		return;
 	}
 
@@ -97,9 +98,9 @@ export async function sendPasswordResetEmail(
 	payload: PasswordResetEmailPayload,
 ) {
 	if (!isResendConfigured()) {
-		console.info(
-			`[AUTH] Password reset email not sent (RESEND not configured). Reset URL for ${payload.to}: ${payload.resetUrl}`,
-		);
+		console.info(`[AUTH] Password reset email not sent (RESEND not configured).`, {
+			recipient: payload.to,
+		});
 		return;
 	}
 

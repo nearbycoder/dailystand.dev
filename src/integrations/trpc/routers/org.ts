@@ -4,7 +4,14 @@ import { z } from "zod";
 import { db } from "@/db";
 import { emailDigestPreference, member, organization } from "@/db/schema";
 import { resolveOrganizationPlanLimits } from "@/lib/plan-limits";
-import { orgProcedure } from "../init";
+import { orgProcedure, protectedProcedure } from "../init";
+
+function canManageOrganizationRole(role: string) {
+	return role
+		.split(",")
+		.map((part) => part.trim().toLowerCase())
+		.some((part) => part === "owner" || part === "admin");
+}
 
 export const orgRouter = {
 	getDetails: orgProcedure.query(async ({ ctx }) => {
@@ -27,8 +34,8 @@ export const orgRouter = {
 				limits: resolved.limits,
 				scope: resolved.scope,
 				referenceId: resolved.referenceId,
-				cancelAt: null as Date | null,
-				periodEnd: null as Date | null,
+				cancelAt: null,
+				periodEnd: null,
 				cancelAtPeriodEnd: false,
 			};
 		}
@@ -59,10 +66,53 @@ export const orgRouter = {
 			userId: m.user.id,
 			id: m.user.id,
 			role: m.role,
+			canManageOrganization: canManageOrganizationRole(m.role),
 			name: m.user.name,
 			email: m.user.email,
 			image: m.user.image,
 		}));
+	}),
+
+	listMyMemberships: protectedProcedure.query(async ({ ctx }) => {
+		const memberships = await db.query.member.findMany({
+			where: eq(member.userId, ctx.session.user.id),
+			with: {
+				organization: {
+					columns: { id: true, name: true, slug: true },
+				},
+			},
+		});
+
+		return memberships.map((membership) => ({
+			memberId: membership.id,
+			organizationId: membership.organizationId,
+			role: membership.role,
+			canManageOrganization: canManageOrganizationRole(membership.role),
+			organization: membership.organization,
+		}));
+	}),
+
+	getMyMembership: orgProcedure.query(async ({ ctx }) => {
+		const currentMembership = await db.query.member.findFirst({
+			where: and(
+				eq(member.organizationId, ctx.organizationId),
+				eq(member.userId, ctx.session.user.id),
+			),
+			columns: { id: true, role: true },
+		});
+
+		if (!currentMembership) {
+			throw new TRPCError({
+				code: "FORBIDDEN",
+				message: "You are not a member of the active organization.",
+			});
+		}
+
+		return {
+			memberId: currentMembership.id,
+			role: currentMembership.role,
+			canManageOrganization: canManageOrganizationRole(currentMembership.role),
+		};
 	}),
 
 	getEmailDigestPreference: orgProcedure.query(async ({ ctx }) => {

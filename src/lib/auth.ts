@@ -160,6 +160,31 @@ async function assertTeamMemberLimit(
 	}
 }
 
+function canManageOrganizationRole(role: string) {
+	return role
+		.split(",")
+		.map((part) => part.trim().toLowerCase())
+		.some((part) => part === "owner" || part === "admin");
+}
+
+async function assertCanInviteOrganizationMembers(
+	organizationId: string,
+	inviterUserId: string,
+) {
+	const inviterMembership = await db.query.member.findFirst({
+		where: and(
+			eq(member.organizationId, organizationId),
+			eq(member.userId, inviterUserId),
+		),
+		columns: { role: true },
+	});
+	if (!inviterMembership || !canManageOrganizationRole(inviterMembership.role)) {
+		throw new APIError("FORBIDDEN", {
+			message: "Only owners/admins can invite members.",
+		});
+	}
+}
+
 export const auth = betterAuth({
 	database: drizzleAdapter(db, {
 		provider: "pg",
@@ -177,7 +202,9 @@ export const auth = betterAuth({
 				});
 			} catch (error) {
 				console.error("[AUTH] Failed to send reset password email", error);
-				console.info(`[AUTH] Password reset requested for ${user.email}: ${url}`);
+				console.info(
+					`[AUTH] Password reset requested for ${user.email}. Email provider unavailable.`,
+				);
 			}
 		},
 	},
@@ -220,12 +247,16 @@ export const auth = betterAuth({
 					);
 				}
 			},
-			organizationHooks: {
-				beforeCreateInvitation: async ({ invitation, inviter }) => {
-					await assertOrganizationMemberLimit(
-						invitation.organizationId,
-						inviter.id,
-					);
+				organizationHooks: {
+					beforeCreateInvitation: async ({ invitation, inviter }) => {
+						await assertCanInviteOrganizationMembers(
+							invitation.organizationId,
+							inviter.id,
+						);
+						await assertOrganizationMemberLimit(
+							invitation.organizationId,
+							inviter.id,
+						);
 				},
 				beforeAcceptInvitation: async ({ invitation }) => {
 					await assertOrganizationMemberLimit(invitation.organizationId);

@@ -139,13 +139,19 @@ function TeamView() {
 	const { startDate, endDate } = useMemo(() => getDateRange(page), [page])
 
 	const { data: teams } = useQuery(trpc.teams.list.queryOptions())
-	const { data: timelineData, isLoading } = useQuery(
-		trpc.standups.getByDateRange.queryOptions({
+	const {
+		data: timelineData,
+		isLoading,
+		isError,
+		error,
+	} = useQuery({
+		...trpc.standups.getByDateRange.queryOptions({
 			startDate,
 			endDate,
 			teamId,
 		}),
-	)
+		retry: false,
+	})
 	const { data: members } = useQuery(
 		trpc.teams.getMembers.queryOptions({ teamId }),
 	)
@@ -201,15 +207,15 @@ function TeamView() {
 
 			{/* Pagination Controls */}
 			<div className="mb-6 border-[3px] border-ds-border p-3">
-					<div className="flex flex-wrap items-center justify-between gap-2">
-						<button
-							type="button"
-							onClick={() => setPage((p) => p + 1)}
-							className="order-1 flex items-center gap-1.5 px-2 py-1 text-xs font-bold tracking-wider text-ds-text-tertiary transition-colors hover:text-ds-fg"
-						>
-							<ChevronLeft className="w-4 h-4" />
-							OLDER
-						</button>
+				<div className="flex flex-wrap items-center justify-between gap-2">
+					<button
+						type="button"
+						onClick={() => setPage((p) => p + 1)}
+						className="order-1 flex items-center gap-1.5 px-2 py-1 text-xs font-bold tracking-wider text-ds-text-tertiary transition-colors hover:text-ds-fg"
+					>
+						<ChevronLeft className="w-4 h-4" />
+						OLDER
+					</button>
 
 					<div className="order-3 w-full text-center sm:order-2 sm:w-auto">
 						<span className="text-xs font-bold tracking-widest text-ds-muted">
@@ -264,21 +270,28 @@ function TeamView() {
 						</div>
 					))}
 				</div>
+			) : isError ? (
+				<div className="border-[3px] border-red-500/60 bg-red-500/5 px-4 py-3 text-sm text-red-400">
+					TEAM_TIMELINE_ERROR //{" "}
+					{error instanceof Error
+						? error.message
+						: "Unable to load team standups."}
+				</div>
 			) : (
-				<div className="space-y-0">
-					{allDates.map((date) => {
-						const standups = dataByDate.get(date)
-						return (
-							<DaySection
+					<div className="space-y-0">
+						{allDates.map((date) => {
+							const standups = dataByDate.get(date)
+							return (
+								<DaySection
 								key={date}
 								date={date}
-								teamName={team?.name ?? "Team"}
-								standups={standups ?? []}
-							/>
-						)
-					})}
-				</div>
-			)}
+									teamName={team?.name ?? "Team"}
+									standups={standups ?? []}
+								/>
+							)
+						})}
+					</div>
+				)}
 
 			{/* Keyboard hint */}
 			<div className="mt-6 text-center text-[10px] text-ds-muted3 font-bold tracking-widest">

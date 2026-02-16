@@ -5,9 +5,10 @@ import { getLocalDateString } from "@/lib/date"
 import { AutoLinkText } from "@/components/auto-link-text"
 import { useQueries, useQuery } from "@tanstack/react-query"
 import { useMemo, type ReactNode } from "react"
+import type { inferRouterOutputs } from "@trpc/server"
+import type { TRPCRouter } from "@/integrations/trpc/router"
 import {
 	AlertTriangle,
-	CalendarDays,
 	CheckCircle2,
 	PenSquare,
 	Target,
@@ -19,19 +20,8 @@ export const Route = createFileRoute("/app/")({
 	component: DashboardHome,
 })
 
-type TeamSummary = {
-	id: string
-	name: string
-	memberCount: number
-	members: { id: string; name: string; image: string | null }[]
-}
-
-type TeamStandup = {
-	user: { id: string; name: string; image: string | null }
-	completed: string[]
-	planned: string[]
-	blockers: string[]
-}
+type RouterOutputs = inferRouterOutputs<TRPCRouter>
+type TeamStandup = RouterOutputs["standups"]["getByDate"][number]
 
 function formatFullDate(dateStr: string): string {
 	return new Date(`${dateStr}T12:00:00`)
@@ -63,7 +53,7 @@ function DashboardHome() {
 
 	const myTeams = useMemo(() => {
 		if (!teams || !viewerId) return []
-		return (teams as TeamSummary[]).filter((team) =>
+		return teams.filter((team) =>
 			team.members.some((member) => member.id === viewerId),
 		)
 	}, [teams, viewerId])
@@ -135,10 +125,10 @@ function DashboardHome() {
 				</div>
 			) : (
 				<div className="space-y-0">
-					{myTeams.map((team, index) => {
-						const teamQuery = teamStandupQueries[index]
-						const standups = (teamQuery?.data ?? []) as TeamStandup[]
-						const sortedStandups = [...standups].sort((a, b) => {
+						{myTeams.map((team, index) => {
+							const teamQuery = teamStandupQueries[index]
+							const standups: TeamStandup[] = teamQuery?.data ?? []
+							const sortedStandups = [...standups].sort((a, b) => {
 							if (a.user.id === viewerId && b.user.id !== viewerId) return -1
 							if (b.user.id === viewerId && a.user.id !== viewerId) return 1
 							return a.user.name.localeCompare(b.user.name)

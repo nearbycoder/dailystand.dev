@@ -123,22 +123,33 @@ function LandingPage() {
 							DAILYSTAND
 						</span>
 					</div>
-					<div className="ml-auto flex items-center gap-2 sm:gap-4">
-						<ThemeToggle />
-						{isLoggedIn ? (
-							<Link to="/app">
+						<div className="ml-auto flex items-center gap-2 sm:gap-4">
+							<ThemeToggle />
+							<Link to="/docs">
+								<button className="text-sm font-bold tracking-wider text-ds-text-tertiary transition-colors hover:text-ds-accent">
+									[DOCS]
+								</button>
+							</Link>
+							{isLoggedIn ? (
+								<Link to="/app">
 								<button className="border-[3px] border-ds-accent bg-ds-accent px-3 py-2 text-sm font-bold tracking-wider text-ds-accent-fg transition-all duration-150 hover:bg-ds-accent-hover sm:px-6">
 									DASHBOARD &rarr;
 								</button>
 							</Link>
 						) : (
 							<>
-								<Link to="/auth/sign-in">
+								<Link
+									to="/auth/sign-in"
+									search={{ invitationId: undefined, email: undefined }}
+								>
 									<button className="text-sm font-bold tracking-wider text-ds-text-tertiary transition-colors hover:text-ds-fg">
 										[SIGN_IN]
 									</button>
 								</Link>
-								<Link to="/auth/sign-up">
+								<Link
+									to="/auth/sign-up"
+									search={{ invitationId: undefined, email: undefined }}
+								>
 									<button className="border-[3px] border-ds-border-strong px-3 py-2 text-sm font-bold tracking-wider transition-all duration-150 hover:bg-ds-border-strong hover:text-ds-bg sm:px-6">
 										GET_STARTED
 									</button>
@@ -200,7 +211,11 @@ function LandingPage() {
 						</a>
 					</div>
 					<div className="mt-8 flex w-full gap-4 sm:mt-10 sm:w-auto">
-						<Link to="/auth/sign-up" className="w-full sm:w-auto">
+						<Link
+							to="/auth/sign-up"
+							search={{ invitationId: undefined, email: undefined }}
+							className="w-full sm:w-auto"
+						>
 							<button className="w-full bg-ds-accent px-8 py-4 text-base font-extrabold tracking-wider text-ds-accent-fg transition-colors hover:bg-ds-accent-hover sm:w-auto sm:text-lg">
 								START FREE &rarr;
 							</button>
@@ -278,7 +293,11 @@ function LandingPage() {
 										</li>
 									))}
 								</ul>
-								<Link to="/auth/sign-up" className="block mt-8">
+								<Link
+									to="/auth/sign-up"
+									search={{ invitationId: undefined, email: undefined }}
+									className="block mt-8"
+								>
 									<button
 										className={`w-full py-3 font-extrabold text-sm tracking-wider transition-all duration-150 ${
 											plan.popular

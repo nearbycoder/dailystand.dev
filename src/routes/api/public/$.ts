@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { and, asc, desc, eq, gte, isNull, lte, or } from "drizzle-orm";
+import { z } from "zod";
 import { db } from "@/db";
 import { member, standupEntry, team, teamMember, user } from "@/db/schema";
 import { auth } from "@/lib/auth";
@@ -10,8 +11,8 @@ import {
 } from "@/lib/plan-limits";
 
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
-const RANGE_DAYS = new Set([7, 14, 30, 60, 90] as const);
 const API_RESOURCE = "dailystand";
+type RangeDays = 7 | 14 | 30 | 60 | 90;
 
 type ApiPermission =
 	| "profile:read"
@@ -21,6 +22,19 @@ type ApiPermission =
 	| "analytics:read";
 
 type StandupType = "completed" | "planned" | "blocker";
+const standupCreateBodySchema = z.object({
+	orgId: z.string().optional(),
+	date: z.string().optional(),
+	teamId: z.string().nullable().optional(),
+	entries: z
+		.array(
+			z.object({
+				type: z.enum(["completed", "planned", "blocker"]),
+				content: z.string(),
+			}),
+		)
+		.optional(),
+});
 
 class ApiHttpError extends Error {
 	status: number;
@@ -106,11 +120,15 @@ function parseDate(value: string, fieldName: string): string {
 	return value;
 }
 
-function parseRangeDays(value: string | null): 7 | 14 | 30 | 60 | 90 {
+function isRangeDays(value: number): value is RangeDays {
+	return value === 7 || value === 14 || value === 30 || value === 60 || value === 90;
+}
+
+function parseRangeDays(value: string | null): RangeDays {
 	if (!value) return 30;
 	const parsed = Number(value);
-	if (RANGE_DAYS.has(parsed as 7 | 14 | 30 | 60 | 90)) {
-		return parsed as 7 | 14 | 30 | 60 | 90;
+	if (isRangeDays(parsed)) {
+		return parsed;
 	}
 	throw new ApiHttpError(
 		400,
@@ -130,10 +148,10 @@ function enumerateDateRange(startDate: Date, endDate: Date): string[] {
 }
 
 function groupEntriesByType(entries: { type: StandupType; content: string }[]) {
-	const grouped = {
-		completed: [] as string[],
-		planned: [] as string[],
-		blockers: [] as string[],
+	const grouped: { completed: string[]; planned: string[]; blockers: string[] } = {
+		completed: [],
+		planned: [],
+		blockers: [],
 	};
 	for (const entry of entries) {
 		if (entry.type === "completed") grouped.completed.push(entry.content);
@@ -677,20 +695,27 @@ async function handleGetStandupsHistory(request: Request, url: URL) {
 	});
 }
 
-type StandupCreateBody = {
-	orgId?: string;
-	date?: string;
-	teamId?: string | null;
-	entries?: { type: StandupType; content: string }[];
-};
+type StandupCreateBody = z.infer<typeof standupCreateBodySchema>;
 
 async function handlePostStandups(request: Request) {
 	const { actor } = await requireApiKeyAuth(request, "standups:write");
 
 	let body: StandupCreateBody;
 	try {
-		body = (await request.json()) as StandupCreateBody;
-	} catch {
+		const rawBody = await request.json();
+		const parsedBody = standupCreateBodySchema.safeParse(rawBody);
+		if (!parsedBody.success) {
+			throw new ApiHttpError(
+				400,
+				"INVALID_BODY",
+				"Request body has invalid shape.",
+			);
+		}
+		body = parsedBody.data;
+	} catch (error) {
+		if (error instanceof ApiHttpError) {
+			throw error;
+		}
 		throw new ApiHttpError(
 			400,
 			"INVALID_JSON",
@@ -699,7 +724,7 @@ async function handlePostStandups(request: Request) {
 	}
 
 	const date = parseDate(body.date ?? "", "date");
-	const entries = Array.isArray(body.entries) ? body.entries : [];
+	const entries = body.entries ?? [];
 	for (const [index, entry] of entries.entries()) {
 		if (
 			!entry ||
@@ -1082,6 +1107,10 @@ async function withErrorHandlingAndCors(
 	request: Request,
 	handler: () => Promise<Response>,
 ) {
+	const origin = request.headers.get("origin");
+	if (!isCorsOriginAllowed(origin)) {
+		return new Response(null, { status: 403 });
+	}
 	try {
 		return withCors(request, await handler());
 	} catch (error) {

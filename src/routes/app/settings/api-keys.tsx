@@ -51,6 +51,48 @@ const API_SCOPE_MEMBER_MANAGE = "members:manage";
 
 type ExpirationOptionValue = (typeof EXPIRATION_OPTIONS)[number]["value"];
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+	return typeof value === "object" && value !== null;
+}
+
+function isPermissionsMap(
+	value: unknown,
+): value is Record<string, string[]> | null {
+	if (value === null) return true;
+	if (!isRecord(value)) return false;
+	return Object.values(value).every(
+		(actions) =>
+			Array.isArray(actions) &&
+			actions.every((action) => typeof action === "string"),
+	);
+}
+
+function isApiKeyRecord(value: unknown): value is ApiKeyRecord {
+	if (!isRecord(value)) return false;
+	return (
+		typeof value.id === "string" &&
+		(typeof value.name === "string" || value.name === null) &&
+		(typeof value.start === "string" || value.start === null) &&
+		(typeof value.prefix === "string" || value.prefix === null) &&
+		typeof value.enabled === "boolean" &&
+		(typeof value.createdAt === "string" || value.createdAt instanceof Date) &&
+		(typeof value.expiresAt === "string" ||
+			value.expiresAt instanceof Date ||
+			value.expiresAt === null) &&
+		isPermissionsMap(value.permissions)
+	);
+}
+
+function isCreatedApiKeyRecord(value: unknown): value is CreatedApiKeyRecord {
+	if (!isRecord(value)) return false;
+	const key = value["key"];
+	return isApiKeyRecord(value) && typeof key === "string" && key.length > 0;
+}
+
+function isExpirationOptionValue(value: string): value is ExpirationOptionValue {
+	return EXPIRATION_OPTIONS.some((option) => option.value === value);
+}
+
 function formatDateTime(value: string | Date | null | undefined): string {
 	if (!value) return "Never";
 	const date = value instanceof Date ? value : new Date(value);
@@ -112,7 +154,8 @@ function ApiKeysPage() {
 			if (result.error) {
 				throw new Error(result.error.message ?? "Failed to load API keys.");
 			}
-			return (result.data ?? []) as ApiKeyRecord[];
+			const records = Array.isArray(result.data) ? result.data : [];
+			return records.filter(isApiKeyRecord);
 		},
 	});
 
@@ -138,7 +181,10 @@ function ApiKeysPage() {
 			if (result.error || !result.data) {
 				throw new Error(result.error?.message ?? "Failed to create API key.");
 			}
-			return result.data as CreatedApiKeyRecord;
+			if (!isCreatedApiKeyRecord(result.data)) {
+				throw new Error("API key response did not match expected shape.");
+			}
+			return result.data;
 		},
 		onSuccess: (created) => {
 			setCreateError("");
@@ -228,13 +274,16 @@ function ApiKeysPage() {
 						className="md:col-span-3 min-w-0 border-[3px] border-ds-muted3 bg-ds-input-bg px-4 py-2.5 text-sm text-ds-fg placeholder:text-ds-muted2 focus:border-ds-accent focus:outline-none"
 					/>
 					<div className="relative min-w-0">
-						<select
-							value={expiresInOption}
-							onChange={(event) =>
-								setExpiresInOption(event.target.value as ExpirationOptionValue)
-							}
-							className="w-full appearance-none border-[3px] border-ds-muted3 bg-ds-input-bg px-4 py-2.5 pr-10 text-sm text-ds-fg focus:border-ds-accent focus:outline-none"
-						>
+							<select
+								value={expiresInOption}
+								onChange={(event) => {
+									const nextValue = event.target.value;
+									if (isExpirationOptionValue(nextValue)) {
+										setExpiresInOption(nextValue);
+									}
+								}}
+								className="w-full appearance-none border-[3px] border-ds-muted3 bg-ds-input-bg px-4 py-2.5 pr-10 text-sm text-ds-fg focus:border-ds-accent focus:outline-none"
+							>
 							{EXPIRATION_OPTIONS.map((option) => (
 								<option key={option.value} value={option.value}>
 									{option.label.toUpperCase()}

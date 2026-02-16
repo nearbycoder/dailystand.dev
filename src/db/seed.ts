@@ -62,15 +62,49 @@ type SeedPerson = {
 	email: string;
 };
 
+type OrganizationRole = "owner" | "admin" | "member";
+
 const DEMO_PEOPLE: SeedPerson[] = [
 	{ name: "Alex Chen", email: "alex@dailystand.dev" },
 	{ name: "Jamie Rivera", email: "jamie@dailystand.dev" },
 	{ name: "Sam Park", email: "sam@dailystand.dev" },
 	{ name: "Morgan Lee", email: "morgan@dailystand.dev" },
 	{ name: "Taylor Kim", email: "taylor@dailystand.dev" },
+	{ name: "Priya Nair", email: "priya@dailystand.dev" },
+	{ name: "Diego Alvarez", email: "diego@dailystand.dev" },
+	{ name: "Nora Blake", email: "nora@dailystand.dev" },
+	{ name: "Ethan Cole", email: "ethan@dailystand.dev" },
+	{ name: "Maya Singh", email: "maya@dailystand.dev" },
+	{ name: "Liam Brooks", email: "liam@dailystand.dev" },
+	{ name: "Aria Foster", email: "aria@dailystand.dev" },
+	{ name: "Noah Bennett", email: "noah@dailystand.dev" },
+	{ name: "Zoe Carter", email: "zoe@dailystand.dev" },
+	{ name: "Ivy Martinez", email: "ivy@dailystand.dev" },
+	{ name: "Milo Turner", email: "milo@dailystand.dev" },
+	{ name: "Ruby Davis", email: "ruby@dailystand.dev" },
+	{ name: "Owen Harris", email: "owen@dailystand.dev" },
 ];
 
-const DEMO_TEAMS = ["Engineering", "Design"];
+const DEMO_TEAMS = [
+	"Platform Engineering",
+	"Application Engineering",
+	"Product Design",
+	"Security & Compliance",
+	"Delivery Operations",
+	"Leadership",
+	"Customer Success",
+];
+
+const DEMO_TIMEZONES = [
+	"America/Los_Angeles",
+	"America/Denver",
+	"America/Chicago",
+	"America/New_York",
+	"Europe/London",
+	"Europe/Berlin",
+	"Asia/Tokyo",
+	"Asia/Kolkata",
+];
 
 const ENTERPRISE_TEAM_NAMES = [
 	"Platform Engineering",
@@ -113,6 +147,13 @@ const COMPLETED_ITEMS = [
 	"Completed SOC2 evidence collection task",
 	"Merged onboarding flow improvements",
 	"Hardened role-based permission checks",
+	"Published release notes to https://github.com/nearbycoder/dailystand.dev",
+	"Closed Linear sprint board at https://linear.app",
+	"Wrote incident summary for stakeholders in Notion",
+	"Resolved onboarding bug from support escalation queue",
+	"Consolidated analytics export schemas for CSV + markdown output",
+	"Updated MCP capability matrix for new public API endpoints",
+	"Validated link autolinking for x.com and docs references",
 ];
 
 const PLANNED_ITEMS = [
@@ -134,6 +175,13 @@ const PLANNED_ITEMS = [
 	"Audit service-to-service credentials",
 	"Prepare quarterly dependency upgrade plan",
 	"Refine multi-team standup experience",
+	"Plan onboarding improvements for enterprise pilot rollout",
+	"Prepare release candidate demo checklist and screenshots",
+	"Draft external API quickstart for customer engineering teams",
+	"Define reliability targets for email digest delivery pipeline",
+	"Backfill missing standup metadata for analytics confidence",
+	"Review product telemetry for plan-limit conversion funnel",
+	"Create docs examples using MCP with API keys",
 ];
 
 const BLOCKER_ITEMS = [
@@ -147,6 +195,11 @@ const BLOCKER_ITEMS = [
 	"Need access to production logs",
 	"Blocked on contract review for security tooling",
 	"Awaiting IAM permissions for new service account",
+	"Waiting on customer security questionnaire response",
+	"Pending approval for SAML test tenant provisioning",
+	"Blocked by dependency upgrade freeze window",
+	"Need legal sign-off before publishing API pricing docs",
+	"Vendor maintenance window prevents webhook testing today",
 ];
 
 function pick<T>(arr: T[]): T {
@@ -261,11 +314,13 @@ async function createOrganizationWithMembers({
 	name,
 	slug,
 	memberUserIds,
+	memberRoles,
 	createdAt,
 }: {
 	name: string;
 	slug: string;
 	memberUserIds: string[];
+	memberRoles?: OrganizationRole[];
 	createdAt: Date;
 }): Promise<string> {
 	const orgId = id();
@@ -281,7 +336,7 @@ async function createOrganizationWithMembers({
 			id: id(),
 			organizationId: orgId,
 			userId: memberUserIds[i],
-			role: i === 0 ? "owner" : "member",
+			role: memberRoles?.[i] ?? (i === 0 ? "owner" : "member"),
 			createdAt,
 		});
 	}
@@ -317,7 +372,7 @@ async function createTeams(
 async function seedDemoOrg(hashedPassword: string) {
 	console.log("\nSeeding demo org...");
 
-	const createdAt = daysAgo(30);
+	const createdAt = daysAgo(60);
 	const userIds = await createUsersWithCredentialAccounts(
 		DEMO_PEOPLE,
 		hashedPassword,
@@ -325,85 +380,242 @@ async function seedDemoOrg(hashedPassword: string) {
 		1,
 	);
 
+	const memberRoles: OrganizationRole[] = DEMO_PEOPLE.map((_, idx) => {
+		if (idx === 0) return "owner";
+		if (idx < 4) return "admin";
+		return "member";
+	});
+
 	const orgId = await createOrganizationWithMembers({
 		name: "Acme Corp",
 		slug: "acme-corp",
 		memberUserIds: userIds,
+		memberRoles,
 		createdAt,
 	});
 
+	await db.insert(schema.subscription).values({
+		id: id(),
+		plan: "business",
+		referenceId: orgId,
+		status: "active",
+		seats: DEMO_PEOPLE.length,
+		periodStart: daysAgo(4),
+		periodEnd: daysFromNow(26),
+	});
+	console.log("  Added business subscription for demo org");
+
 	const teamIds = await createTeams(orgId, DEMO_TEAMS, createdAt);
 
-	const teamAssignments = [
-		[0, 1, 2], // Engineering
-		[3, 4], // Design
-	];
+	const coreDeliveryTeamCount = 5;
+	const userTeams = new Map<string, string[]>();
 
-	for (let t = 0; t < teamIds.length; t++) {
-		for (const userIdx of teamAssignments[t]) {
+	for (let u = 0; u < userIds.length; u++) {
+		const userId = userIds[u];
+		const primaryTeamIdx = u % coreDeliveryTeamCount;
+		const membership = new Set<string>([teamIds[primaryTeamIdx]]);
+
+		if (u % 2 === 0) {
+			membership.add(teamIds[(primaryTeamIdx + 1) % coreDeliveryTeamCount]);
+		}
+		if (u < 4 || u % 7 === 0) {
+			membership.add(teamIds[5]); // leadership
+		}
+		if (u % 3 === 0 || u % 5 === 0) {
+			membership.add(teamIds[6]); // customer success
+		}
+
+		const membershipList = Array.from(membership);
+		userTeams.set(userId, membershipList);
+
+		for (const teamId of membershipList) {
 			await db.insert(schema.teamMember).values({
 				id: id(),
-				teamId: teamIds[t],
-				userId: userIds[userIdx],
+				teamId,
+				userId,
 				createdAt,
 			});
 		}
+	}
+
+	for (let t = 0; t < teamIds.length; t++) {
+		const memberCount = Array.from(userTeams.values()).filter((memberships) =>
+			memberships.includes(teamIds[t]),
+		).length;
 		console.log(
-			`  Assigned ${teamAssignments[t].length} members to ${DEMO_TEAMS[t]}`,
+			`  Team ${DEMO_TEAMS[t]} members: ${memberCount}`,
 		);
 	}
 
+	await db.insert(schema.emailDigestPreference).values(
+		userIds.map((userId, index) => {
+			const enabled = index % 6 !== 5;
+			const cadence: "daily" | "weekly" =
+				index % 3 === 0 ? "daily" : "weekly";
+			return {
+				userId,
+				organizationId: orgId,
+				enabled,
+				cadence,
+				timezone: DEMO_TIMEZONES[index % DEMO_TIMEZONES.length],
+				lastDailySentAt: cadence === "daily" && enabled ? daysAgo(1) : null,
+				lastWeeklySentAt: enabled ? daysAgo(3) : null,
+				createdAt,
+				updatedAt: daysAgo(1),
+			};
+		}),
+	);
+	console.log("  Seeded email digest preferences");
+
+	await db.insert(schema.invitation).values([
+		{
+			id: id(),
+			organizationId: orgId,
+			email: "pm.candidate@acme-demo.dev",
+			role: "member",
+			teamId: teamIds[1],
+			status: "pending",
+			expiresAt: daysFromNow(7),
+			createdAt: daysAgo(1),
+			inviterId: userIds[0],
+		},
+		{
+			id: id(),
+			organizationId: orgId,
+			email: "security.candidate@acme-demo.dev",
+			role: "admin",
+			teamId: teamIds[3],
+			status: "pending",
+			expiresAt: daysFromNow(10),
+			createdAt: daysAgo(2),
+			inviterId: userIds[1],
+		},
+		{
+			id: id(),
+			organizationId: orgId,
+			email: "success.candidate@acme-demo.dev",
+			role: "member",
+			teamId: teamIds[6],
+			status: "pending",
+			expiresAt: daysFromNow(5),
+			createdAt: daysAgo(3),
+			inviterId: userIds[2],
+		},
+	]);
+	console.log("  Added pending invitations");
+
 	let entryCount = 0;
-	for (let day = 14; day >= 0; day--) {
+	for (let day = 45; day >= 0; day--) {
 		const date = daysAgo(day);
 		const dow = date.getDay();
 		if (dow === 0 || dow === 6) continue;
 
 		const ds = dateStr(date);
 		for (let u = 0; u < userIds.length; u++) {
-			if (Math.random() > 0.8) continue;
-			const teamId = u < 3 ? teamIds[0] : teamIds[1];
+			const role = memberRoles[u];
+			const postChance =
+				role === "owner" ? 0.97 : role === "admin" ? 0.9 : 0.78;
+			if (Math.random() > postChance) continue;
 
-			for (const item of pickN(COMPLETED_ITEMS, 1, 3)) {
-				await db.insert(schema.standupEntry).values({
-					userId: userIds[u],
-					organizationId: orgId,
-					teamId,
-					date: ds,
-					type: "completed",
-					content: item,
-					createdAt: date,
-				});
-				entryCount++;
+			const memberships = userTeams.get(userIds[u]) ?? [];
+			if (memberships.length === 0) continue;
+
+			const teamTargets = new Set<string>([memberships[day % memberships.length]]);
+			if (memberships.length > 1 && (day % 2 === 0 || Math.random() < 0.45)) {
+				teamTargets.add(memberships[(day + 1) % memberships.length]);
+			}
+			if (memberships.length > 2 && Math.random() < 0.2) {
+				teamTargets.add(memberships[(day + 2) % memberships.length]);
 			}
 
-			for (const item of pickN(PLANNED_ITEMS, 1, 2)) {
+			for (const teamId of teamTargets) {
+				for (const item of pickN(COMPLETED_ITEMS, 1, 3)) {
+					await db.insert(schema.standupEntry).values({
+						userId: userIds[u],
+						organizationId: orgId,
+						teamId,
+						date: ds,
+						type: "completed",
+						content: item,
+						createdAt: date,
+					});
+					entryCount++;
+				}
+
+				for (const item of pickN(PLANNED_ITEMS, 1, 2)) {
+					await db.insert(schema.standupEntry).values({
+						userId: userIds[u],
+						organizationId: orgId,
+						teamId,
+						date: ds,
+						type: "planned",
+						content: item,
+						createdAt: date,
+					});
+					entryCount++;
+				}
+
+				if (Math.random() < 0.32) {
+					await db.insert(schema.standupEntry).values({
+						userId: userIds[u],
+						organizationId: orgId,
+						teamId,
+						date: ds,
+						type: "blocker",
+						content: pick(BLOCKER_ITEMS),
+						createdAt: date,
+					});
+					entryCount++;
+				}
+			}
+
+			if (u === 0 && day % 4 === 0) {
 				await db.insert(schema.standupEntry).values({
 					userId: userIds[u],
 					organizationId: orgId,
-					teamId,
+					teamId: null,
 					date: ds,
 					type: "planned",
-					content: item,
-					createdAt: date,
-				});
-				entryCount++;
-			}
-
-			if (Math.random() < 0.3) {
-				await db.insert(schema.standupEntry).values({
-					userId: userIds[u],
-					organizationId: orgId,
-					teamId,
-					date: ds,
-					type: "blocker",
-					content: pick(BLOCKER_ITEMS),
+					content:
+						"Draft weekly leadership summary for external stakeholders https://x.com",
 					createdAt: date,
 				});
 				entryCount++;
 			}
 		}
 	}
+
+	const shareDates = [daysAgo(1), daysAgo(3), daysAgo(7)];
+	await db.insert(schema.standupShare).values([
+		{
+			token: `share_${id()}`,
+			userId: userIds[0],
+			organizationId: orgId,
+			date: dateStr(shareDates[0]),
+			createdAt: daysAgo(1),
+			expiresAt: daysFromNow(14),
+			revokedAt: null,
+		},
+		{
+			token: `share_${id()}`,
+			userId: userIds[0],
+			organizationId: orgId,
+			date: dateStr(shareDates[1]),
+			createdAt: daysAgo(3),
+			expiresAt: null,
+			revokedAt: null,
+		},
+		{
+			token: `share_${id()}`,
+			userId: userIds[0],
+			organizationId: orgId,
+			date: dateStr(shareDates[2]),
+			createdAt: daysAgo(7),
+			expiresAt: daysFromNow(3),
+			revokedAt: daysAgo(1),
+		},
+	]);
+	console.log("  Added standup share links (active + revoked)");
 
 	console.log(`  Created ${entryCount} demo standup entries`);
 	return { orgId, userIds };

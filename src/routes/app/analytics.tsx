@@ -4,11 +4,14 @@ import { getLocalDateString } from "@/lib/date"
 import { useMutation, useQuery } from "@tanstack/react-query"
 import { useEffect, useMemo, useRef, useState } from "react"
 import type { ReactNode } from "react"
+import type { inferRouterOutputs } from "@trpc/server"
+import type { TRPCRouter } from "@/integrations/trpc/router"
 import { toast } from "sonner"
 import {
 	ArrowRight,
 	Building2,
 	CalendarDays,
+	ChevronDown,
 	CheckCircle2,
 	FileDown,
 	PenSquare,
@@ -31,159 +34,8 @@ const RANGE_OPTIONS = [
 	{ value: 90 as const, label: "90D" },
 ]
 
-type AnalyticsResponse = {
-	period: {
-		startDate: string
-		endDate: string
-		rangeDays: 7 | 14 | 30 | 60 | 90
-	}
-	scope: {
-		teamId: string | null
-		teamName: string | null
-		members: number
-		orgMembers: number
-	}
-	totals: {
-		entries: number
-		completed: number
-		planned: number
-		blockers: number
-		blockerRate: number
-		activeUsers: number
-		activeTeams: number
-		participationRate: number
-	}
-	insights: {
-		completionDelta: number
-		blockerDelta: number
-	}
-	dailyTrend: {
-		date: string
-		completed: number
-		planned: number
-		blockers: number
-		total: number
-		activeUsers: number
-	}[]
-	dailyDrilldown: {
-		date: string
-		total: number
-		completed: number
-		planned: number
-		blockers: number
-		activeUsers: number
-		topContributors: {
-			userId: string
-			name: string
-			entries: number
-			completed: number
-			planned: number
-			blockers: number
-		}[]
-		sampleTasks: {
-			type: "completed" | "planned" | "blocker"
-			content: string
-			userId: string
-			userName: string
-			teamId: string | null
-			teamName: string
-		}[]
-	}[]
-	teamStats: {
-		teamId: string | null
-		teamName: string
-		memberCount: number
-		activeUsers: number
-		participationRate: number
-		entries: number
-		completed: number
-		planned: number
-		blockers: number
-		blockerRate: number
-		velocity: number
-	}[]
-	teamDrilldown: {
-		teamId: string | null
-		teamName: string
-		entries: number
-		completed: number
-		planned: number
-		blockers: number
-		participationRate: number
-		blockerRate: number
-		topContributors: {
-			userId: string
-			name: string
-			entries: number
-			completed: number
-			planned: number
-			blockers: number
-		}[]
-		sampleTasks: {
-			date: string
-			type: "completed" | "planned" | "blocker"
-			content: string
-			userId: string
-			userName: string
-		}[]
-	}[]
-	topContributors: {
-		userId: string
-		name: string
-		entries: number
-		completed: number
-		planned: number
-		blockers: number
-		daysPosted: number
-		teams: number
-	}[]
-	contributorDrilldown: {
-		userId: string
-		name: string
-		entries: number
-		completed: number
-		planned: number
-		blockers: number
-		daysPosted: number
-		teams: number
-		sampleTasks: {
-			date: string
-			type: "completed" | "planned" | "blocker"
-			content: string
-			teamId: string | null
-			teamName: string
-		}[]
-	}[]
-	blockerHotspots: {
-		teamId: string | null
-		teamName: string
-		memberCount: number
-		activeUsers: number
-		participationRate: number
-		entries: number
-		completed: number
-		planned: number
-		blockers: number
-		blockerRate: number
-		velocity: number
-	}[]
-	keywords: {
-		term: string
-		count: number
-	}[]
-	keywordDrilldown: {
-		term: string
-		count: number
-		uniquePeople: number
-		samples: {
-			date: string
-			type: "completed" | "planned" | "blocker"
-			content: string
-			userId: string
-			userName: string
-		}[]
-	}[]
-}
+type RouterOutputs = inferRouterOutputs<TRPCRouter>
+type AnalyticsResponse = RouterOutputs["standups"]["getAnalytics"]
 
 function formatDate(dateString: string): string {
 	return new Date(`${dateString}T12:00:00`).toLocaleDateString("en-US", {
@@ -250,7 +102,7 @@ function Dashboard() {
 	const exportMutation = useMutation(
 		trpc.standups.exportRange.mutationOptions(),
 	)
-	const analytics = analyticsQuery.data as AnalyticsResponse | undefined
+	const analytics: AnalyticsResponse | undefined = analyticsQuery.data
 
 	useEffect(() => {
 		if (selectedTeamId === "all") return
@@ -367,18 +219,23 @@ function Dashboard() {
 						>
 							TEAM_SCOPE
 						</label>
-						<select
-							id="team-scope-select"
-							value={selectedTeamId}
-							onChange={(event) => setSelectedTeamId(event.target.value)}
-							className="w-full border-[2px] border-ds-muted3 bg-ds-input-bg px-3 py-2 text-xs font-bold tracking-wide text-ds-fg outline-none transition-colors focus:border-ds-accent"
-						>
-							{teamOptions.map((teamOption) => (
-								<option key={teamOption.id} value={teamOption.id}>
-									{teamOption.name}
-								</option>
-							))}
-						</select>
+						<div className="relative">
+							<select
+								id="team-scope-select"
+								value={selectedTeamId}
+								onChange={(event) => setSelectedTeamId(event.target.value)}
+								className="w-full appearance-none border-[2px] border-ds-muted3 bg-ds-input-bg px-3 py-2 pr-10 text-xs font-bold tracking-wide text-ds-fg outline-none transition-colors focus:border-ds-accent"
+							>
+								{teamOptions.map((teamOption) => (
+									<option key={teamOption.id} value={teamOption.id}>
+										{teamOption.name}
+									</option>
+								))}
+							</select>
+							<span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-ds-text-tertiary">
+								<ChevronDown className="h-4 w-4" />
+							</span>
+						</div>
 					</div>
 
 					<div className="flex flex-wrap gap-2">
@@ -426,17 +283,22 @@ function Dashboard() {
 					) : null}
 				</div>
 				<div className="grid grid-cols-1 gap-3 md:grid-cols-5">
-					<select
-						value={exportTeamId}
-						onChange={(event) => setExportTeamId(event.target.value)}
-						className="min-w-0 border-[2px] border-ds-muted3 bg-ds-input-bg px-3 py-2 text-xs font-bold tracking-wide text-ds-fg outline-none transition-colors focus:border-ds-accent"
-					>
-						{teamOptions.map((teamOption) => (
-							<option key={teamOption.id} value={teamOption.id}>
-								{teamOption.name}
-							</option>
-						))}
-					</select>
+					<div className="relative min-w-0">
+						<select
+							value={exportTeamId}
+							onChange={(event) => setExportTeamId(event.target.value)}
+							className="w-full appearance-none border-[2px] border-ds-muted3 bg-ds-input-bg px-3 py-2 pr-10 text-xs font-bold tracking-wide text-ds-fg outline-none transition-colors focus:border-ds-accent"
+						>
+							{teamOptions.map((teamOption) => (
+								<option key={teamOption.id} value={teamOption.id}>
+									{teamOption.name}
+								</option>
+							))}
+						</select>
+						<span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-ds-text-tertiary">
+							<ChevronDown className="h-4 w-4" />
+						</span>
+					</div>
 					<input
 						type="date"
 						value={exportStartDate}

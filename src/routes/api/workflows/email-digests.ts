@@ -1,3 +1,4 @@
+import { timingSafeEqual } from "node:crypto";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { runDigestWorkflow } from "@/lib/email-digests";
@@ -25,10 +26,15 @@ function extractProvidedSecret(request: Request): string | null {
 		const bearer = authorization.slice(7).trim();
 		if (bearer) return bearer;
 	}
+	return null;
+}
 
-	const url = new URL(request.url);
-	const querySecret = url.searchParams.get("token")?.trim();
-	return querySecret || null;
+function secretsMatch(expected: string, provided: string | null): boolean {
+	if (!provided) return false;
+	const expectedBuffer = Buffer.from(expected);
+	const providedBuffer = Buffer.from(provided);
+	if (expectedBuffer.length !== providedBuffer.length) return false;
+	return timingSafeEqual(expectedBuffer, providedBuffer);
 }
 
 function unauthorized(message = "Unauthorized workflow access."): Response {
@@ -80,7 +86,7 @@ export const Route = createFileRoute("/api/workflows/email-digests")({
 			GET: ({ request }) => {
 				const secret = resolveWorkflowSecret();
 				const provided = extractProvidedSecret(request);
-				if (!secret || provided !== secret) return unauthorized();
+				if (!secret || !secretsMatch(secret, provided)) return unauthorized();
 				return ok({
 					endpoint: "/api/workflows/email-digests",
 					method: "POST",
@@ -92,7 +98,7 @@ export const Route = createFileRoute("/api/workflows/email-digests")({
 			POST: async ({ request }) => {
 				const secret = resolveWorkflowSecret();
 				const provided = extractProvidedSecret(request);
-				if (!secret || provided !== secret) return unauthorized();
+				if (!secret || !secretsMatch(secret, provided)) return unauthorized();
 
 				let cadence: "daily" | "weekly" | "all" = "all";
 				if (
@@ -109,13 +115,11 @@ export const Route = createFileRoute("/api/workflows/email-digests")({
 					const result = await runSelectedCadence(cadence);
 					return ok(result);
 				} catch (error) {
+					console.error("[WORKFLOW] Email digest execution failed", error);
 					return new Response(
 						JSON.stringify({
 							success: false,
-							error:
-								error instanceof Error
-									? error.message
-									: "Unknown workflow error",
+							error: "Workflow execution failed.",
 						}),
 						{
 							status: 500,

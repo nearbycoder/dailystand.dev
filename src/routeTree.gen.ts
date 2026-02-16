@@ -11,10 +11,15 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as TermsRouteImport } from './routes/terms'
 import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as DocsRouteRouteImport } from './routes/docs/route'
 import { Route as AppRouteRouteImport } from './routes/app/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DocsIndexRouteImport } from './routes/docs/index'
 import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as ShareTokenRouteImport } from './routes/share.$token'
+import { Route as DocsRestRouteImport } from './routes/docs/rest'
+import { Route as DocsMcpRouteImport } from './routes/docs/mcp'
+import { Route as DocsExplorerRouteImport } from './routes/docs/explorer'
 import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as AuthResetPasswordRouteImport } from './routes/auth/reset-password'
@@ -47,6 +52,11 @@ const PrivacyRoute = PrivacyRouteImport.update({
   path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocsRouteRoute = DocsRouteRouteImport.update({
+  id: '/docs',
+  path: '/docs',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppRouteRoute = AppRouteRouteImport.update({
   id: '/app',
   path: '/app',
@@ -57,6 +67,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DocsIndexRoute = DocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DocsRouteRoute,
+} as any)
 const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
@@ -66,6 +81,21 @@ const ShareTokenRoute = ShareTokenRouteImport.update({
   id: '/share/$token',
   path: '/share/$token',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DocsRestRoute = DocsRestRouteImport.update({
+  id: '/rest',
+  path: '/rest',
+  getParentRoute: () => DocsRouteRoute,
+} as any)
+const DocsMcpRoute = DocsMcpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => DocsRouteRoute,
+} as any)
+const DocsExplorerRoute = DocsExplorerRouteImport.update({
+  id: '/explorer',
+  path: '/explorer',
+  getParentRoute: () => DocsRouteRoute,
 } as any)
 const AuthSignUpRoute = AuthSignUpRouteImport.update({
   id: '/auth/sign-up',
@@ -178,6 +208,7 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteRouteWithChildren
+  '/docs': typeof DocsRouteRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/api/mcp': typeof ApiMcpRoute
@@ -188,8 +219,12 @@ export interface FileRoutesByFullPath {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
+  '/docs/explorer': typeof DocsExplorerRoute
+  '/docs/mcp': typeof DocsMcpRoute
+  '/docs/rest': typeof DocsRestRoute
   '/share/$token': typeof ShareTokenRoute
   '/app/': typeof AppIndexRoute
+  '/docs/': typeof DocsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/public/$': typeof ApiPublicSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
@@ -216,8 +251,12 @@ export interface FileRoutesByTo {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
+  '/docs/explorer': typeof DocsExplorerRoute
+  '/docs/mcp': typeof DocsMcpRoute
+  '/docs/rest': typeof DocsRestRoute
   '/share/$token': typeof ShareTokenRoute
   '/app': typeof AppIndexRoute
+  '/docs': typeof DocsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/public/$': typeof ApiPublicSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
@@ -236,6 +275,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteRouteWithChildren
+  '/docs': typeof DocsRouteRouteWithChildren
   '/privacy': typeof PrivacyRoute
   '/terms': typeof TermsRoute
   '/api/mcp': typeof ApiMcpRoute
@@ -246,8 +286,12 @@ export interface FileRoutesById {
   '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
+  '/docs/explorer': typeof DocsExplorerRoute
+  '/docs/mcp': typeof DocsMcpRoute
+  '/docs/rest': typeof DocsRestRoute
   '/share/$token': typeof ShareTokenRoute
   '/app/': typeof AppIndexRoute
+  '/docs/': typeof DocsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/public/$': typeof ApiPublicSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
@@ -267,6 +311,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/docs'
     | '/privacy'
     | '/terms'
     | '/api/mcp'
@@ -277,8 +322,12 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/auth/sign-in'
     | '/auth/sign-up'
+    | '/docs/explorer'
+    | '/docs/mcp'
+    | '/docs/rest'
     | '/share/$token'
     | '/app/'
+    | '/docs/'
     | '/api/auth/$'
     | '/api/public/$'
     | '/api/trpc/$'
@@ -305,8 +354,12 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/auth/sign-in'
     | '/auth/sign-up'
+    | '/docs/explorer'
+    | '/docs/mcp'
+    | '/docs/rest'
     | '/share/$token'
     | '/app'
+    | '/docs'
     | '/api/auth/$'
     | '/api/public/$'
     | '/api/trpc/$'
@@ -324,6 +377,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/app'
+    | '/docs'
     | '/privacy'
     | '/terms'
     | '/api/mcp'
@@ -334,8 +388,12 @@ export interface FileRouteTypes {
     | '/auth/reset-password'
     | '/auth/sign-in'
     | '/auth/sign-up'
+    | '/docs/explorer'
+    | '/docs/mcp'
+    | '/docs/rest'
     | '/share/$token'
     | '/app/'
+    | '/docs/'
     | '/api/auth/$'
     | '/api/public/$'
     | '/api/trpc/$'
@@ -354,6 +412,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRouteRoute: typeof AppRouteRouteWithChildren
+  DocsRouteRoute: typeof DocsRouteRouteWithChildren
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
   ApiMcpRoute: typeof ApiMcpRoute
@@ -384,6 +443,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app': {
       id: '/app'
       path: '/app'
@@ -398,6 +464,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/docs/': {
+      id: '/docs/'
+      path: '/'
+      fullPath: '/docs/'
+      preLoaderRoute: typeof DocsIndexRouteImport
+      parentRoute: typeof DocsRouteRoute
+    }
     '/app/': {
       id: '/app/'
       path: '/'
@@ -411,6 +484,27 @@ declare module '@tanstack/react-router' {
       fullPath: '/share/$token'
       preLoaderRoute: typeof ShareTokenRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/docs/rest': {
+      id: '/docs/rest'
+      path: '/rest'
+      fullPath: '/docs/rest'
+      preLoaderRoute: typeof DocsRestRouteImport
+      parentRoute: typeof DocsRouteRoute
+    }
+    '/docs/mcp': {
+      id: '/docs/mcp'
+      path: '/mcp'
+      fullPath: '/docs/mcp'
+      preLoaderRoute: typeof DocsMcpRouteImport
+      parentRoute: typeof DocsRouteRoute
+    }
+    '/docs/explorer': {
+      id: '/docs/explorer'
+      path: '/explorer'
+      fullPath: '/docs/explorer'
+      preLoaderRoute: typeof DocsExplorerRouteImport
+      parentRoute: typeof DocsRouteRoute
     }
     '/auth/sign-up': {
       id: '/auth/sign-up'
@@ -598,9 +692,28 @@ const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
   AppRouteRouteChildren,
 )
 
+interface DocsRouteRouteChildren {
+  DocsExplorerRoute: typeof DocsExplorerRoute
+  DocsMcpRoute: typeof DocsMcpRoute
+  DocsRestRoute: typeof DocsRestRoute
+  DocsIndexRoute: typeof DocsIndexRoute
+}
+
+const DocsRouteRouteChildren: DocsRouteRouteChildren = {
+  DocsExplorerRoute: DocsExplorerRoute,
+  DocsMcpRoute: DocsMcpRoute,
+  DocsRestRoute: DocsRestRoute,
+  DocsIndexRoute: DocsIndexRoute,
+}
+
+const DocsRouteRouteWithChildren = DocsRouteRoute._addFileChildren(
+  DocsRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRouteRoute: AppRouteRouteWithChildren,
+  DocsRouteRoute: DocsRouteRouteWithChildren,
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
   ApiMcpRoute: ApiMcpRoute,

@@ -46,7 +46,10 @@ function AppLayout() {
 	}
 
 	if (!session?.user) {
-		navigate({ to: "/auth/sign-in" })
+		navigate({
+			to: "/auth/sign-in",
+			search: { invitationId: undefined, email: undefined },
+		})
 		return null
 	}
 
@@ -60,11 +63,20 @@ function AppLayout() {
 }
 
 function OrgSetup() {
+	const trpc = useTRPC()
 	const [orgName, setOrgName] = useState("")
 	const [orgSlug, setOrgSlug] = useState("")
 	const [loading, setLoading] = useState(false)
 	const [error, setError] = useState("")
 	const { data: orgs } = authClient.useListOrganizations()
+	const { data: memberships } = useQuery(
+		trpc.org.listMyMemberships.queryOptions(),
+	)
+	const organizations = orgs ?? []
+	const hasOrganizations = organizations.length > 0
+	const canCreateOrganization =
+		(memberships?.length ?? 0) === 0 ||
+		(memberships ?? []).some((membership) => membership.canManageOrganization)
 
 	const handleCreate = async (e: React.FormEvent) => {
 		e.preventDefault()
@@ -105,15 +117,15 @@ function OrgSetup() {
 
 				<div className="border-[3px] border-ds-border-strong p-6 sm:p-8">
 					<h1 className="mb-2 text-2xl font-extrabold tracking-tighter">
-						{orgs && orgs.length > 0 ? "SELECT_ORG" : "CREATE_ORG"}
+						{hasOrganizations ? "SELECT_ORG" : "CREATE_ORG"}
 					</h1>
 					<p className="mb-8 text-sm text-ds-muted">
 						// set up your workspace
 					</p>
 
-					{orgs && orgs.length > 0 && (
+					{hasOrganizations && (
 						<div className="space-y-2 mb-8">
-							{orgs.map((org) => (
+							{organizations.map((org) => (
 								<button
 									key={org.id}
 									onClick={() => handleSelect(org.id)}
@@ -128,56 +140,64 @@ function OrgSetup() {
 									</div>
 								</button>
 							))}
-							<div className="text-center text-ds-muted2 text-xs font-bold tracking-widest py-4">
-								// OR CREATE NEW
-							</div>
+							{canCreateOrganization ? (
+								<div className="text-center text-ds-muted2 text-xs font-bold tracking-widest py-4">
+									// OR CREATE NEW
+								</div>
+							) : (
+								<div className="text-center text-ds-muted2 text-xs font-bold tracking-widest py-4">
+									// MEMBER_ACCESS: CONTACT OWNER/ADMIN TO CREATE ORGS
+								</div>
+							)}
 						</div>
 					)}
 
-					<form onSubmit={handleCreate} className="space-y-6">
-						{error && (
-							<div className="border-[3px] border-red-500 bg-red-500/10 p-3 text-red-400 text-sm font-bold">
-								ERROR: {error}
+					{canCreateOrganization ? (
+						<form onSubmit={handleCreate} className="space-y-6">
+							{error && (
+								<div className="border-[3px] border-red-500 bg-red-500/10 p-3 text-red-400 text-sm font-bold">
+									ERROR: {error}
+								</div>
+							)}
+							<div>
+								<label className="block text-xs font-bold tracking-widest text-ds-text-tertiary mb-2">
+									ORG_NAME
+								</label>
+								<input
+									placeholder="Acme Corp"
+									value={orgName}
+									onChange={(e) => {
+										setOrgName(e.target.value)
+										setOrgSlug(
+											e.target.value.toLowerCase().replace(/\s+/g, "-"),
+										)
+									}}
+									required
+									className="w-full bg-ds-input-bg border-[3px] border-ds-muted3 px-4 py-3 text-ds-fg font-mono text-sm focus:border-ds-accent focus:outline-none transition-colors placeholder:text-ds-muted2"
+								/>
 							</div>
-						)}
-						<div>
-							<label className="block text-xs font-bold tracking-widest text-ds-text-tertiary mb-2">
-								ORG_NAME
-							</label>
-							<input
-								placeholder="Acme Corp"
-								value={orgName}
-								onChange={(e) => {
-									setOrgName(e.target.value)
-									setOrgSlug(
-										e.target.value.toLowerCase().replace(/\s+/g, "-"),
-									)
-								}}
-								required
-								className="w-full bg-ds-input-bg border-[3px] border-ds-muted3 px-4 py-3 text-ds-fg font-mono text-sm focus:border-ds-accent focus:outline-none transition-colors placeholder:text-ds-muted2"
-							/>
-						</div>
-						<div>
-							<label className="block text-xs font-bold tracking-widest text-ds-text-tertiary mb-2">
-								SLUG
-							</label>
-							<input
-								placeholder="acme-corp"
-								value={orgSlug}
-								onChange={(e) => setOrgSlug(e.target.value)}
-								required
-								className="w-full bg-ds-input-bg border-[3px] border-ds-muted3 px-4 py-3 text-ds-fg font-mono text-sm focus:border-ds-accent focus:outline-none transition-colors placeholder:text-ds-muted2"
-							/>
-						</div>
-						<button
-							type="submit"
-							disabled={loading}
-							className="w-full bg-ds-accent text-ds-accent-fg py-3 font-extrabold text-sm tracking-wider hover:bg-ds-accent-hover transition-colors disabled:opacity-50"
-						>
-							<Plus className="w-4 h-4 inline mr-2" />
-							{loading ? "CREATING..." : "CREATE_ORG"}
-						</button>
-					</form>
+							<div>
+								<label className="block text-xs font-bold tracking-widest text-ds-text-tertiary mb-2">
+									SLUG
+								</label>
+								<input
+									placeholder="acme-corp"
+									value={orgSlug}
+									onChange={(e) => setOrgSlug(e.target.value)}
+									required
+									className="w-full bg-ds-input-bg border-[3px] border-ds-muted3 px-4 py-3 text-ds-fg font-mono text-sm focus:border-ds-accent focus:outline-none transition-colors placeholder:text-ds-muted2"
+								/>
+							</div>
+							<button
+								type="submit"
+								disabled={loading}
+								className="w-full bg-ds-accent text-ds-accent-fg py-3 font-extrabold text-sm tracking-wider hover:bg-ds-accent-hover transition-colors disabled:opacity-50"
+							>
+								<Plus className="w-4 h-4 inline mr-2" />
+								{loading ? "CREATING..." : "CREATE_ORG"}
+							</button>
+						</form>
+					) : null}
 				</div>
 			</div>
 		</div>
@@ -305,6 +325,11 @@ function SidebarContent({
 			team.members?.some((member) => member.id === viewerId),
 		)
 	}, [teams, viewerId])
+	const otherTeams = useMemo(() => {
+		if (!teams || teams.length === 0) return []
+		const myTeamIds = new Set(myTeams.map((team) => team.id))
+		return teams.filter((team) => !myTeamIds.has(team.id))
+	}, [teams, myTeams])
 
 	return (
 		<div className="flex h-full min-h-0 flex-col">
@@ -359,15 +384,15 @@ function SidebarContent({
 						))}
 					</>
 				)}
-				{canViewAllTeams && teams && teams.length > 0 && (
-					<>
-						<div className="px-4 py-3 text-xs font-bold tracking-widest text-ds-muted2">
-							// ALL_TEAMS
-						</div>
-						{teams.map((team) => (
-							<NavLink
-								key={`all-${team.id}`}
-								to="/app/team/$teamId"
+					{canViewAllTeams && otherTeams.length > 0 && (
+						<>
+							<div className="px-4 py-3 text-xs font-bold tracking-widest text-ds-muted2">
+								// ALL_TEAMS
+							</div>
+							{otherTeams.map((team) => (
+								<NavLink
+									key={`all-${team.id}`}
+									to="/app/team/$teamId"
 								params={{ teamId: team.id }}
 								icon={Users}
 								label={team.name.toUpperCase()}
@@ -416,31 +441,65 @@ function SidebarContent({
 	)
 }
 
-function NavLink({
-	to,
-	params,
-	icon: Icon,
-	label,
-	exact,
-	onNavigate,
-}: {
-	to: string
-	params?: Record<string, string>
-	icon: React.ComponentType<{ className?: string }>
-	label: string
-	exact?: boolean
-	onNavigate?: () => void
-}) {
+type StaticNavTarget =
+	| "/app"
+	| "/app/analytics"
+	| "/app/standup"
+	| "/app/history"
+	| "/app/settings"
+
+type TeamNavTarget = "/app/team/$teamId"
+
+type NavLinkProps =
+	| {
+			to: StaticNavTarget
+			params?: undefined
+			icon: React.ComponentType<{ className?: string }>
+			label: string
+			exact?: boolean
+			onNavigate?: () => void
+	  }
+	| {
+			to: TeamNavTarget
+			params: { teamId: string }
+			icon: React.ComponentType<{ className?: string }>
+			label: string
+			exact?: boolean
+			onNavigate?: () => void
+	  }
+
+function NavLink({ to, params, icon: Icon, label, exact, onNavigate }: NavLinkProps) {
+	const baseClassName =
+		"flex items-center gap-3 px-4 py-2.5 text-xs font-bold tracking-wider text-ds-text-tertiary transition-all hover:bg-ds-surface hover:text-ds-fg"
+	const activeClassName =
+		"flex items-center gap-3 border-l-[3px] border-ds-accent bg-ds-accent/5 px-4 py-2.5 text-xs font-bold tracking-wider text-ds-accent"
+
+	if (to === "/app/team/$teamId") {
+		return (
+			<Link
+				to={to}
+				params={params}
+				activeOptions={{ exact }}
+				onClick={onNavigate}
+				className={baseClassName}
+				activeProps={{
+					className: activeClassName,
+				}}
+			>
+				<Icon className="w-4 h-4" />
+				<span className="truncate">{label}</span>
+			</Link>
+		)
+	}
+
 	return (
 		<Link
 			to={to}
-			params={params as any}
 			activeOptions={{ exact }}
 			onClick={onNavigate}
-			className="flex items-center gap-3 px-4 py-2.5 text-xs font-bold tracking-wider text-ds-text-tertiary transition-all hover:bg-ds-surface hover:text-ds-fg"
+			className={baseClassName}
 			activeProps={{
-				className:
-					"flex items-center gap-3 border-l-[3px] border-ds-accent bg-ds-accent/5 px-4 py-2.5 text-xs font-bold tracking-wider text-ds-accent",
+				className: activeClassName,
 			}}
 		>
 			<Icon className="w-4 h-4" />

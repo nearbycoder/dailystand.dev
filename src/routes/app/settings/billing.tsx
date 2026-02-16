@@ -59,9 +59,11 @@ function BillingPage() {
 	}
 
 	return (
-		<div className="p-6 max-w-4xl">
+		<div className="mx-auto w-full max-w-[1200px] px-4 py-5 sm:p-6">
 			<div className="mb-8">
-				<h1 className="text-3xl font-extrabold tracking-tighter">BILLING</h1>
+				<h1 className="text-2xl font-extrabold tracking-tighter sm:text-3xl">
+					BILLING
+				</h1>
 				<p className="text-ds-muted text-sm mt-1">
 					// MANAGE YOUR SUBSCRIPTION
 				</p>
@@ -73,7 +75,7 @@ function BillingPage() {
 					return (
 						<div
 							key={plan.id}
-							className={`border-[3px] -mt-[3px] md:mt-0 -ml-0 md:-ml-[3px] first:ml-0 p-8 flex flex-col ${
+							className={`-mt-[3px] -ml-0 flex flex-col border-[3px] p-6 md:mt-0 md:-ml-[3px] md:p-8 first:ml-0 ${
 								plan.popular
 									? "bg-ds-accent text-ds-accent-fg border-ds-accent"
 									: "border-ds-border"
@@ -88,7 +90,9 @@ function BillingPage() {
 								{plan.name}
 							</h3>
 							<div className="mt-4">
-								<span className="text-5xl font-extrabold">{plan.price}</span>
+								<span className="text-4xl font-extrabold sm:text-5xl">
+									{plan.price}
+								</span>
 								<span
 									className={`text-sm ${plan.popular ? "opacity-60" : "text-ds-muted"}`}
 								>

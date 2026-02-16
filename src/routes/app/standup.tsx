@@ -1,7 +1,9 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router"
 import { useTRPC } from "@/integrations/trpc/react"
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
-import { useState, useEffect, useRef, useCallback } from "react"
+import { authClient } from "@/lib/auth-client"
+import { getLocalDateString } from "@/lib/date"
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import {
 	CheckCircle2,
 	Target,
@@ -15,66 +17,245 @@ export const Route = createFileRoute("/app/standup")({
 	component: StandupForm,
 })
 
+type SubmitMode = "same" | "different"
+
+type StandupDraft = {
+	completed: string[]
+	planned: string[]
+	blockers: string[]
+}
+
+type StandupSubmitEntry = {
+	type: "completed" | "planned" | "blocker"
+	content: string
+}
+
+function createEmptyDraft(): StandupDraft {
+	return { completed: [""], planned: [""], blockers: [""] }
+}
+
+function draftFromEntries(entries: Array<{ type: string; content: string }>): StandupDraft {
+	const draft: StandupDraft = {
+		completed: [],
+		planned: [],
+		blockers: [],
+	}
+
+	for (const entry of entries) {
+		if (entry.type === "completed") draft.completed.push(entry.content)
+		else if (entry.type === "planned") draft.planned.push(entry.content)
+		else if (entry.type === "blocker") draft.blockers.push(entry.content)
+	}
+
+	if (draft.completed.length === 0) draft.completed.push("")
+	if (draft.planned.length === 0) draft.planned.push("")
+	if (draft.blockers.length === 0) draft.blockers.push("")
+
+	return draft
+}
+
+function entriesFromDraft(draft: StandupDraft): StandupSubmitEntry[] {
+	return [
+		...draft.completed
+			.filter((value) => value.trim())
+			.map((content) => ({ type: "completed" as const, content })),
+		...draft.planned
+			.filter((value) => value.trim())
+			.map((content) => ({ type: "planned" as const, content })),
+		...draft.blockers
+			.filter((value) => value.trim())
+			.map((content) => ({ type: "blocker" as const, content })),
+	]
+}
+
 function StandupForm() {
 	const trpc = useTRPC()
 	const navigate = useNavigate()
 	const queryClient = useQueryClient()
-	const today = new Date().toISOString().split("T")[0]
+	const today = useMemo(() => getLocalDateString(), [])
 
-	const { data: existing } = useQuery(trpc.standups.getMyToday.queryOptions())
+	const { data: session } = authClient.useSession()
+	const { data: existing } = useQuery(
+		trpc.standups.getMyToday.queryOptions({ date: today }),
+	)
+	const { data: teams } = useQuery(trpc.teams.list.queryOptions())
 
-	const [completed, setCompleted] = useState<string[]>([""])
-	const [planned, setPlanned] = useState<string[]>([""])
-	const [blockers, setBlockers] = useState<string[]>([""])
+	const userTeams = useMemo(() => {
+		const userId = session?.user?.id
+		if (!userId || !teams) return []
+		return teams.filter((team) => team.members.some((member) => member.id === userId))
+	}, [session?.user?.id, teams])
+
+	const userTeamIds = useMemo(() => userTeams.map((team) => team.id), [userTeams])
+	const hasMultipleTeams = userTeamIds.length > 1
+
+	const [mode, setMode] = useState<SubmitMode>("same")
+	const [selectedTeamIds, setSelectedTeamIds] = useState<string[]>([])
+	const [sharedDraft, setSharedDraft] = useState<StandupDraft>(createEmptyDraft)
+	const [teamDrafts, setTeamDrafts] = useState<Record<string, StandupDraft>>({})
+	const [submitError, setSubmitError] = useState("")
+	const [initialized, setInitialized] = useState(false)
 
 	useEffect(() => {
-		if (existing && existing.length > 0) {
-			const c = existing
-				.filter((e) => e.type === "completed")
-				.map((e) => e.content)
-			const p = existing
-				.filter((e) => e.type === "planned")
-				.map((e) => e.content)
-			const b = existing
-				.filter((e) => e.type === "blocker")
-				.map((e) => e.content)
-			if (c.length > 0) setCompleted(c)
-			if (p.length > 0) setPlanned(p)
-			if (b.length > 0) setBlockers(b)
-		}
-	}, [existing])
+		if (initialized) return
+		if (!session?.user?.id) return
+		if (existing === undefined || teams === undefined) return
 
-	const upsert = useMutation(
-		trpc.standups.upsert.mutationOptions({
+		const byScope = new Map<string, typeof existing>()
+		for (const entry of existing) {
+			const scope = entry.teamId ?? "__GLOBAL__"
+			if (!byScope.has(scope)) {
+				byScope.set(scope, [])
+			}
+			byScope.get(scope)!.push(entry)
+		}
+
+		const globalDraft = draftFromEntries(byScope.get("__GLOBAL__") ?? [])
+		const nextTeamDrafts: Record<string, StandupDraft> = {}
+
+		for (const [scope, scopeEntries] of byScope.entries()) {
+			if (scope === "__GLOBAL__") continue
+			nextTeamDrafts[scope] = draftFromEntries(scopeEntries)
+		}
+
+		const teamDraftIds = Object.keys(nextTeamDrafts).filter((id) =>
+			userTeamIds.includes(id),
+		)
+		const nextSelected = teamDraftIds.length > 0 ? teamDraftIds : userTeamIds
+		setSelectedTeamIds(nextSelected)
+		setTeamDrafts(nextTeamDrafts)
+
+		if (byScope.has("__GLOBAL__")) {
+			setSharedDraft(globalDraft)
+		} else if (teamDraftIds.length > 0) {
+			setSharedDraft(nextTeamDrafts[teamDraftIds[0]] ?? createEmptyDraft())
+		} else {
+			setSharedDraft(createEmptyDraft())
+		}
+
+		if (
+			teamDraftIds.length > 1 ||
+			(teamDraftIds.length === 1 && !byScope.has("__GLOBAL__") && hasMultipleTeams)
+		) {
+			setMode("different")
+		}
+
+		setInitialized(true)
+	}, [existing, teams, initialized, userTeamIds, hasMultipleTeams, session?.user?.id])
+
+	const batchUpsert = useMutation(
+		trpc.standups.upsertBatch.mutationOptions({
 			onSuccess: () => {
 				queryClient.invalidateQueries()
-				navigate({ to: "/app" })
+				navigate({ to: "/app/history" })
+			},
+			onError: (error) => {
+				setSubmitError(error.message || "Failed to save standup")
 			},
 		}),
 	)
 
-	const doSubmit = () => {
-		const entries = [
-			...completed
-				.filter((s) => s.trim())
-				.map((content) => ({ type: "completed" as const, content })),
-			...planned
-				.filter((s) => s.trim())
-				.map((content) => ({ type: "planned" as const, content })),
-			...blockers
-				.filter((s) => s.trim())
-				.map((content) => ({ type: "blocker" as const, content })),
-		]
-		if (entries.length === 0) return
-		upsert.mutate({ date: today, entries })
+	const updateSharedSection = useCallback(
+		(section: keyof StandupDraft, items: string[]) => {
+			setSharedDraft((prev) => ({
+				...prev,
+				[section]: items,
+			}))
+		},
+		[],
+	)
+
+	const updateTeamSection = useCallback(
+		(teamId: string, section: keyof StandupDraft, items: string[]) => {
+			setTeamDrafts((prev) => ({
+				...prev,
+				[teamId]: {
+					...(prev[teamId] ?? createEmptyDraft()),
+					[section]: items,
+				},
+			}))
+		},
+		[],
+	)
+
+	const toggleTeamSelection = (teamId: string) => {
+		setSelectedTeamIds((prev) =>
+			prev.includes(teamId)
+				? prev.filter((id) => id !== teamId)
+				: [...prev, teamId],
+		)
 	}
+
+	const selectedTeams = useMemo(
+		() => userTeams.filter((team) => selectedTeamIds.includes(team.id)),
+		[userTeams, selectedTeamIds],
+	)
+
+	const doSubmit = useCallback(() => {
+		setSubmitError("")
+
+		let submissions: Array<{
+			teamId: string | null
+			entries: StandupSubmitEntry[]
+		}> = []
+		let managedScopes: Array<string | null> = [null]
+
+		if (userTeamIds.length === 0) {
+			submissions = [{ teamId: null, entries: entriesFromDraft(sharedDraft) }]
+		} else if (mode === "same") {
+			if (selectedTeamIds.length === 0) {
+				setSubmitError("Select at least one team to submit for.")
+				return
+			}
+
+			const sharedEntries = entriesFromDraft(sharedDraft)
+			const allTeamsSelected = selectedTeamIds.length === userTeamIds.length
+
+			submissions =
+				allTeamsSelected && userTeamIds.length > 1
+					? [{ teamId: null, entries: sharedEntries }]
+					: selectedTeamIds.map((teamId) => ({
+							teamId,
+							entries: sharedEntries,
+						}))
+			managedScopes =
+				allTeamsSelected && userTeamIds.length > 1
+					? [null, ...userTeamIds]
+					: [null, ...selectedTeamIds]
+		} else {
+			if (selectedTeamIds.length === 0) {
+				setSubmitError("Select at least one team to submit for.")
+				return
+			}
+
+			submissions = selectedTeamIds.map((teamId) => ({
+				teamId,
+				entries: entriesFromDraft(teamDrafts[teamId] ?? createEmptyDraft()),
+			}))
+			managedScopes = [null, ...selectedTeamIds]
+		}
+
+		batchUpsert.mutate({
+			date: today,
+			replaceScopes: managedScopes,
+			submissions,
+		})
+	}, [
+		batchUpsert,
+		mode,
+		selectedTeamIds,
+		sharedDraft,
+		teamDrafts,
+		today,
+		userTeamIds,
+	])
 
 	const handleSubmit = (e: React.FormEvent) => {
 		e.preventDefault()
 		doSubmit()
 	}
 
-	// Cmd/Ctrl+Enter to submit from anywhere in the form
+	// Cmd/Ctrl+Enter to submit from anywhere in the form.
 	useEffect(() => {
 		const handler = (e: KeyboardEvent) => {
 			if (e.key === "Enter" && (e.metaKey || e.ctrlKey)) {
@@ -84,13 +265,29 @@ function StandupForm() {
 		}
 		document.addEventListener("keydown", handler)
 		return () => document.removeEventListener("keydown", handler)
-	})
+	}, [doSubmit])
+
+	const isMac =
+		typeof navigator !== "undefined" && navigator.platform.includes("Mac")
+
+	const submitLabel =
+		userTeamIds.length === 0
+			? existing && existing.length > 0
+				? "UPDATE_STANDUP"
+				: "SUBMIT_STANDUP"
+			: mode === "different"
+				? "SUBMIT_TEAM_STANDUPS"
+				: selectedTeamIds.length === userTeamIds.length && userTeamIds.length > 1
+					? "SUBMIT_SAME_FOR_ALL_TEAMS"
+					: "SUBMIT_SAME_FOR_SELECTED"
 
 	return (
-		<div className="p-6 max-w-2xl">
+		<div className="mx-auto w-full max-w-[1200px] px-4 py-5 sm:p-6">
 			<div className="mb-8">
-				<h1 className="text-3xl font-extrabold tracking-tighter">STANDUP</h1>
-				<p className="text-ds-muted text-sm mt-1">
+				<h1 className="text-2xl font-extrabold tracking-tighter sm:text-3xl">
+					STANDUP
+				</h1>
+				<p className="text-ds-text-tertiary text-sm mt-1">
 					//{" "}
 					{new Date()
 						.toLocaleDateString("en-US", {
@@ -102,47 +299,164 @@ function StandupForm() {
 				</p>
 			</div>
 
-			<form onSubmit={handleSubmit} className="space-y-0">
-				<EntrySection
-					icon={<CheckCircle2 className="w-4 h-4 text-lime-500 dark:text-lime-400" />}
-					title="COMPLETED"
-					color="lime"
-					items={completed}
-					onChange={setCompleted}
-					placeholder="Finished the API integration..."
-				/>
-				<EntrySection
-					icon={<Target className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />}
-					title="PLANNED"
-					color="cyan"
-					items={planned}
-					onChange={setPlanned}
-					placeholder="Start building the dashboard..."
-				/>
-				<EntrySection
-					icon={<AlertTriangle className="w-4 h-4 text-red-500 dark:text-red-400" />}
-					title="BLOCKERS"
-					color="red"
-					items={blockers}
-					onChange={setBlockers}
-					placeholder="Waiting on design review..."
-				/>
+			{userTeamIds.length > 0 && (
+				<div className="mb-6 border-[3px] border-ds-muted2 bg-ds-surface/20 p-4 dark:border-ds-muted3 dark:bg-ds-surface/10 sm:p-5">
+					<div className="text-[10px] font-bold tracking-widest text-ds-muted2">
+						// TEAM_SCOPE
+					</div>
+					<div className="mt-3 flex flex-wrap gap-3">
+						{userTeams.map((team) => (
+							<label
+								key={team.id}
+								className="flex items-center gap-2 text-xs font-bold text-ds-text-tertiary"
+							>
+								<input
+									type="checkbox"
+									checked={selectedTeamIds.includes(team.id)}
+									onChange={() => toggleTeamSelection(team.id)}
+									className="h-3.5 w-3.5 border-ds-muted3 bg-ds-input-bg accent-ds-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ds-accent/40"
+								/>
+								<span>{team.name.toUpperCase()}</span>
+							</label>
+						))}
+					</div>
 
-				<button
-					type="submit"
-					disabled={upsert.isPending}
-					className="w-full bg-ds-accent text-ds-accent-fg py-4 font-extrabold text-sm tracking-wider hover:bg-ds-accent-hover transition-colors disabled:opacity-50 flex items-center justify-center gap-3 mt-6"
-				>
-					<Save className="w-4 h-4" />
-					{upsert.isPending
-						? "SAVING..."
-						: existing && existing.length > 0
-							? "UPDATE_STANDUP"
-							: "SUBMIT_STANDUP"}
-					<kbd className="text-[10px] font-bold bg-ds-accent-fg/15 px-2 py-0.5 rounded-sm">
-						{navigator?.platform?.includes("Mac") ? "⌘" : "Ctrl"}+Enter
-					</kbd>
-				</button>
+					{hasMultipleTeams && (
+						<div className="mt-4 flex flex-wrap gap-2">
+							<button
+								type="button"
+								onClick={() => setMode("same")}
+								className={`border-[2px] px-3 py-1.5 text-[10px] font-extrabold tracking-widest transition-colors ${
+									mode === "same"
+										? "border-ds-accent bg-ds-accent/10 text-ds-accent"
+										: "border-ds-muted3 text-ds-text-tertiary hover:border-ds-accent"
+								}`}
+							>
+								SAME_UPDATE
+							</button>
+							<button
+								type="button"
+								onClick={() => setMode("different")}
+								className={`border-[2px] px-3 py-1.5 text-[10px] font-extrabold tracking-widest transition-colors ${
+									mode === "different"
+										? "border-ds-accent bg-ds-accent/10 text-ds-accent"
+										: "border-ds-muted3 text-ds-text-tertiary hover:border-ds-accent"
+								}`}
+							>
+								CUSTOM_PER_TEAM
+							</button>
+						</div>
+					)}
+
+					<p className="mt-3 text-xs text-ds-text-tertiary">
+						{mode === "same"
+							? "Use one standup and apply it to selected teams."
+							: "Write a separate standup for each selected team."}
+					</p>
+				</div>
+			)}
+
+			<form onSubmit={handleSubmit} className="space-y-0">
+				{mode === "same" || userTeamIds.length <= 1 ? (
+					<>
+						<EntrySection
+							stacked={false}
+							icon={<CheckCircle2 className="w-4 h-4 text-lime-500 dark:text-lime-400" />}
+							title="COMPLETED"
+							color="lime"
+							items={sharedDraft.completed}
+							onChange={(items) => updateSharedSection("completed", items)}
+							placeholder="Finished the API integration..."
+						/>
+						<EntrySection
+							icon={<Target className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />}
+							title="PLANNED"
+							color="cyan"
+							items={sharedDraft.planned}
+							onChange={(items) => updateSharedSection("planned", items)}
+							placeholder="Start building the dashboard..."
+						/>
+						<EntrySection
+							icon={<AlertTriangle className="w-4 h-4 text-red-500 dark:text-red-400" />}
+							title="BLOCKERS"
+							color="red"
+							items={sharedDraft.blockers}
+							onChange={(items) => updateSharedSection("blockers", items)}
+							placeholder="Waiting on design review..."
+						/>
+					</>
+				) : selectedTeams.length > 0 ? (
+					<div className="space-y-6">
+						{selectedTeams.map((team) => {
+							const teamDraft = teamDrafts[team.id] ?? createEmptyDraft()
+							return (
+								<div
+									key={team.id}
+									className="border-[3px] border-ds-muted2 bg-ds-surface/20 p-4 dark:border-ds-muted3 dark:bg-ds-surface/10 sm:p-5"
+								>
+									<div className="mb-4 text-xs font-extrabold tracking-widest text-ds-accent">
+										TEAM // {team.name.toUpperCase()}
+									</div>
+									<EntrySection
+										stacked={false}
+										icon={<CheckCircle2 className="w-4 h-4 text-lime-500 dark:text-lime-400" />}
+										title="COMPLETED"
+										color="lime"
+										items={teamDraft.completed}
+										onChange={(items) =>
+											updateTeamSection(team.id, "completed", items)
+										}
+										placeholder="Finished the API integration..."
+									/>
+									<EntrySection
+										icon={<Target className="w-4 h-4 text-cyan-500 dark:text-cyan-400" />}
+										title="PLANNED"
+										color="cyan"
+										items={teamDraft.planned}
+										onChange={(items) =>
+											updateTeamSection(team.id, "planned", items)
+										}
+										placeholder="Start building the dashboard..."
+									/>
+									<EntrySection
+										icon={<AlertTriangle className="w-4 h-4 text-red-500 dark:text-red-400" />}
+										title="BLOCKERS"
+										color="red"
+										items={teamDraft.blockers}
+										onChange={(items) =>
+											updateTeamSection(team.id, "blockers", items)
+										}
+										placeholder="Waiting on design review..."
+									/>
+								</div>
+							)
+						})}
+					</div>
+				) : (
+					<div className="border-[3px] border-ds-muted3 p-6 text-center text-sm text-ds-text-tertiary">
+						Select at least one team to submit your standup.
+					</div>
+				)}
+
+				{submitError && (
+					<div className="mt-4 border-[3px] border-red-500 bg-red-500/10 p-3 text-sm font-bold text-red-400">
+						ERROR: {submitError}
+					</div>
+				)}
+
+				<div className="mt-6 flex justify-end">
+					<button
+						type="submit"
+						disabled={batchUpsert.isPending}
+						className="inline-flex flex-wrap items-center justify-center gap-2 bg-ds-accent px-5 py-3 text-sm font-extrabold tracking-wider text-ds-accent-fg transition-colors hover:bg-ds-accent-hover disabled:opacity-50 sm:gap-3"
+					>
+						<Save className="w-4 h-4" />
+						{batchUpsert.isPending ? "SAVING..." : submitLabel}
+						<kbd className="rounded-sm bg-ds-accent-fg/15 px-2 py-0.5 text-[10px] font-bold">
+							{isMac ? "⌘" : "Ctrl"}+Enter
+						</kbd>
+					</button>
+				</div>
 			</form>
 		</div>
 	)
@@ -155,6 +469,7 @@ function EntrySection({
 	items,
 	onChange,
 	placeholder,
+	stacked = true,
 }: {
 	icon: React.ReactNode
 	title: string
@@ -162,6 +477,7 @@ function EntrySection({
 	items: string[]
 	onChange: (items: string[]) => void
 	placeholder: string
+	stacked?: boolean
 }) {
 	const inputRefs = useRef<(HTMLInputElement | null)[]>([])
 
@@ -222,35 +538,39 @@ function EntrySection({
 	}
 
 	return (
-		<div className="border-[3px] border-ds-border -mt-[3px] p-6">
-			<div className="flex items-center gap-2 mb-4">
+		<div
+			className={`${stacked ? "-mt-[3px]" : ""} border-[3px] border-ds-muted2 bg-ds-surface/20 p-4 dark:border-ds-muted3 dark:bg-ds-surface/10 sm:p-6`}
+		>
+			<div className="mb-4 flex flex-wrap items-center gap-2">
 				{icon}
 				<span
 					className={`text-xs font-extrabold tracking-widest ${colorClasses[color] ?? ""}`}
 				>
 					{title}
 				</span>
-				<span className="text-[10px] text-ds-muted3 ml-auto font-bold tracking-wider">
+				<span className="ml-0 w-full text-[10px] font-bold tracking-wider text-ds-text-tertiary sm:ml-auto sm:w-auto">
 					ENTER=NEW / BKSP=DEL / ↑↓=NAV
 				</span>
 			</div>
 			<div className="space-y-2">
 				{items.map((item, index) => (
-					<div key={index} className="flex items-center gap-2 group">
-						<span className="text-ds-muted2 text-sm font-mono">&gt;</span>
+					<div key={index} className="group flex items-start gap-2">
+						<span className="pt-2 text-sm font-mono text-ds-text-tertiary">&gt;</span>
 						<input
-							ref={(el) => { inputRefs.current[index] = el }}
+							ref={(el) => {
+								inputRefs.current[index] = el
+							}}
 							value={item}
 							onChange={(e) => updateItem(index, e.target.value)}
 							onKeyDown={(e) => handleKeyDown(e, index)}
 							placeholder={index === 0 ? placeholder : "..."}
-							className="flex-1 bg-ds-input-bg border-[3px] border-ds-border px-3 py-2 text-ds-fg font-mono text-sm focus:border-ds-accent focus:outline-none transition-colors placeholder:text-ds-muted3"
+							className="min-w-0 flex-1 bg-ds-input-bg border-[3px] border-ds-muted2 px-3 py-2 text-ds-fg font-mono text-sm transition-colors placeholder:text-ds-muted2 dark:border-ds-muted3 focus:border-ds-accent focus:outline-none"
 						/>
 						<button
 							type="button"
 							tabIndex={-1}
 							onClick={() => removeItem(index)}
-							className="p-1 text-ds-muted2 hover:text-red-400 transition-colors opacity-0 group-hover:opacity-100 focus:opacity-100"
+							className="p-1 pt-2 text-ds-text-tertiary opacity-70 transition-colors hover:text-red-400 focus:opacity-100 sm:pt-1 sm:opacity-0 sm:group-hover:opacity-100"
 						>
 							<X className="w-4 h-4" />
 						</button>
@@ -259,7 +579,7 @@ function EntrySection({
 				<button
 					type="button"
 					onClick={() => addItem()}
-					className="flex items-center gap-2 text-xs font-bold text-ds-muted hover:text-ds-accent transition-colors pt-1"
+					className="flex items-center gap-2 text-xs font-bold text-ds-text-tertiary hover:text-ds-accent transition-colors pt-1"
 				>
 					<Plus className="w-3 h-3" />
 					ADD_ITEM

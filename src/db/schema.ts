@@ -1,5 +1,13 @@
 import { relations } from "drizzle-orm"
-import { pgTable, serial, text, timestamp, date, index } from "drizzle-orm/pg-core"
+import {
+	date,
+	index,
+	pgTable,
+	serial,
+	text,
+	timestamp,
+	uniqueIndex,
+} from "drizzle-orm/pg-core"
 
 export * from "./auth-schema"
 import { user, organization, team } from "./auth-schema"
@@ -46,5 +54,42 @@ export const standupEntryRelations = relations(standupEntry, ({ one }) => ({
 	team: one(team, {
 		fields: [standupEntry.teamId],
 		references: [team.id],
+	}),
+}))
+
+export const standupShare = pgTable(
+	"standup_share",
+	{
+		id: serial("id").primaryKey(),
+		token: text("token").notNull(),
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		organizationId: text("organization_id")
+			.notNull()
+			.references(() => organization.id, { onDelete: "cascade" }),
+		date: date("date").notNull(),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		revokedAt: timestamp("revoked_at"),
+	},
+	(table) => [
+		uniqueIndex("standup_share_token_uidx").on(table.token),
+		uniqueIndex("standup_share_user_org_date_uidx").on(
+			table.userId,
+			table.organizationId,
+			table.date,
+		),
+		index("standup_share_user_org_idx").on(table.userId, table.organizationId),
+	],
+)
+
+export const standupShareRelations = relations(standupShare, ({ one }) => ({
+	user: one(user, {
+		fields: [standupShare.userId],
+		references: [user.id],
+	}),
+	organization: one(organization, {
+		fields: [standupShare.organizationId],
+		references: [organization.id],
 	}),
 }))

@@ -26,6 +26,26 @@ function resolveTheme(theme: Theme): "dark" | "light" {
 	return theme
 }
 
+function readStoredTheme(): Theme {
+	if (typeof window === "undefined") return "system"
+	try {
+		const stored = localStorage.getItem("ds-theme")
+		if (stored === "dark" || stored === "light" || stored === "system") {
+			return stored
+		}
+		return "system"
+	} catch {
+		return "system"
+	}
+}
+
+function getInitialResolvedTheme(theme: Theme): "dark" | "light" {
+	if (typeof document === "undefined") return "light"
+	if (document.documentElement.classList.contains("dark")) return "dark"
+	if (document.documentElement.classList.contains("light")) return "light"
+	return resolveTheme(theme)
+}
+
 function applyTheme(resolved: "dark" | "light") {
 	if (typeof document === "undefined") return
 	const html = document.documentElement
@@ -34,13 +54,14 @@ function applyTheme(resolved: "dark" | "light") {
 }
 
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
-	const [theme, setThemeState] = useState<Theme>("system")
-	const [resolved, setResolved] = useState<"dark" | "light">("dark")
+	const [theme, setThemeState] = useState<Theme>(() => readStoredTheme())
+	const [resolved, setResolved] = useState<"dark" | "light">(() =>
+		getInitialResolvedTheme(readStoredTheme()),
+	)
 
 	// Initialize from localStorage
 	useEffect(() => {
-		const stored = localStorage.getItem("ds-theme") as Theme | null
-		const t = stored ?? "system"
+		const t = readStoredTheme()
 		setThemeState(t)
 		const r = resolveTheme(t)
 		setResolved(r)

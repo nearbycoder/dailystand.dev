@@ -95,31 +95,31 @@ function LandingPage() {
 	return (
 		<div className="min-h-screen bg-ds-bg text-ds-fg selection:bg-ds-selection-bg selection:text-ds-selection-fg font-mono">
 			{/* Nav */}
-			<header className="border-b-[3px] border-ds-border-strong p-4">
-				<div className="max-w-6xl mx-auto flex items-center justify-between">
+			<header className="border-b-[3px] border-ds-border-strong p-3 sm:p-4">
+				<div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
 					<div className="flex items-center gap-3">
 						<Terminal className="w-6 h-6 text-ds-accent" />
 						<span className="text-xl font-extrabold tracking-tighter">
 							DAILYSTAND
 						</span>
 					</div>
-					<div className="flex items-center gap-4">
+					<div className="ml-auto flex items-center gap-2 sm:gap-4">
 						<ThemeToggle />
 						{isLoggedIn ? (
 							<Link to="/app">
-								<button className="border-[3px] border-ds-accent bg-ds-accent text-ds-accent-fg px-6 py-2 font-bold text-sm tracking-wider hover:bg-ds-accent-hover transition-all duration-150">
+								<button className="border-[3px] border-ds-accent bg-ds-accent px-3 py-2 text-sm font-bold tracking-wider text-ds-accent-fg transition-all duration-150 hover:bg-ds-accent-hover sm:px-6">
 									DASHBOARD &rarr;
 								</button>
 							</Link>
 						) : (
 							<>
 								<Link to="/auth/sign-in">
-									<button className="text-sm font-bold tracking-wider text-ds-text-tertiary hover:text-ds-fg transition-colors">
+									<button className="text-sm font-bold tracking-wider text-ds-text-tertiary transition-colors hover:text-ds-fg">
 										[SIGN_IN]
 									</button>
 								</Link>
 								<Link to="/auth/sign-up">
-									<button className="border-[3px] border-ds-border-strong px-6 py-2 font-bold text-sm tracking-wider hover:bg-ds-border-strong hover:text-ds-bg transition-all duration-150">
+									<button className="border-[3px] border-ds-border-strong px-3 py-2 text-sm font-bold tracking-wider transition-all duration-150 hover:bg-ds-border-strong hover:text-ds-bg sm:px-6">
 										GET_STARTED
 									</button>
 								</Link>
@@ -130,12 +130,12 @@ function LandingPage() {
 			</header>
 
 			{/* Hero */}
-			<section className="py-32 px-6 border-b-[3px] border-ds-border-strong">
+			<section className="border-b-[3px] border-ds-border-strong px-4 py-16 sm:px-6 sm:py-24 md:py-32">
 				<div className="max-w-5xl mx-auto">
 					<div className="text-ds-accent text-sm font-bold tracking-widest mb-6">
 						// ASYNC STANDUPS FOR MODERN TEAMS
 					</div>
-					<h1 className="text-6xl md:text-8xl lg:text-9xl font-extrabold leading-[0.85] tracking-tighter">
+					<h1 className="text-5xl font-extrabold leading-[0.85] tracking-tighter sm:text-7xl md:text-8xl lg:text-9xl">
 						KILL
 						<br />
 						THE
@@ -143,13 +143,26 @@ function LandingPage() {
 						<span className="text-ds-accent">MEETING</span>
 						<span className="animate-pulse text-ds-accent">_</span>
 					</h1>
-					<p className="mt-10 text-lg text-ds-text-tertiary max-w-xl leading-relaxed font-normal">
+					<blockquote className="mt-8 max-w-4xl border-[3px] border-ds-accent bg-ds-accent/12 p-5 shadow-[0_0_0_3px_var(--ds-border-strong)] sm:mt-10 sm:p-7">
+						<div className="mb-3 text-xs font-bold tracking-[0.22em] text-ds-accent">
+							// THINK_DIFFERENT
+						</div>
+						<p className="text-lg font-extrabold leading-snug tracking-tight text-ds-fg sm:text-2xl">
+							&quot;The ones who see things differently... they push the human race forward.
+							The people who are crazy enough to think they can change the world are the
+							ones who do.&quot;
+						</p>
+						<p className="mt-3 text-[10px] font-bold tracking-widest text-ds-muted sm:text-xs">
+							// APPLE AD (1997)
+						</p>
+					</blockquote>
+					<p className="mt-8 max-w-xl text-base leading-relaxed font-normal text-ds-text-tertiary sm:mt-10 sm:text-lg">
 						Replace awkward daily meetings with quick async updates. Keep your
 						team aligned, identify blockers early, and ship faster.
 					</p>
-					<div className="mt-10 flex gap-4">
-						<Link to="/auth/sign-up">
-							<button className="bg-ds-accent text-ds-accent-fg px-8 py-4 font-extrabold text-lg tracking-wider hover:bg-ds-accent-hover transition-colors">
+					<div className="mt-8 flex w-full gap-4 sm:mt-10 sm:w-auto">
+						<Link to="/auth/sign-up" className="w-full sm:w-auto">
+							<button className="w-full bg-ds-accent px-8 py-4 text-base font-extrabold tracking-wider text-ds-accent-fg transition-colors hover:bg-ds-accent-hover sm:w-auto sm:text-lg">
 								START FREE &rarr;
 							</button>
 						</Link>
@@ -158,7 +171,7 @@ function LandingPage() {
 			</section>
 
 			{/* Features */}
-			<section className="py-20 px-6 border-b-[3px] border-ds-border-strong">
+			<section className="border-b-[3px] border-ds-border-strong px-4 py-16 sm:px-6 sm:py-20">
 				<div className="max-w-6xl mx-auto">
 					<h2 className="text-sm font-bold tracking-widest text-ds-muted mb-12">
 						// FEATURES
@@ -167,7 +180,7 @@ function LandingPage() {
 						{features.map((feature) => (
 							<div
 								key={feature.title}
-								className="border-[3px] border-ds-border-strong p-6 -mt-[3px] -ml-[3px] hover:bg-ds-border-strong hover:text-ds-bg transition-all duration-150 group"
+								className="-mt-[3px] border-[3px] border-ds-border-strong p-5 transition-all duration-150 group hover:bg-ds-border-strong hover:text-ds-bg sm:p-6"
 							>
 								<div className="flex items-center gap-3 mb-4">
 									<span className="text-ds-accent group-hover:text-ds-bg transition-colors">
@@ -187,7 +200,7 @@ function LandingPage() {
 			</section>
 
 			{/* Pricing */}
-			<section className="py-20 px-6 border-b-[3px] border-ds-border-strong">
+			<section className="border-b-[3px] border-ds-border-strong px-4 py-16 sm:px-6 sm:py-20">
 				<div className="max-w-5xl mx-auto">
 					<h2 className="text-sm font-bold tracking-widest text-ds-muted mb-12">
 						// PRICING
@@ -196,7 +209,7 @@ function LandingPage() {
 						{plans.map((plan) => (
 							<div
 								key={plan.name}
-								className={`border-[3px] border-ds-border-strong -mt-[3px] -ml-[3px] p-8 flex flex-col ${
+								className={`-mt-[3px] flex flex-col border-[3px] border-ds-border-strong p-6 sm:p-8 ${
 									plan.popular ? "bg-ds-accent text-ds-accent-fg" : ""
 								}`}
 							>
@@ -209,7 +222,9 @@ function LandingPage() {
 									{plan.name}
 								</h3>
 								<div className="mt-4">
-									<span className="text-5xl font-extrabold">{plan.price}</span>
+									<span className="text-4xl font-extrabold sm:text-5xl">
+										{plan.price}
+									</span>
 									<span
 										className={`text-sm ${plan.popular ? "opacity-60" : "text-ds-muted"}`}
 									>
@@ -242,8 +257,8 @@ function LandingPage() {
 			</section>
 
 			{/* Footer */}
-			<footer className="py-8 px-6">
-				<div className="max-w-6xl mx-auto flex items-center justify-between text-sm text-ds-muted">
+			<footer className="px-4 py-8 sm:px-6">
+				<div className="mx-auto flex max-w-6xl flex-col items-start justify-between gap-3 text-sm text-ds-muted sm:flex-row sm:items-center">
 					<div className="flex items-center gap-2 font-bold">
 						<Terminal className="w-4 h-4 text-ds-accent" />
 						DAILYSTAND

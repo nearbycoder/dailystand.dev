@@ -49,9 +49,13 @@ export const orgRouter = {
 			},
 		})
 		return members.map((m) => ({
-			id: m.id,
+			memberId: m.id,
+			userId: m.user.id,
+			id: m.user.id,
 			role: m.role,
-			...m.user,
+			name: m.user.name,
+			email: m.user.email,
+			image: m.user.image,
 		}))
 	}),
 }

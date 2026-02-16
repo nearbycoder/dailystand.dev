@@ -12,16 +12,22 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as AppRouteRouteImport } from './routes/app/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AppIndexRouteImport } from './routes/app/index'
+import { Route as ShareTokenRouteImport } from './routes/share.$token'
 import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
 import { Route as AppStandupRouteImport } from './routes/app/standup'
 import { Route as AppHistoryRouteImport } from './routes/app/history'
+import { Route as AppAnalyticsRouteImport } from './routes/app/analytics'
+import { Route as ApiMcpRouteImport } from './routes/api/mcp'
 import { Route as AppSettingsIndexRouteImport } from './routes/app/settings/index'
 import { Route as AppTeamTeamIdRouteImport } from './routes/app/team.$teamId'
 import { Route as AppSettingsTeamsRouteImport } from './routes/app/settings/teams'
 import { Route as AppSettingsMembersRouteImport } from './routes/app/settings/members'
 import { Route as AppSettingsBillingRouteImport } from './routes/app/settings/billing'
+import { Route as AppSettingsApiKeysRouteImport } from './routes/app/settings/api-keys'
+import { Route as AppSettingsApiDocsRouteImport } from './routes/app/settings/api-docs'
 import { Route as ApiTrpcSplatRouteImport } from './routes/api.trpc.$'
+import { Route as ApiPublicSplatRouteImport } from './routes/api/public/$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const AppRouteRoute = AppRouteRouteImport.update({
@@ -38,6 +44,11 @@ const AppIndexRoute = AppIndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => AppRouteRoute,
+} as any)
+const ShareTokenRoute = ShareTokenRouteImport.update({
+  id: '/share/$token',
+  path: '/share/$token',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AuthSignUpRoute = AuthSignUpRouteImport.update({
   id: '/auth/sign-up',
@@ -58,6 +69,16 @@ const AppHistoryRoute = AppHistoryRouteImport.update({
   id: '/history',
   path: '/history',
   getParentRoute: () => AppRouteRoute,
+} as any)
+const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const ApiMcpRoute = ApiMcpRouteImport.update({
+  id: '/api/mcp',
+  path: '/api/mcp',
+  getParentRoute: () => rootRouteImport,
 } as any)
 const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
   id: '/settings/',
@@ -84,9 +105,24 @@ const AppSettingsBillingRoute = AppSettingsBillingRouteImport.update({
   path: '/settings/billing',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppSettingsApiKeysRoute = AppSettingsApiKeysRouteImport.update({
+  id: '/settings/api-keys',
+  path: '/settings/api-keys',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppSettingsApiDocsRoute = AppSettingsApiDocsRouteImport.update({
+  id: '/settings/api-docs',
+  path: '/settings/api-docs',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
   id: '/api/trpc/$',
   path: '/api/trpc/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSplatRoute = ApiPublicSplatRouteImport.update({
+  id: '/api/public/$',
+  path: '/api/public/$',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
@@ -98,13 +134,19 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/app': typeof AppRouteRouteWithChildren
+  '/api/mcp': typeof ApiMcpRoute
+  '/app/analytics': typeof AppAnalyticsRoute
   '/app/history': typeof AppHistoryRoute
   '/app/standup': typeof AppStandupRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
+  '/share/$token': typeof ShareTokenRoute
   '/app/': typeof AppIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/public/$': typeof ApiPublicSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
+  '/app/settings/api-docs': typeof AppSettingsApiDocsRoute
+  '/app/settings/api-keys': typeof AppSettingsApiKeysRoute
   '/app/settings/billing': typeof AppSettingsBillingRoute
   '/app/settings/members': typeof AppSettingsMembersRoute
   '/app/settings/teams': typeof AppSettingsTeamsRoute
@@ -113,13 +155,19 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/api/mcp': typeof ApiMcpRoute
+  '/app/analytics': typeof AppAnalyticsRoute
   '/app/history': typeof AppHistoryRoute
   '/app/standup': typeof AppStandupRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
+  '/share/$token': typeof ShareTokenRoute
   '/app': typeof AppIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/public/$': typeof ApiPublicSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
+  '/app/settings/api-docs': typeof AppSettingsApiDocsRoute
+  '/app/settings/api-keys': typeof AppSettingsApiKeysRoute
   '/app/settings/billing': typeof AppSettingsBillingRoute
   '/app/settings/members': typeof AppSettingsMembersRoute
   '/app/settings/teams': typeof AppSettingsTeamsRoute
@@ -130,13 +178,19 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/app': typeof AppRouteRouteWithChildren
+  '/api/mcp': typeof ApiMcpRoute
+  '/app/analytics': typeof AppAnalyticsRoute
   '/app/history': typeof AppHistoryRoute
   '/app/standup': typeof AppStandupRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
+  '/share/$token': typeof ShareTokenRoute
   '/app/': typeof AppIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/public/$': typeof ApiPublicSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
+  '/app/settings/api-docs': typeof AppSettingsApiDocsRoute
+  '/app/settings/api-keys': typeof AppSettingsApiKeysRoute
   '/app/settings/billing': typeof AppSettingsBillingRoute
   '/app/settings/members': typeof AppSettingsMembersRoute
   '/app/settings/teams': typeof AppSettingsTeamsRoute
@@ -148,13 +202,19 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/app'
+    | '/api/mcp'
+    | '/app/analytics'
     | '/app/history'
     | '/app/standup'
     | '/auth/sign-in'
     | '/auth/sign-up'
+    | '/share/$token'
     | '/app/'
     | '/api/auth/$'
+    | '/api/public/$'
     | '/api/trpc/$'
+    | '/app/settings/api-docs'
+    | '/app/settings/api-keys'
     | '/app/settings/billing'
     | '/app/settings/members'
     | '/app/settings/teams'
@@ -163,13 +223,19 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/api/mcp'
+    | '/app/analytics'
     | '/app/history'
     | '/app/standup'
     | '/auth/sign-in'
     | '/auth/sign-up'
+    | '/share/$token'
     | '/app'
     | '/api/auth/$'
+    | '/api/public/$'
     | '/api/trpc/$'
+    | '/app/settings/api-docs'
+    | '/app/settings/api-keys'
     | '/app/settings/billing'
     | '/app/settings/members'
     | '/app/settings/teams'
@@ -179,13 +245,19 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/app'
+    | '/api/mcp'
+    | '/app/analytics'
     | '/app/history'
     | '/app/standup'
     | '/auth/sign-in'
     | '/auth/sign-up'
+    | '/share/$token'
     | '/app/'
     | '/api/auth/$'
+    | '/api/public/$'
     | '/api/trpc/$'
+    | '/app/settings/api-docs'
+    | '/app/settings/api-keys'
     | '/app/settings/billing'
     | '/app/settings/members'
     | '/app/settings/teams'
@@ -196,9 +268,12 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AppRouteRoute: typeof AppRouteRouteWithChildren
+  ApiMcpRoute: typeof ApiMcpRoute
   AuthSignInRoute: typeof AuthSignInRoute
   AuthSignUpRoute: typeof AuthSignUpRoute
+  ShareTokenRoute: typeof ShareTokenRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiPublicSplatRoute: typeof ApiPublicSplatRoute
   ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
 }
 
@@ -224,6 +299,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/'
       preLoaderRoute: typeof AppIndexRouteImport
       parentRoute: typeof AppRouteRoute
+    }
+    '/share/$token': {
+      id: '/share/$token'
+      path: '/share/$token'
+      fullPath: '/share/$token'
+      preLoaderRoute: typeof ShareTokenRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/auth/sign-up': {
       id: '/auth/sign-up'
@@ -252,6 +334,20 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/history'
       preLoaderRoute: typeof AppHistoryRouteImport
       parentRoute: typeof AppRouteRoute
+    }
+    '/app/analytics': {
+      id: '/app/analytics'
+      path: '/analytics'
+      fullPath: '/app/analytics'
+      preLoaderRoute: typeof AppAnalyticsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/api/mcp': {
+      id: '/api/mcp'
+      path: '/api/mcp'
+      fullPath: '/api/mcp'
+      preLoaderRoute: typeof ApiMcpRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/app/settings/': {
       id: '/app/settings/'
@@ -288,11 +384,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsBillingRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/app/settings/api-keys': {
+      id: '/app/settings/api-keys'
+      path: '/settings/api-keys'
+      fullPath: '/app/settings/api-keys'
+      preLoaderRoute: typeof AppSettingsApiKeysRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/settings/api-docs': {
+      id: '/app/settings/api-docs'
+      path: '/settings/api-docs'
+      fullPath: '/app/settings/api-docs'
+      preLoaderRoute: typeof AppSettingsApiDocsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/api/trpc/$': {
       id: '/api/trpc/$'
       path: '/api/trpc/$'
       fullPath: '/api/trpc/$'
       preLoaderRoute: typeof ApiTrpcSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/public/$': {
+      id: '/api/public/$'
+      path: '/api/public/$'
+      fullPath: '/api/public/$'
+      preLoaderRoute: typeof ApiPublicSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/auth/$': {
@@ -306,9 +423,12 @@ declare module '@tanstack/react-router' {
 }
 
 interface AppRouteRouteChildren {
+  AppAnalyticsRoute: typeof AppAnalyticsRoute
   AppHistoryRoute: typeof AppHistoryRoute
   AppStandupRoute: typeof AppStandupRoute
   AppIndexRoute: typeof AppIndexRoute
+  AppSettingsApiDocsRoute: typeof AppSettingsApiDocsRoute
+  AppSettingsApiKeysRoute: typeof AppSettingsApiKeysRoute
   AppSettingsBillingRoute: typeof AppSettingsBillingRoute
   AppSettingsMembersRoute: typeof AppSettingsMembersRoute
   AppSettingsTeamsRoute: typeof AppSettingsTeamsRoute
@@ -317,9 +437,12 @@ interface AppRouteRouteChildren {
 }
 
 const AppRouteRouteChildren: AppRouteRouteChildren = {
+  AppAnalyticsRoute: AppAnalyticsRoute,
   AppHistoryRoute: AppHistoryRoute,
   AppStandupRoute: AppStandupRoute,
   AppIndexRoute: AppIndexRoute,
+  AppSettingsApiDocsRoute: AppSettingsApiDocsRoute,
+  AppSettingsApiKeysRoute: AppSettingsApiKeysRoute,
   AppSettingsBillingRoute: AppSettingsBillingRoute,
   AppSettingsMembersRoute: AppSettingsMembersRoute,
   AppSettingsTeamsRoute: AppSettingsTeamsRoute,
@@ -334,9 +457,12 @@ const AppRouteRouteWithChildren = AppRouteRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AppRouteRoute: AppRouteRouteWithChildren,
+  ApiMcpRoute: ApiMcpRoute,
   AuthSignInRoute: AuthSignInRoute,
   AuthSignUpRoute: AuthSignUpRoute,
+  ShareTokenRoute: ShareTokenRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiPublicSplatRoute: ApiPublicSplatRoute,
   ApiTrpcSplatRoute: ApiTrpcSplatRoute,
 }
 export const routeTree = rootRouteImport

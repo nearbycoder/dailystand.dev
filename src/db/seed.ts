@@ -1,40 +1,91 @@
-import { config } from "dotenv"
-config({ path: [".env.local", ".env"] })
+import { config } from "dotenv";
 
-import { drizzle } from "drizzle-orm/node-postgres"
-import pg from "pg"
-import * as schema from "./schema"
-import { hashPassword } from "better-auth/crypto"
-import { randomBytes } from "node:crypto"
+config({ path: [".env.local", ".env"] });
 
-const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL! })
-const db = drizzle(pool, { schema })
+import { randomBytes } from "node:crypto";
+import { hashPassword } from "better-auth/crypto";
+import { drizzle } from "drizzle-orm/node-postgres";
+import pg from "pg";
+import * as schema from "./schema";
+
+const connectionString = process.env.DATABASE_URL;
+if (!connectionString) {
+	throw new Error("DATABASE_URL is required to run db:seed");
+}
+
+const pool = new pg.Pool({ connectionString });
+const db = drizzle(pool, { schema });
 
 function id() {
-	return randomBytes(16).toString("hex")
+	return randomBytes(16).toString("hex");
 }
 
 function daysAgo(n: number): Date {
-	const d = new Date()
-	d.setDate(d.getDate() - n)
-	return d
+	const d = new Date();
+	d.setDate(d.getDate() - n);
+	return d;
+}
+
+function daysFromNow(n: number): Date {
+	const d = new Date();
+	d.setDate(d.getDate() + n);
+	return d;
 }
 
 function dateStr(d: Date): string {
-	return d.toISOString().split("T")[0]
+	return d.toISOString().split("T")[0];
 }
 
-const PEOPLE = [
+async function resetDatabase() {
+	const { rows } = await pool.query<{ tablename: string }>(
+		`
+      select tablename
+      from pg_tables
+      where schemaname = 'public'
+        and tablename <> '__drizzle_migrations'
+    `,
+	);
+
+	if (rows.length === 0) return;
+
+	const quotedTables = rows
+		.map((row) => `"${row.tablename.replaceAll('"', '""')}"`)
+		.join(", ");
+
+	await pool.query(`TRUNCATE TABLE ${quotedTables} RESTART IDENTITY CASCADE`);
+}
+
+const PASSWORD = "password123";
+
+type SeedPerson = {
+	name: string;
+	email: string;
+};
+
+const DEMO_PEOPLE: SeedPerson[] = [
 	{ name: "Alex Chen", email: "alex@dailystand.dev" },
 	{ name: "Jamie Rivera", email: "jamie@dailystand.dev" },
 	{ name: "Sam Park", email: "sam@dailystand.dev" },
 	{ name: "Morgan Lee", email: "morgan@dailystand.dev" },
 	{ name: "Taylor Kim", email: "taylor@dailystand.dev" },
-]
+];
 
-const PASSWORD = "password123"
+const DEMO_TEAMS = ["Engineering", "Design"];
 
-const TEAMS = ["Engineering", "Design"]
+const ENTERPRISE_TEAM_NAMES = [
+	"Platform Engineering",
+	"Application Engineering",
+	"Product Design",
+	"Quality Engineering",
+	"Security & Compliance",
+	"Squad Atlas",
+	"Squad Beacon",
+	"Squad Comet",
+	"Squad Delta",
+	"Squad Echo",
+];
+
+const ENTERPRISE_USER_COUNT = 100;
 
 const COMPLETED_ITEMS = [
 	"Implemented user authentication flow",
@@ -57,7 +108,12 @@ const COMPLETED_ITEMS = [
 	"Built prototype for team dashboard",
 	"Updated color system documentation",
 	"Finished responsive layout for mobile",
-]
+	"Stabilized distributed cache invalidation",
+	"Reduced P95 latency for timeline queries",
+	"Completed SOC2 evidence collection task",
+	"Merged onboarding flow improvements",
+	"Hardened role-based permission checks",
+];
 
 const PLANNED_ITEMS = [
 	"Start work on billing integration",
@@ -75,7 +131,10 @@ const PLANNED_ITEMS = [
 	"Build chart components for analytics",
 	"Update design tokens for dark mode",
 	"User testing session for new flow",
-]
+	"Audit service-to-service credentials",
+	"Prepare quarterly dependency upgrade plan",
+	"Refine multi-team standup experience",
+];
 
 const BLOCKER_ITEMS = [
 	"Waiting on API key from third-party vendor",
@@ -86,99 +145,199 @@ const BLOCKER_ITEMS = [
 	"Database migration needs DBA review",
 	"Staging environment is down",
 	"Need access to production logs",
-]
+	"Blocked on contract review for security tooling",
+	"Awaiting IAM permissions for new service account",
+];
 
 function pick<T>(arr: T[]): T {
-	return arr[Math.floor(Math.random() * arr.length)]
+	return arr[Math.floor(Math.random() * arr.length)];
 }
 
 function pickN<T>(arr: T[], min: number, max: number): T[] {
-	const n = min + Math.floor(Math.random() * (max - min + 1))
-	const shuffled = [...arr].sort(() => Math.random() - 0.5)
-	return shuffled.slice(0, n)
+	const n = min + Math.floor(Math.random() * (max - min + 1));
+	const shuffled = [...arr].sort(() => Math.random() - 0.5);
+	return shuffled.slice(0, n);
 }
 
-async function seed() {
-	console.log("Seeding database...")
+function buildEnterprisePeople(count: number): SeedPerson[] {
+	const firstNames = [
+		"Avery",
+		"Jordan",
+		"Riley",
+		"Parker",
+		"Quinn",
+		"Casey",
+		"Logan",
+		"Skyler",
+		"Reese",
+		"Dakota",
+		"Emerson",
+		"Rowan",
+		"Phoenix",
+		"Sawyer",
+		"Kendall",
+		"Harper",
+		"Finley",
+		"Cameron",
+		"Charlie",
+		"River",
+	];
+	const lastNames = [
+		"Patel",
+		"Nguyen",
+		"Garcia",
+		"Johnson",
+		"Kim",
+		"Singh",
+		"Brown",
+		"Davis",
+		"Martinez",
+		"Wilson",
+		"Anderson",
+		"Lopez",
+		"Thomas",
+		"Jackson",
+		"Harris",
+	];
 
-	// Create users
-	const userIds: string[] = []
-	const accountIds: string[] = []
-	const hashedPassword = await hashPassword(PASSWORD)
+	const people: SeedPerson[] = [];
+	for (let i = 0; i < count; i++) {
+		const first = firstNames[i % firstNames.length];
+		const last =
+			lastNames[Math.floor(i / firstNames.length) % lastNames.length];
+		const seq = String(i + 1).padStart(3, "0");
+		const localPart = `${first}.${last}.${seq}`.toLowerCase();
 
-	for (const person of PEOPLE) {
-		const userId = id()
-		userIds.push(userId)
+		people.push({
+			name: `${first} ${last} ${seq}`,
+			email: `${localPart}@enterprise.dailystand.dev`,
+		});
+	}
+
+	return people;
+}
+
+async function createUsersWithCredentialAccounts(
+	people: SeedPerson[],
+	hashedPassword: string,
+	createdAt: Date,
+	logEvery = 1,
+): Promise<string[]> {
+	const userIds: string[] = [];
+
+	for (let i = 0; i < people.length; i++) {
+		const person = people[i];
+		const userId = id();
+		userIds.push(userId);
 
 		await db.insert(schema.user).values({
 			id: userId,
 			name: person.name,
 			email: person.email,
 			emailVerified: true,
-			createdAt: daysAgo(30),
-			updatedAt: daysAgo(30),
-		})
-
-		const accountId = id()
-		accountIds.push(accountId)
+			createdAt,
+			updatedAt: createdAt,
+		});
 
 		await db.insert(schema.account).values({
-			id: accountId,
+			id: id(),
 			accountId: userId,
 			providerId: "credential",
-			userId: userId,
+			userId,
 			password: hashedPassword,
-			createdAt: daysAgo(30),
-			updatedAt: daysAgo(30),
-		})
+			createdAt,
+			updatedAt: createdAt,
+		});
 
-		console.log(`  Created user: ${person.name} (${person.email})`)
+		if (i % logEvery === 0 || i === people.length - 1) {
+			console.log(`  Created user ${i + 1}/${people.length}: ${person.email}`);
+		}
 	}
 
-	// Create organization
-	const orgId = id()
+	return userIds;
+}
+
+async function createOrganizationWithMembers({
+	name,
+	slug,
+	memberUserIds,
+	createdAt,
+}: {
+	name: string;
+	slug: string;
+	memberUserIds: string[];
+	createdAt: Date;
+}): Promise<string> {
+	const orgId = id();
 	await db.insert(schema.organization).values({
 		id: orgId,
-		name: "Acme Corp",
-		slug: "acme-corp",
-		createdAt: daysAgo(30),
-	})
-	console.log("  Created org: Acme Corp")
+		name,
+		slug,
+		createdAt,
+	});
 
-	// Add all users as org members (first user is owner)
-	for (let i = 0; i < userIds.length; i++) {
+	for (let i = 0; i < memberUserIds.length; i++) {
 		await db.insert(schema.member).values({
 			id: id(),
 			organizationId: orgId,
-			userId: userIds[i],
+			userId: memberUserIds[i],
 			role: i === 0 ? "owner" : "member",
-			createdAt: daysAgo(30),
-		})
+			createdAt,
+		});
 	}
-	console.log(`  Added ${userIds.length} org members`)
 
-	// Create teams
-	const teamIds: string[] = []
-	for (const teamName of TEAMS) {
-		const teamId = id()
-		teamIds.push(teamId)
+	console.log(`  Created org: ${name}`);
+	console.log(`  Added ${memberUserIds.length} org members`);
 
+	return orgId;
+}
+
+async function createTeams(
+	orgId: string,
+	teamNames: string[],
+	createdAt: Date,
+): Promise<string[]> {
+	const teamIds: string[] = [];
+
+	for (const teamName of teamNames) {
+		const teamId = id();
+		teamIds.push(teamId);
 		await db.insert(schema.team).values({
 			id: teamId,
 			name: teamName,
 			organizationId: orgId,
-			createdAt: daysAgo(30),
-		})
-		console.log(`  Created team: ${teamName}`)
+			createdAt,
+		});
 	}
 
-	// Assign users to teams
-	// Engineering: Alex, Jamie, Sam
-	// Design: Morgan, Taylor
+	console.log(`  Created ${teamIds.length} teams`);
+	return teamIds;
+}
+
+async function seedDemoOrg(hashedPassword: string) {
+	console.log("\nSeeding demo org...");
+
+	const createdAt = daysAgo(30);
+	const userIds = await createUsersWithCredentialAccounts(
+		DEMO_PEOPLE,
+		hashedPassword,
+		createdAt,
+		1,
+	);
+
+	const orgId = await createOrganizationWithMembers({
+		name: "Acme Corp",
+		slug: "acme-corp",
+		memberUserIds: userIds,
+		createdAt,
+	});
+
+	const teamIds = await createTeams(orgId, DEMO_TEAMS, createdAt);
+
 	const teamAssignments = [
 		[0, 1, 2], // Engineering
 		[3, 4], // Design
-	]
+	];
 
 	for (let t = 0; t < teamIds.length; t++) {
 		for (const userIdx of teamAssignments[t]) {
@@ -186,30 +345,25 @@ async function seed() {
 				id: id(),
 				teamId: teamIds[t],
 				userId: userIds[userIdx],
-				createdAt: daysAgo(30),
-			})
+				createdAt,
+			});
 		}
 		console.log(
-			`  Assigned ${teamAssignments[t].length} members to ${TEAMS[t]}`,
-		)
+			`  Assigned ${teamAssignments[t].length} members to ${DEMO_TEAMS[t]}`,
+		);
 	}
 
-	// Create standup entries for the past 14 days (weekdays only)
-	let entryCount = 0
+	let entryCount = 0;
 	for (let day = 14; day >= 0; day--) {
-		const date = daysAgo(day)
-		const dow = date.getDay()
-		if (dow === 0 || dow === 6) continue // skip weekends
+		const date = daysAgo(day);
+		const dow = date.getDay();
+		if (dow === 0 || dow === 6) continue;
 
-		const ds = dateStr(date)
-
+		const ds = dateStr(date);
 		for (let u = 0; u < userIds.length; u++) {
-			// ~80% chance each person posts on a given day
-			if (Math.random() > 0.8) continue
+			if (Math.random() > 0.8) continue;
+			const teamId = u < 3 ? teamIds[0] : teamIds[1];
 
-			const teamId = u < 3 ? teamIds[0] : teamIds[1]
-
-			// 1-3 completed items
 			for (const item of pickN(COMPLETED_ITEMS, 1, 3)) {
 				await db.insert(schema.standupEntry).values({
 					userId: userIds[u],
@@ -219,11 +373,10 @@ async function seed() {
 					type: "completed",
 					content: item,
 					createdAt: date,
-				})
-				entryCount++
+				});
+				entryCount++;
 			}
 
-			// 1-2 planned items
 			for (const item of pickN(PLANNED_ITEMS, 1, 2)) {
 				await db.insert(schema.standupEntry).values({
 					userId: userIds[u],
@@ -233,11 +386,10 @@ async function seed() {
 					type: "planned",
 					content: item,
 					createdAt: date,
-				})
-				entryCount++
+				});
+				entryCount++;
 			}
 
-			// ~30% chance of a blocker
 			if (Math.random() < 0.3) {
 				await db.insert(schema.standupEntry).values({
 					userId: userIds[u],
@@ -247,25 +399,181 @@ async function seed() {
 					type: "blocker",
 					content: pick(BLOCKER_ITEMS),
 					createdAt: date,
-				})
-				entryCount++
+				});
+				entryCount++;
 			}
 		}
 	}
 
-	console.log(`  Created ${entryCount} standup entries over ~14 days`)
-	console.log("\nDone! All users have password: password123")
-	console.log("Sign in with any of:")
-	for (const person of PEOPLE) {
-		console.log(`  ${person.email}`)
+	console.log(`  Created ${entryCount} demo standup entries`);
+	return { orgId, userIds };
+}
+
+async function seedEnterpriseOrg(hashedPassword: string) {
+	console.log("\nSeeding enterprise org...");
+
+	const people = buildEnterprisePeople(ENTERPRISE_USER_COUNT);
+	const createdAt = daysAgo(20);
+	const userIds = await createUsersWithCredentialAccounts(
+		people,
+		hashedPassword,
+		createdAt,
+		10,
+	);
+
+	const orgId = await createOrganizationWithMembers({
+		name: "Northstar Enterprise",
+		slug: "northstar-enterprise",
+		memberUserIds: userIds,
+		createdAt,
+	});
+
+	await db.insert(schema.subscription).values({
+		id: id(),
+		plan: "business",
+		referenceId: orgId,
+		status: "active",
+		seats: ENTERPRISE_USER_COUNT,
+		periodStart: daysAgo(2),
+		periodEnd: daysFromNow(28),
+	});
+	console.log("  Added business subscription for enterprise org");
+
+	const teamIds = await createTeams(orgId, ENTERPRISE_TEAM_NAMES, createdAt);
+
+	const userTeams = new Map<string, string[]>();
+	for (let i = 0; i < userIds.length; i++) {
+		const userId = userIds[i];
+		const disciplineTeamIdx = i % 5;
+		const squadTeamIdx = 5 + (Math.floor(i / 5) % 5);
+
+		const memberships = new Set<string>([
+			teamIds[disciplineTeamIdx],
+			teamIds[squadTeamIdx],
+		]);
+
+		if (i % 10 === 0) memberships.add(teamIds[4]);
+		if (i % 12 === 0) memberships.add(teamIds[5 + ((squadTeamIdx - 4) % 5)]);
+
+		const membershipList = Array.from(memberships);
+		userTeams.set(userId, membershipList);
+
+		for (const teamId of membershipList) {
+			await db.insert(schema.teamMember).values({
+				id: id(),
+				teamId,
+				userId,
+				createdAt,
+			});
+		}
 	}
 
-	await pool.end()
-	process.exit(0)
+	for (let t = 0; t < teamIds.length; t++) {
+		const memberCount = Array.from(userTeams.values()).filter((memberships) =>
+			memberships.includes(teamIds[t]),
+		).length;
+		console.log(`  Team ${ENTERPRISE_TEAM_NAMES[t]} members: ${memberCount}`);
+	}
+
+	let entryCount = 0;
+	for (let day = 21; day >= 0; day--) {
+		const date = daysAgo(day);
+		const dow = date.getDay();
+		if (dow === 0 || dow === 6) continue;
+
+		const ds = dateStr(date);
+		for (const userId of userIds) {
+			if (Math.random() > 0.7) continue;
+			const memberships = userTeams.get(userId) ?? [];
+			if (memberships.length === 0) continue;
+
+			const teamsToPost = [memberships[0]];
+			if (memberships.length > 1 && Math.random() < 0.5) {
+				teamsToPost.push(memberships[1]);
+			}
+			if (memberships.length > 2 && Math.random() < 0.2) {
+				teamsToPost.push(memberships[2]);
+			}
+
+			for (const teamId of teamsToPost) {
+				for (const item of pickN(COMPLETED_ITEMS, 1, 3)) {
+					await db.insert(schema.standupEntry).values({
+						userId,
+						organizationId: orgId,
+						teamId,
+						date: ds,
+						type: "completed",
+						content: item,
+						createdAt: date,
+					});
+					entryCount++;
+				}
+
+				for (const item of pickN(PLANNED_ITEMS, 1, 2)) {
+					await db.insert(schema.standupEntry).values({
+						userId,
+						organizationId: orgId,
+						teamId,
+						date: ds,
+						type: "planned",
+						content: item,
+						createdAt: date,
+					});
+					entryCount++;
+				}
+
+				if (Math.random() < 0.25) {
+					await db.insert(schema.standupEntry).values({
+						userId,
+						organizationId: orgId,
+						teamId,
+						date: ds,
+						type: "blocker",
+						content: pick(BLOCKER_ITEMS),
+						createdAt: date,
+					});
+					entryCount++;
+				}
+			}
+		}
+	}
+
+	console.log(`  Created ${entryCount} enterprise standup entries`);
+	return { orgId, userIds, people };
+}
+
+async function seed() {
+	console.log("Seeding database...");
+	console.log("Resetting database tables...");
+	await resetDatabase();
+	console.log("Database reset complete.");
+
+	const hashedPassword = await hashPassword(PASSWORD);
+
+	const demo = await seedDemoOrg(hashedPassword);
+	const enterprise = await seedEnterpriseOrg(hashedPassword);
+
+	console.log("\nDone! All users have password: password123");
+	console.log("\nDemo org sign-ins:");
+	for (const person of DEMO_PEOPLE) {
+		console.log(`  ${person.email}`);
+	}
+
+	console.log("\nEnterprise org sample sign-ins:");
+	for (const person of enterprise.people.slice(0, 10)) {
+		console.log(`  ${person.email}`);
+	}
+
+	console.log(
+		`\nCreated ${demo.userIds.length + enterprise.userIds.length} total users`,
+	);
+
+	await pool.end();
+	process.exit(0);
 }
 
 seed().catch(async (err) => {
-	console.error("Seed failed:", err)
-	await pool.end()
-	process.exit(1)
-})
+	console.error("Seed failed:", err);
+	await pool.end();
+	process.exit(1);
+});

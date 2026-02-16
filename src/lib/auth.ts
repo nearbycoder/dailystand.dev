@@ -1,5 +1,5 @@
 import { betterAuth } from "better-auth"
-import { organization } from "better-auth/plugins"
+import { apiKey, organization } from "better-auth/plugins"
 import { stripe } from "@better-auth/stripe"
 import Stripe from "stripe"
 import { drizzleAdapter } from "better-auth/adapters/drizzle"
@@ -58,6 +58,33 @@ export const auth = betterAuth({
 		organization({
 			teams: {
 				enabled: true,
+			},
+		}),
+		apiKey({
+			defaultPrefix: "ds_",
+			requireName: true,
+			enableMetadata: true,
+			keyExpiration: {
+				defaultExpiresIn: null,
+				minExpiresIn: 1,
+				maxExpiresIn: 365,
+			},
+			rateLimit: {
+				enabled: true,
+				timeWindow: 60_000,
+				maxRequests: 600,
+			},
+			permissions: {
+				defaultPermissions: {
+					dailystand: [
+						"profile:read",
+						"teams:read",
+						"members:manage",
+						"standups:read",
+						"standups:write",
+						"analytics:read",
+					],
+				},
 			},
 		}),
 		...(stripePlugin ? [stripePlugin] : []),

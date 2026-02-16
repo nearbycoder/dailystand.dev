@@ -31,16 +31,16 @@ function SignIn() {
 	}
 
 	return (
-		<div className="min-h-screen bg-ds-bg text-ds-fg selection:bg-ds-selection-bg selection:text-ds-selection-fg font-mono flex items-center justify-center p-6">
+		<div className="min-h-screen bg-ds-bg text-ds-fg selection:bg-ds-selection-bg selection:text-ds-selection-fg font-mono flex items-center justify-center p-4 sm:p-6">
 			<div className="w-full max-w-md">
-				<div className="flex items-center gap-3 mb-10">
+				<div className="mb-8 flex items-center gap-3 sm:mb-10">
 					<Terminal className="w-6 h-6 text-ds-accent" />
 					<span className="text-xl font-extrabold tracking-tighter">
 						DAILYSTAND
 					</span>
 				</div>
 
-				<div className="border-[3px] border-ds-border-strong p-8">
+				<div className="border-[3px] border-ds-border-strong p-6 sm:p-8">
 					<h1 className="text-2xl font-extrabold tracking-tighter mb-2">
 						SIGN_IN
 					</h1>

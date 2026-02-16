@@ -2,17 +2,35 @@ import { createFileRoute } from "@tanstack/react-router"
 import { useTRPC } from "@/integrations/trpc/react"
 import { useQuery, useQueryClient } from "@tanstack/react-query"
 import { authClient } from "@/lib/auth-client"
-import { useState } from "react"
-import { Plus, Users2 } from "lucide-react"
+import { useMemo, useState } from "react"
+import { Plus, Users2, UserMinus, UserPlus, Pencil, Trash2 } from "lucide-react"
 
 export const Route = createFileRoute("/app/settings/teams")({
 	component: TeamsPage,
 })
 
+type TeamListItem = {
+	id: string
+	name: string
+	memberCount: number
+	members: { id: string; name: string; image: string | null }[]
+}
+
+type OrganizationMember = {
+	id: string
+	name: string
+	email: string
+	image: string | null
+	role: string
+}
+
 function TeamsPage() {
 	const trpc = useTRPC()
 	const queryClient = useQueryClient()
 	const { data: teams, isLoading } = useQuery(trpc.teams.list.queryOptions())
+	const { data: organizationMembers } = useQuery(
+		trpc.org.listMembers.queryOptions(),
+	)
 	const [name, setName] = useState("")
 	const [creating, setCreating] = useState(false)
 	const [error, setError] = useState("")
@@ -33,35 +51,46 @@ function TeamsPage() {
 		setCreating(false)
 	}
 
+	const organizationMembersMap = useMemo(
+		() => new Map((organizationMembers ?? []).map((m) => [m.id, m])),
+		[organizationMembers],
+	)
+
+	const refreshData = async () => {
+		await queryClient.invalidateQueries()
+	}
+
 	return (
-		<div className="p-6 max-w-3xl">
+		<div className="mx-auto w-full max-w-[1200px] px-4 py-5 sm:p-6">
 			<div className="mb-8">
-				<h1 className="text-3xl font-extrabold tracking-tighter">TEAMS</h1>
+				<h1 className="text-2xl font-extrabold tracking-tighter sm:text-3xl">
+					TEAMS
+				</h1>
 				<p className="text-ds-muted text-sm mt-1">
 					// CREATE AND MANAGE TEAMS
 				</p>
 			</div>
 
 			{/* Create Team */}
-			<div className="border-[3px] border-ds-border p-6 mb-6">
+			<div className="mb-6 border-[3px] border-ds-border p-4 sm:p-6">
 				<div className="flex items-center gap-2 mb-4">
 					<Users2 className="w-4 h-4 text-ds-accent" />
 					<span className="text-sm font-extrabold tracking-widest text-ds-accent">
 						CREATE_TEAM
 					</span>
 				</div>
-				<form onSubmit={handleCreate} className="flex gap-3">
+				<form onSubmit={handleCreate} className="flex flex-col gap-3 sm:flex-row">
 					<input
 						placeholder="Engineering, Design, Marketing..."
 						value={name}
 						onChange={(e) => setName(e.target.value)}
 						required
-						className="flex-1 bg-ds-input-bg border-[3px] border-ds-muted3 px-4 py-2.5 text-ds-fg font-mono text-sm focus:border-ds-accent focus:outline-none transition-colors placeholder:text-ds-muted2"
+						className="min-w-0 flex-1 bg-ds-input-bg border-[3px] border-ds-muted3 px-4 py-2.5 text-ds-fg font-mono text-sm transition-colors placeholder:text-ds-muted2 focus:border-ds-accent focus:outline-none"
 					/>
 					<button
 						type="submit"
 						disabled={creating}
-						className="bg-ds-accent text-ds-accent-fg px-6 py-2.5 font-extrabold text-sm tracking-wider hover:bg-ds-accent-hover transition-colors disabled:opacity-50 flex items-center gap-2 shrink-0"
+						className="flex w-full shrink-0 items-center justify-center gap-2 bg-ds-accent px-6 py-2.5 text-sm font-extrabold tracking-wider text-ds-accent-fg transition-colors hover:bg-ds-accent-hover disabled:opacity-50 sm:w-auto"
 					>
 						<Plus className="w-4 h-4" />
 						{creating ? "CREATING..." : "CREATE"}
@@ -84,52 +113,301 @@ function TeamsPage() {
 						/>
 					))}
 				</div>
-			) : teams && teams.length > 0 ? (
-				<div className="space-y-0">
-					{teams.map((team) => (
-						<div
-							key={team.id}
-							className="border-[3px] border-ds-border -mt-[3px] p-6 hover:border-ds-muted2 transition-colors"
-						>
-							<div className="flex items-center justify-between">
-								<div className="flex items-center gap-3">
-									<div className="w-10 h-10 bg-ds-accent text-ds-accent-fg flex items-center justify-center font-extrabold">
-										{team.name.charAt(0).toUpperCase()}
-									</div>
-									<div>
-										<div className="font-extrabold text-sm tracking-wider">
-											{team.name.toUpperCase()}
-										</div>
-										<div className="text-ds-muted text-xs">
-											{team.memberCount}{" "}
-											{team.memberCount === 1 ? "member" : "members"}
-										</div>
-									</div>
-								</div>
-								<div className="flex -space-x-1">
-									{team.members.slice(0, 5).map((member) => (
-										<div
-											key={member.id}
-											className="w-7 h-7 bg-ds-surface2 border-2 border-ds-bg flex items-center justify-center text-[10px] font-bold text-ds-text-tertiary"
-										>
-											{member.name.charAt(0).toUpperCase()}
-										</div>
-									))}
-									{team.memberCount > 5 && (
-										<div className="w-7 h-7 bg-ds-surface2 border-2 border-ds-bg flex items-center justify-center text-[10px] font-bold text-ds-muted">
-											+{team.memberCount - 5}
-										</div>
-									)}
-								</div>
-							</div>
-						</div>
-					))}
-				</div>
-			) : (
-				<div className="border-[3px] border-ds-border p-12 text-center">
+				) : teams && teams.length > 0 ? (
+					<div className="space-y-0">
+						{teams.map((team) => (
+							<TeamCard
+								key={team.id}
+								team={team}
+								organizationMembers={organizationMembers ?? []}
+								organizationMembersMap={organizationMembersMap}
+								onChanged={refreshData}
+							/>
+						))}
+					</div>
+				) : (
+				<div className="border-[3px] border-ds-border p-8 text-center sm:p-12">
 					<p className="text-ds-muted text-sm">
 						NO_TEAMS // Create your first team above.
 					</p>
+				</div>
+			)}
+		</div>
+	)
+}
+
+function TeamCard({
+	team,
+	organizationMembers,
+	organizationMembersMap,
+	onChanged,
+}: {
+	team: TeamListItem
+	organizationMembers: OrganizationMember[]
+	organizationMembersMap: Map<string, OrganizationMember>
+	onChanged: () => Promise<void>
+}) {
+	const [expanded, setExpanded] = useState(false)
+	const [draftName, setDraftName] = useState(team.name)
+	const [selectedUserId, setSelectedUserId] = useState("")
+	const [busyAction, setBusyAction] = useState<string | null>(null)
+	const [actionError, setActionError] = useState("")
+
+	const teamMemberIds = useMemo(
+		() => new Set(team.members.map((member) => member.id)),
+		[team.members],
+	)
+
+	const availableMembers = useMemo(
+		() =>
+			organizationMembers.filter((member) => !teamMemberIds.has(member.id)),
+		[organizationMembers, teamMemberIds],
+	)
+
+	const runAction = async (action: string, fn: () => Promise<boolean>) => {
+		setActionError("")
+		setBusyAction(action)
+		try {
+			const didChange = await fn()
+			if (didChange) {
+				await onChanged()
+			}
+		} catch {
+			// Action errors are handled with in-panel messages.
+		} finally {
+			setBusyAction(null)
+		}
+	}
+
+	const handleRename = async () => {
+		const nextName = draftName.trim()
+		if (!nextName || nextName === team.name) return
+		await runAction("rename", async () => {
+			const result = await authClient.organization.updateTeam({
+				teamId: team.id,
+				data: { name: nextName },
+			})
+			if (result.error) {
+				setActionError(result.error.message ?? "Failed to rename team")
+				return false
+			}
+			setDraftName(nextName)
+			return true
+		})
+	}
+
+	const handleAddMember = async () => {
+		if (!selectedUserId) return
+		await runAction(`add:${selectedUserId}`, async () => {
+			const result = await authClient.organization.addTeamMember({
+				teamId: team.id,
+				userId: selectedUserId,
+			})
+			if (result.error) {
+				setActionError(result.error.message ?? "Failed to add member")
+				return false
+			}
+			setSelectedUserId("")
+			return true
+		})
+	}
+
+	const handleRemoveMember = async (userId: string) => {
+		await runAction(`remove:${userId}`, async () => {
+			const result = await authClient.organization.removeTeamMember({
+				teamId: team.id,
+				userId,
+			})
+			if (result.error) {
+				setActionError(result.error.message ?? "Failed to remove member")
+				return false
+			}
+			return true
+		})
+	}
+
+	const handleDeleteTeam = async () => {
+		const shouldDelete = window.confirm(
+			`Delete team "${team.name}"? This removes team assignments.`,
+		)
+		if (!shouldDelete) return
+
+		await runAction("delete", async () => {
+			const result = await authClient.organization.removeTeam({
+				teamId: team.id,
+			})
+			if (result.error) {
+				setActionError(result.error.message ?? "Failed to delete team")
+				return false
+			}
+			return true
+		})
+	}
+
+	return (
+		<div className="-mt-[3px] border-[3px] border-ds-border p-4 transition-colors hover:border-ds-muted2 sm:p-6">
+			<div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+				<div className="flex items-center gap-3">
+					<div className="flex h-10 w-10 items-center justify-center bg-ds-accent font-extrabold text-ds-accent-fg">
+						{team.name.charAt(0).toUpperCase()}
+					</div>
+					<div>
+						<div className="text-sm font-extrabold tracking-wider">
+							{team.name.toUpperCase()}
+						</div>
+						<div className="text-xs text-ds-muted">
+							{team.memberCount} {team.memberCount === 1 ? "member" : "members"}
+						</div>
+					</div>
+				</div>
+
+				<div className="flex flex-wrap items-center gap-2 sm:justify-end">
+					<div className="flex flex-wrap gap-1 sm:-space-x-1 sm:gap-0">
+						{team.members.slice(0, 5).map((member) => (
+							<div
+								key={member.id}
+								className="flex h-7 w-7 items-center justify-center border-2 border-ds-bg bg-ds-surface2 text-[10px] font-bold text-ds-text-tertiary"
+								title={member.name}
+							>
+								{member.name.charAt(0).toUpperCase()}
+							</div>
+						))}
+						{team.memberCount > 5 && (
+							<div className="flex h-7 w-7 items-center justify-center border-2 border-ds-bg bg-ds-surface2 text-[10px] font-bold text-ds-muted">
+								+{team.memberCount - 5}
+							</div>
+						)}
+					</div>
+					<button
+						type="button"
+						onClick={() => setExpanded((prev) => !prev)}
+						className="border-[2px] border-ds-muted3 px-3 py-1.5 text-[10px] font-extrabold tracking-widest text-ds-text-tertiary transition-colors hover:border-ds-accent hover:text-ds-accent"
+					>
+						{expanded ? "HIDE_MANAGE" : "MANAGE_TEAM"}
+					</button>
+				</div>
+			</div>
+
+			{expanded && (
+				<div className="mt-4 space-y-4 border-t-[2px] border-ds-border pt-4">
+					<div>
+						<div className="mb-2 text-[10px] font-bold tracking-widest text-ds-muted2">
+							// TEAM NAME
+						</div>
+						<div className="flex flex-col gap-2 sm:flex-row">
+							<input
+								value={draftName}
+								onChange={(e) => setDraftName(e.target.value)}
+								className="min-w-0 flex-1 border-[3px] border-ds-muted3 bg-ds-input-bg px-3 py-2 text-sm text-ds-fg focus:border-ds-accent focus:outline-none"
+							/>
+							<button
+								type="button"
+								onClick={handleRename}
+								disabled={
+									busyAction !== null ||
+									!draftName.trim() ||
+									draftName.trim() === team.name
+								}
+								className="flex w-full items-center justify-center gap-2 border-[3px] border-ds-border-strong px-4 py-2 text-xs font-extrabold tracking-wider transition-colors hover:bg-ds-border-strong hover:text-ds-bg disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+							>
+								<Pencil className="h-3.5 w-3.5" />
+								SAVE_NAME
+							</button>
+						</div>
+					</div>
+
+					<div>
+						<div className="mb-2 text-[10px] font-bold tracking-widest text-ds-muted2">
+							// ADD MEMBER
+						</div>
+						<div className="flex flex-col gap-2 sm:flex-row">
+							<select
+								value={selectedUserId}
+								onChange={(e) => setSelectedUserId(e.target.value)}
+								className="min-w-0 flex-1 border-[3px] border-ds-muted3 bg-ds-input-bg px-3 py-2 text-sm text-ds-fg focus:border-ds-accent focus:outline-none"
+							>
+								<option value="">Select organization member...</option>
+								{availableMembers.map((member) => (
+									<option key={member.id} value={member.id}>
+										{member.name} ({member.email})
+									</option>
+								))}
+							</select>
+							<button
+								type="button"
+								onClick={handleAddMember}
+								disabled={!selectedUserId || busyAction !== null}
+								className="flex w-full items-center justify-center gap-2 bg-ds-accent px-4 py-2 text-xs font-extrabold tracking-wider text-ds-accent-fg transition-colors hover:bg-ds-accent-hover disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto"
+							>
+								<UserPlus className="h-3.5 w-3.5" />
+								ADD
+							</button>
+						</div>
+						{availableMembers.length === 0 && (
+							<p className="mt-2 text-xs text-ds-muted">
+								All organization members are already on this team.
+							</p>
+						)}
+					</div>
+
+					<div>
+						<div className="mb-2 text-[10px] font-bold tracking-widest text-ds-muted2">
+							// TEAM MEMBERS ({team.memberCount})
+						</div>
+						{team.members.length > 0 ? (
+							<div className="space-y-2">
+								{team.members.map((member) => {
+									const memberDetails = organizationMembersMap.get(member.id)
+									return (
+										<div
+											key={member.id}
+											className="flex items-center justify-between border-[2px] border-ds-border px-3 py-2"
+										>
+											<div className="min-w-0">
+												<div className="truncate text-sm font-bold">
+													{member.name}
+												</div>
+												<div className="truncate text-xs text-ds-muted">
+													{memberDetails?.email ?? "No email"}
+												</div>
+											</div>
+											<button
+												type="button"
+												onClick={() => handleRemoveMember(member.id)}
+												disabled={busyAction !== null}
+												className="ml-3 flex shrink-0 items-center gap-1.5 px-2 py-1 text-[10px] font-extrabold tracking-widest text-red-500 transition-colors hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-50"
+											>
+												<UserMinus className="h-3 w-3" />
+												REMOVE
+											</button>
+										</div>
+									)
+								})}
+							</div>
+						) : (
+							<div className="border-[2px] border-ds-border px-3 py-4 text-xs text-ds-muted">
+								NO_MEMBERS // Add someone to start using this team.
+							</div>
+						)}
+					</div>
+
+					<div className="border-t-[2px] border-ds-border pt-3">
+						<button
+							type="button"
+							onClick={handleDeleteTeam}
+							disabled={busyAction !== null}
+							className="flex items-center gap-2 px-0 py-1 text-xs font-extrabold tracking-wider text-red-500 transition-colors hover:text-red-400 disabled:cursor-not-allowed disabled:opacity-50"
+						>
+							<Trash2 className="h-3.5 w-3.5" />
+							DELETE_TEAM
+						</button>
+					</div>
+
+					{actionError && (
+						<div className="border-[2px] border-red-500 bg-red-500/10 px-3 py-2 text-xs font-bold text-red-400">
+							ERROR: {actionError}
+						</div>
+					)}
 				</div>
 			)}
 		</div>

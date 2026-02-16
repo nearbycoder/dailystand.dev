@@ -8,6 +8,7 @@ import { authClient } from "@/lib/auth-client"
 import { useState } from "react"
 import {
 	LayoutDashboard,
+	BarChart3,
 	PenSquare,
 	Users,
 	History,
@@ -15,10 +16,18 @@ import {
 	LogOut,
 	Plus,
 	Terminal,
+	Menu,
 } from "lucide-react"
 import { useTRPC } from "@/integrations/trpc/react"
 import { useQuery } from "@tanstack/react-query"
 import { ThemeToggle } from "@/components/theme-toggle"
+import {
+	Sheet,
+	SheetContent,
+	SheetDescription,
+	SheetHeader,
+	SheetTitle,
+} from "@/components/ui/sheet"
 
 export const Route = createFileRoute("/app")({
 	component: AppLayout,
@@ -85,20 +94,20 @@ function OrgSetup() {
 	}
 
 	return (
-		<div className="min-h-screen bg-ds-bg text-ds-fg selection:bg-ds-selection-bg selection:text-ds-selection-fg font-mono flex items-center justify-center p-6">
+		<div className="min-h-screen bg-ds-bg text-ds-fg selection:bg-ds-selection-bg selection:text-ds-selection-fg font-mono flex items-center justify-center p-4 sm:p-6">
 			<div className="w-full max-w-md">
-				<div className="flex items-center gap-3 mb-10">
+				<div className="mb-8 flex items-center gap-3 sm:mb-10">
 					<Terminal className="w-6 h-6 text-ds-accent" />
 					<span className="text-xl font-extrabold tracking-tighter">
 						DAILYSTAND
 					</span>
 				</div>
 
-				<div className="border-[3px] border-ds-border-strong p-8">
-					<h1 className="text-2xl font-extrabold tracking-tighter mb-2">
+				<div className="border-[3px] border-ds-border-strong p-6 sm:p-8">
+					<h1 className="mb-2 text-2xl font-extrabold tracking-tighter">
 						{orgs && orgs.length > 0 ? "SELECT_ORG" : "CREATE_ORG"}
 					</h1>
-					<p className="text-sm text-ds-muted mb-8">
+					<p className="mb-8 text-sm text-ds-muted">
 						// set up your workspace
 					</p>
 
@@ -181,83 +190,177 @@ function AppShell({
 	const navigate = useNavigate()
 	const trpc = useTRPC()
 	const { data: teams } = useQuery(trpc.teams.list.queryOptions())
+	const [mobileNavOpen, setMobileNavOpen] = useState(false)
 
 	const handleSignOut = async () => {
 		await authClient.signOut()
 		navigate({ to: "/" })
 	}
 
+	const closeMobileNav = () => setMobileNavOpen(false)
+
 	return (
-		<div className="min-h-screen bg-ds-bg text-ds-fg selection:bg-ds-selection-bg selection:text-ds-selection-fg font-mono flex">
+		<div className="min-h-screen bg-ds-bg text-ds-fg selection:bg-ds-selection-bg selection:text-ds-selection-fg font-mono md:flex md:h-svh md:overflow-hidden">
 			{/* Sidebar */}
-			<aside className="w-56 border-r-[3px] border-ds-border-strong flex flex-col shrink-0">
-				{/* Logo */}
-				<div className="p-4 border-b-[3px] border-ds-border-strong">
+			<aside className="hidden w-56 shrink-0 flex-col border-r-[3px] border-ds-border-strong md:flex md:h-svh md:max-h-svh md:overflow-hidden">
+				<SidebarContent
+					session={session}
+					teams={teams}
+					onSignOut={handleSignOut}
+				/>
+			</aside>
+
+			<div className="flex min-w-0 flex-1 flex-col md:min-h-0">
+				<header className="sticky top-0 z-30 flex items-center justify-between border-b-[3px] border-ds-border-strong bg-ds-bg px-4 py-3 md:hidden">
+					<button
+						type="button"
+						onClick={() => setMobileNavOpen(true)}
+						className="flex items-center gap-2 border-[3px] border-ds-border px-2.5 py-1.5 text-xs font-extrabold tracking-widest text-ds-fg transition-colors hover:border-ds-accent hover:text-ds-accent"
+					>
+						<Menu className="h-4 w-4" />
+						MENU
+					</button>
 					<Link to="/app" className="flex items-center gap-2">
 						<Terminal className="w-5 h-5 text-ds-accent" />
 						<span className="font-extrabold tracking-tighter">DAILYSTAND</span>
 					</Link>
-				</div>
+				</header>
 
-				{/* Nav */}
-				<nav className="flex-1 py-2">
-					<NavLink to="/app" icon={LayoutDashboard} label="DASHBOARD" exact />
-					<NavLink to="/app/standup" icon={PenSquare} label="STANDUP" />
-					<NavLink to="/app/history" icon={History} label="HISTORY" />
-
-					{teams && teams.length > 0 && (
-						<>
-							<div className="px-4 py-3 text-xs font-bold text-ds-muted2 tracking-widest">
-								// TEAMS
-							</div>
-							{teams.map((team) => (
-								<NavLink
-									key={team.id}
-									to="/app/team/$teamId"
-									params={{ teamId: team.id }}
-									icon={Users}
-									label={team.name.toUpperCase()}
-								/>
-							))}
-						</>
-					)}
-
-					<div className="px-4 py-3 text-xs font-bold text-ds-muted2 tracking-widest">
-						// CONFIG
-					</div>
-					<NavLink to="/app/settings" icon={Settings} label="SETTINGS" />
-				</nav>
-
-				{/* Theme + User */}
-				<div className="border-t-[3px] border-ds-border-strong p-3 space-y-3">
-					<ThemeToggle />
-					<div className="flex items-center gap-2">
-						<div className="w-7 h-7 bg-ds-accent text-ds-accent-fg flex items-center justify-center font-extrabold text-xs">
-							{session.user.name?.charAt(0).toUpperCase() ?? "U"}
-						</div>
-						<div className="flex-1 min-w-0">
-							<div className="text-xs font-bold truncate">
-								{session.user.name}
-							</div>
-							<div className="text-[10px] text-ds-muted truncate">
-								{session.user.email}
-							</div>
-						</div>
-					</div>
-					<button
-						onClick={handleSignOut}
-						className="w-full flex items-center gap-2 px-2 py-1.5 text-xs font-bold text-ds-muted hover:text-red-400 transition-colors"
+				<Sheet open={mobileNavOpen} onOpenChange={setMobileNavOpen}>
+					<SheetContent
+						side="left"
+						showCloseButton={false}
+						className="w-[85vw] max-w-xs border-r-[3px] border-ds-border-strong bg-ds-bg p-0 text-ds-fg"
 					>
-						<LogOut className="w-3 h-3" />
-						[SIGN_OUT]
-					</button>
-				</div>
-			</aside>
+						<SheetHeader className="sr-only">
+							<SheetTitle>Navigation</SheetTitle>
+							<SheetDescription>Primary app navigation</SheetDescription>
+						</SheetHeader>
+						<div className="flex h-full flex-col">
+							<SidebarContent
+								session={session}
+								teams={teams}
+								onSignOut={handleSignOut}
+								onNavigate={closeMobileNav}
+							/>
+						</div>
+					</SheetContent>
+				</Sheet>
 
-			{/* Main */}
-			<main className="flex-1 overflow-auto">
-				<Outlet />
-			</main>
+				{/* Main */}
+				<main className="min-h-0 min-w-0 flex-1 overflow-auto">
+					<Outlet />
+				</main>
+			</div>
+		</div>
+	)
+}
+
+function SidebarContent({
+	session,
+	teams,
+	onSignOut,
+	onNavigate,
+}: {
+	session: NonNullable<ReturnType<typeof authClient.useSession>["data"]>
+	teams:
+		| {
+				id: string
+				name: string
+		  }[]
+		| undefined
+	onSignOut: () => Promise<void>
+	onNavigate?: () => void
+}) {
+	return (
+		<div className="flex h-full min-h-0 flex-col">
+			<div className="border-b-[3px] border-ds-border-strong p-4">
+				<Link to="/app" className="flex items-center gap-2" onClick={onNavigate}>
+					<Terminal className="h-5 w-5 text-ds-accent" />
+					<span className="font-extrabold tracking-tighter">DAILYSTAND</span>
+				</Link>
+			</div>
+
+			<nav className="min-h-0 flex-1 overflow-y-auto py-2">
+				<NavLink
+					to="/app"
+					icon={LayoutDashboard}
+					label="DASHBOARD"
+					exact
+					onNavigate={onNavigate}
+				/>
+				<NavLink
+					to="/app/analytics"
+					icon={BarChart3}
+					label="ANALYTICS"
+					onNavigate={onNavigate}
+				/>
+				<NavLink
+					to="/app/standup"
+					icon={PenSquare}
+					label="STANDUP"
+					onNavigate={onNavigate}
+				/>
+				<NavLink
+					to="/app/history"
+					icon={History}
+					label="HISTORY"
+					onNavigate={onNavigate}
+				/>
+
+				{teams && teams.length > 0 && (
+					<>
+						<div className="px-4 py-3 text-xs font-bold tracking-widest text-ds-muted2">
+							// TEAMS
+						</div>
+						{teams.map((team) => (
+							<NavLink
+								key={team.id}
+								to="/app/team/$teamId"
+								params={{ teamId: team.id }}
+								icon={Users}
+								label={team.name.toUpperCase()}
+								onNavigate={onNavigate}
+							/>
+						))}
+					</>
+				)}
+
+				<div className="px-4 py-3 text-xs font-bold tracking-widest text-ds-muted2">
+					// CONFIG
+				</div>
+				<NavLink
+					to="/app/settings"
+					icon={Settings}
+					label="SETTINGS"
+					onNavigate={onNavigate}
+				/>
+			</nav>
+
+			<div className="shrink-0 space-y-3 border-t-[3px] border-ds-border-strong p-3">
+				<ThemeToggle />
+				<div className="flex items-center gap-2">
+					<div className="flex h-7 w-7 items-center justify-center bg-ds-accent text-xs font-extrabold text-ds-accent-fg">
+						{session.user.name?.charAt(0).toUpperCase() ?? "U"}
+					</div>
+					<div className="min-w-0 flex-1">
+						<div className="truncate text-xs font-bold">{session.user.name}</div>
+						<div className="truncate text-[10px] text-ds-muted">
+							{session.user.email}
+						</div>
+					</div>
+				</div>
+				<button
+					onClick={async () => {
+						onNavigate?.()
+						await onSignOut()
+					}}
+					className="flex w-full items-center gap-2 px-2 py-1.5 text-xs font-bold text-ds-muted transition-colors hover:text-red-400"
+				>
+					<LogOut className="h-3 w-3" />
+					[SIGN_OUT]
+				</button>
+			</div>
 		</div>
 	)
 }
@@ -268,26 +371,29 @@ function NavLink({
 	icon: Icon,
 	label,
 	exact,
+	onNavigate,
 }: {
 	to: string
 	params?: Record<string, string>
 	icon: React.ComponentType<{ className?: string }>
 	label: string
 	exact?: boolean
+	onNavigate?: () => void
 }) {
 	return (
 		<Link
 			to={to}
 			params={params as any}
 			activeOptions={{ exact }}
-			className="flex items-center gap-3 px-4 py-2.5 text-xs font-bold tracking-wider text-ds-text-tertiary hover:text-ds-fg hover:bg-ds-surface transition-all"
+			onClick={onNavigate}
+			className="flex items-center gap-3 px-4 py-2.5 text-xs font-bold tracking-wider text-ds-text-tertiary transition-all hover:bg-ds-surface hover:text-ds-fg"
 			activeProps={{
 				className:
-					"flex items-center gap-3 px-4 py-2.5 text-xs font-bold tracking-wider text-ds-accent bg-ds-accent/5 border-l-[3px] border-ds-accent",
+					"flex items-center gap-3 border-l-[3px] border-ds-accent bg-ds-accent/5 px-4 py-2.5 text-xs font-bold tracking-wider text-ds-accent",
 			}}
 		>
 			<Icon className="w-4 h-4" />
-			{label}
+			<span className="truncate">{label}</span>
 		</Link>
 	)
 }

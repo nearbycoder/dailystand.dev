@@ -19,6 +19,20 @@ interface MyRouterContext {
 	trpc: TRPCOptionsProxy<TRPCRouter>;
 }
 
+type RuntimePublicEnv = {
+	VITE_PUBLIC_POSTHOG_KEY?: string;
+	VITE_PUBLIC_POSTHOG_HOST?: string;
+	VITE_PUBLIC_POSTHOG_UI_HOST?: string;
+	VITE_PUBLIC_POSTHOG_ENABLE_IN_DEV?: string;
+	VITE_PUBLIC_POSTHOG_DEBUG?: string;
+};
+
+declare global {
+	interface Window {
+		__DS_PUBLIC_ENV__?: RuntimePublicEnv;
+	}
+}
+
 const defaultTitle = "DailyStand | Async Standup Software for Remote Teams";
 const defaultDescription =
 	"DailyStand is open source async standup software for remote engineering teams with analytics, API access, and MCP automation tools.";
@@ -27,15 +41,51 @@ const defaultOgImage = buildOgImageUrl({
 	title: defaultTitle,
 	subtitle: defaultDescription,
 });
-const posthogApiKey = import.meta.env.VITE_PUBLIC_POSTHOG_KEY;
-const posthogApiHost =
-	import.meta.env.VITE_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
-const posthogUiHost =
-	import.meta.env.VITE_PUBLIC_POSTHOG_UI_HOST || "https://us.posthog.com";
-const posthogEnabledInDev =
-	import.meta.env.VITE_PUBLIC_POSTHOG_ENABLE_IN_DEV === "true";
-const shouldEnablePosthog =
-	Boolean(posthogApiKey) && (import.meta.env.PROD || posthogEnabledInDev);
+
+function readServerRuntimePublicEnv(): RuntimePublicEnv {
+	const processEnv =
+		typeof process !== "undefined" ? process.env : undefined;
+	return {
+		VITE_PUBLIC_POSTHOG_KEY: processEnv?.VITE_PUBLIC_POSTHOG_KEY,
+		VITE_PUBLIC_POSTHOG_HOST: processEnv?.VITE_PUBLIC_POSTHOG_HOST,
+		VITE_PUBLIC_POSTHOG_UI_HOST: processEnv?.VITE_PUBLIC_POSTHOG_UI_HOST,
+		VITE_PUBLIC_POSTHOG_ENABLE_IN_DEV:
+			processEnv?.VITE_PUBLIC_POSTHOG_ENABLE_IN_DEV,
+		VITE_PUBLIC_POSTHOG_DEBUG: processEnv?.VITE_PUBLIC_POSTHOG_DEBUG,
+	};
+}
+
+function readRuntimePublicEnv(): RuntimePublicEnv {
+	const serverEnv = readServerRuntimePublicEnv();
+	const clientEnv =
+		typeof window !== "undefined" ? window.__DS_PUBLIC_ENV__ : undefined;
+	return {
+		VITE_PUBLIC_POSTHOG_KEY:
+			clientEnv?.VITE_PUBLIC_POSTHOG_KEY ??
+			serverEnv.VITE_PUBLIC_POSTHOG_KEY ??
+			import.meta.env.VITE_PUBLIC_POSTHOG_KEY,
+		VITE_PUBLIC_POSTHOG_HOST:
+			clientEnv?.VITE_PUBLIC_POSTHOG_HOST ??
+			serverEnv.VITE_PUBLIC_POSTHOG_HOST ??
+			import.meta.env.VITE_PUBLIC_POSTHOG_HOST,
+		VITE_PUBLIC_POSTHOG_UI_HOST:
+			clientEnv?.VITE_PUBLIC_POSTHOG_UI_HOST ??
+			serverEnv.VITE_PUBLIC_POSTHOG_UI_HOST ??
+			import.meta.env.VITE_PUBLIC_POSTHOG_UI_HOST,
+		VITE_PUBLIC_POSTHOG_ENABLE_IN_DEV:
+			clientEnv?.VITE_PUBLIC_POSTHOG_ENABLE_IN_DEV ??
+			serverEnv.VITE_PUBLIC_POSTHOG_ENABLE_IN_DEV ??
+			import.meta.env.VITE_PUBLIC_POSTHOG_ENABLE_IN_DEV,
+		VITE_PUBLIC_POSTHOG_DEBUG:
+			clientEnv?.VITE_PUBLIC_POSTHOG_DEBUG ??
+			serverEnv.VITE_PUBLIC_POSTHOG_DEBUG ??
+			import.meta.env.VITE_PUBLIC_POSTHOG_DEBUG,
+	};
+}
+
+function serializeInlineRuntimeEnv(env: RuntimePublicEnv) {
+	return JSON.stringify(env).replace(/</g, "\\u003c");
+}
 
 export const Route = createRootRouteWithContext<MyRouterContext>()({
 	component: () => <Outlet />,
@@ -151,6 +201,19 @@ function NotFound() {
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+	const runtimePublicEnv = readServerRuntimePublicEnv();
+	const runtimePublicEnvScript = `window.__DS_PUBLIC_ENV__ = ${serializeInlineRuntimeEnv(runtimePublicEnv)};`;
+	const posthogRuntimeEnv = readRuntimePublicEnv();
+	const posthogApiKey = posthogRuntimeEnv.VITE_PUBLIC_POSTHOG_KEY;
+	const posthogApiHost =
+		posthogRuntimeEnv.VITE_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";
+	const posthogUiHost =
+		posthogRuntimeEnv.VITE_PUBLIC_POSTHOG_UI_HOST || "https://us.posthog.com";
+	const posthogEnabledInDev =
+		posthogRuntimeEnv.VITE_PUBLIC_POSTHOG_ENABLE_IN_DEV === "true";
+	const shouldEnablePosthog =
+		Boolean(posthogApiKey) && (import.meta.env.PROD || posthogEnabledInDev);
+
 	const app = (
 		<Providers>
 			{children}
@@ -167,19 +230,23 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
+				<script
+					dangerouslySetInnerHTML={{ __html: runtimePublicEnvScript }}
+				/>
 				<script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
 				<HeadContent />
 			</head>
 			<body className="bg-ds-bg text-ds-fg antialiased">
 				{shouldEnablePosthog ? (
 					<PostHogProvider
-						apiKey={posthogApiKey}
+						apiKey={posthogApiKey!}
 						options={{
 							api_host: posthogApiHost,
 							ui_host: posthogUiHost,
 							defaults: "2025-05-24",
 							capture_exceptions: true,
-							debug: import.meta.env.VITE_PUBLIC_POSTHOG_DEBUG === "true",
+							debug:
+								posthogRuntimeEnv.VITE_PUBLIC_POSTHOG_DEBUG === "true",
 						}}
 					>
 						{app}

@@ -140,6 +140,7 @@ Notes:
 - API key verification rate limiting is enabled by default (`API_KEY_RATE_LIMIT_*`) and applies to API key protected endpoints.
 - Sentry is optional. Client + server instrumentation is enabled when DSN env vars are configured.
 - PostHog is optional. In development it is disabled by default unless `VITE_PUBLIC_POSTHOG_ENABLE_IN_DEV=true`.
+- PostHog public env vars (`VITE_PUBLIC_POSTHOG_*`) can be provided as runtime env vars in container deployments (for example Railway) and do not need Docker build args.
 - Source map upload is enabled only when `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT` are provided.
 
 ### 3) Push schema

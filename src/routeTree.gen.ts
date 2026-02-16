@@ -17,6 +17,8 @@ import { Route as AppIndexRouteImport } from './routes/app/index'
 import { Route as ShareTokenRouteImport } from './routes/share.$token'
 import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
 import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
+import { Route as AuthResetPasswordRouteImport } from './routes/auth/reset-password'
+import { Route as AuthForgotPasswordRouteImport } from './routes/auth/forgot-password'
 import { Route as AppStandupRouteImport } from './routes/app/standup'
 import { Route as AppHistoryRouteImport } from './routes/app/history'
 import { Route as AppAnalyticsRouteImport } from './routes/app/analytics'
@@ -24,10 +26,13 @@ import { Route as ApiMcpRouteImport } from './routes/api/mcp'
 import { Route as AppSettingsIndexRouteImport } from './routes/app/settings/index'
 import { Route as AppTeamTeamIdRouteImport } from './routes/app/team.$teamId'
 import { Route as AppSettingsTeamsRouteImport } from './routes/app/settings/teams'
+import { Route as AppSettingsSecurityRouteImport } from './routes/app/settings/security'
+import { Route as AppSettingsNotificationsRouteImport } from './routes/app/settings/notifications'
 import { Route as AppSettingsMembersRouteImport } from './routes/app/settings/members'
 import { Route as AppSettingsBillingRouteImport } from './routes/app/settings/billing'
 import { Route as AppSettingsApiKeysRouteImport } from './routes/app/settings/api-keys'
 import { Route as AppSettingsApiDocsRouteImport } from './routes/app/settings/api-docs'
+import { Route as ApiWorkflowsEmailDigestsRouteImport } from './routes/api/workflows/email-digests'
 import { Route as ApiTrpcSplatRouteImport } from './routes/api.trpc.$'
 import { Route as ApiPublicSplatRouteImport } from './routes/api/public/$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
@@ -72,6 +77,16 @@ const AuthSignInRoute = AuthSignInRouteImport.update({
   path: '/auth/sign-in',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
+  id: '/auth/reset-password',
+  path: '/auth/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
+  id: '/auth/forgot-password',
+  path: '/auth/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AppStandupRoute = AppStandupRouteImport.update({
   id: '/standup',
   path: '/standup',
@@ -107,6 +122,17 @@ const AppSettingsTeamsRoute = AppSettingsTeamsRouteImport.update({
   path: '/settings/teams',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppSettingsSecurityRoute = AppSettingsSecurityRouteImport.update({
+  id: '/settings/security',
+  path: '/settings/security',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppSettingsNotificationsRoute =
+  AppSettingsNotificationsRouteImport.update({
+    id: '/settings/notifications',
+    path: '/settings/notifications',
+    getParentRoute: () => AppRouteRoute,
+  } as any)
 const AppSettingsMembersRoute = AppSettingsMembersRouteImport.update({
   id: '/settings/members',
   path: '/settings/members',
@@ -127,6 +153,12 @@ const AppSettingsApiDocsRoute = AppSettingsApiDocsRouteImport.update({
   path: '/settings/api-docs',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const ApiWorkflowsEmailDigestsRoute =
+  ApiWorkflowsEmailDigestsRouteImport.update({
+    id: '/api/workflows/email-digests',
+    path: '/api/workflows/email-digests',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
   id: '/api/trpc/$',
   path: '/api/trpc/$',
@@ -152,6 +184,8 @@ export interface FileRoutesByFullPath {
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/history': typeof AppHistoryRoute
   '/app/standup': typeof AppStandupRoute
+  '/auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/share/$token': typeof ShareTokenRoute
@@ -159,10 +193,13 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/public/$': typeof ApiPublicSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
+  '/api/workflows/email-digests': typeof ApiWorkflowsEmailDigestsRoute
   '/app/settings/api-docs': typeof AppSettingsApiDocsRoute
   '/app/settings/api-keys': typeof AppSettingsApiKeysRoute
   '/app/settings/billing': typeof AppSettingsBillingRoute
   '/app/settings/members': typeof AppSettingsMembersRoute
+  '/app/settings/notifications': typeof AppSettingsNotificationsRoute
+  '/app/settings/security': typeof AppSettingsSecurityRoute
   '/app/settings/teams': typeof AppSettingsTeamsRoute
   '/app/team/$teamId': typeof AppTeamTeamIdRoute
   '/app/settings/': typeof AppSettingsIndexRoute
@@ -175,6 +212,8 @@ export interface FileRoutesByTo {
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/history': typeof AppHistoryRoute
   '/app/standup': typeof AppStandupRoute
+  '/auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/share/$token': typeof ShareTokenRoute
@@ -182,10 +221,13 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/public/$': typeof ApiPublicSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
+  '/api/workflows/email-digests': typeof ApiWorkflowsEmailDigestsRoute
   '/app/settings/api-docs': typeof AppSettingsApiDocsRoute
   '/app/settings/api-keys': typeof AppSettingsApiKeysRoute
   '/app/settings/billing': typeof AppSettingsBillingRoute
   '/app/settings/members': typeof AppSettingsMembersRoute
+  '/app/settings/notifications': typeof AppSettingsNotificationsRoute
+  '/app/settings/security': typeof AppSettingsSecurityRoute
   '/app/settings/teams': typeof AppSettingsTeamsRoute
   '/app/team/$teamId': typeof AppTeamTeamIdRoute
   '/app/settings': typeof AppSettingsIndexRoute
@@ -200,6 +242,8 @@ export interface FileRoutesById {
   '/app/analytics': typeof AppAnalyticsRoute
   '/app/history': typeof AppHistoryRoute
   '/app/standup': typeof AppStandupRoute
+  '/auth/forgot-password': typeof AuthForgotPasswordRoute
+  '/auth/reset-password': typeof AuthResetPasswordRoute
   '/auth/sign-in': typeof AuthSignInRoute
   '/auth/sign-up': typeof AuthSignUpRoute
   '/share/$token': typeof ShareTokenRoute
@@ -207,10 +251,13 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/public/$': typeof ApiPublicSplatRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
+  '/api/workflows/email-digests': typeof ApiWorkflowsEmailDigestsRoute
   '/app/settings/api-docs': typeof AppSettingsApiDocsRoute
   '/app/settings/api-keys': typeof AppSettingsApiKeysRoute
   '/app/settings/billing': typeof AppSettingsBillingRoute
   '/app/settings/members': typeof AppSettingsMembersRoute
+  '/app/settings/notifications': typeof AppSettingsNotificationsRoute
+  '/app/settings/security': typeof AppSettingsSecurityRoute
   '/app/settings/teams': typeof AppSettingsTeamsRoute
   '/app/team/$teamId': typeof AppTeamTeamIdRoute
   '/app/settings/': typeof AppSettingsIndexRoute
@@ -226,6 +273,8 @@ export interface FileRouteTypes {
     | '/app/analytics'
     | '/app/history'
     | '/app/standup'
+    | '/auth/forgot-password'
+    | '/auth/reset-password'
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/share/$token'
@@ -233,10 +282,13 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/public/$'
     | '/api/trpc/$'
+    | '/api/workflows/email-digests'
     | '/app/settings/api-docs'
     | '/app/settings/api-keys'
     | '/app/settings/billing'
     | '/app/settings/members'
+    | '/app/settings/notifications'
+    | '/app/settings/security'
     | '/app/settings/teams'
     | '/app/team/$teamId'
     | '/app/settings/'
@@ -249,6 +301,8 @@ export interface FileRouteTypes {
     | '/app/analytics'
     | '/app/history'
     | '/app/standup'
+    | '/auth/forgot-password'
+    | '/auth/reset-password'
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/share/$token'
@@ -256,10 +310,13 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/public/$'
     | '/api/trpc/$'
+    | '/api/workflows/email-digests'
     | '/app/settings/api-docs'
     | '/app/settings/api-keys'
     | '/app/settings/billing'
     | '/app/settings/members'
+    | '/app/settings/notifications'
+    | '/app/settings/security'
     | '/app/settings/teams'
     | '/app/team/$teamId'
     | '/app/settings'
@@ -273,6 +330,8 @@ export interface FileRouteTypes {
     | '/app/analytics'
     | '/app/history'
     | '/app/standup'
+    | '/auth/forgot-password'
+    | '/auth/reset-password'
     | '/auth/sign-in'
     | '/auth/sign-up'
     | '/share/$token'
@@ -280,10 +339,13 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/public/$'
     | '/api/trpc/$'
+    | '/api/workflows/email-digests'
     | '/app/settings/api-docs'
     | '/app/settings/api-keys'
     | '/app/settings/billing'
     | '/app/settings/members'
+    | '/app/settings/notifications'
+    | '/app/settings/security'
     | '/app/settings/teams'
     | '/app/team/$teamId'
     | '/app/settings/'
@@ -295,12 +357,15 @@ export interface RootRouteChildren {
   PrivacyRoute: typeof PrivacyRoute
   TermsRoute: typeof TermsRoute
   ApiMcpRoute: typeof ApiMcpRoute
+  AuthForgotPasswordRoute: typeof AuthForgotPasswordRoute
+  AuthResetPasswordRoute: typeof AuthResetPasswordRoute
   AuthSignInRoute: typeof AuthSignInRoute
   AuthSignUpRoute: typeof AuthSignUpRoute
   ShareTokenRoute: typeof ShareTokenRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiPublicSplatRoute: typeof ApiPublicSplatRoute
   ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
+  ApiWorkflowsEmailDigestsRoute: typeof ApiWorkflowsEmailDigestsRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -361,6 +426,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AuthSignInRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/auth/reset-password': {
+      id: '/auth/reset-password'
+      path: '/auth/reset-password'
+      fullPath: '/auth/reset-password'
+      preLoaderRoute: typeof AuthResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/forgot-password': {
+      id: '/auth/forgot-password'
+      path: '/auth/forgot-password'
+      fullPath: '/auth/forgot-password'
+      preLoaderRoute: typeof AuthForgotPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/app/standup': {
       id: '/app/standup'
       path: '/standup'
@@ -410,6 +489,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsTeamsRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/app/settings/security': {
+      id: '/app/settings/security'
+      path: '/settings/security'
+      fullPath: '/app/settings/security'
+      preLoaderRoute: typeof AppSettingsSecurityRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/settings/notifications': {
+      id: '/app/settings/notifications'
+      path: '/settings/notifications'
+      fullPath: '/app/settings/notifications'
+      preLoaderRoute: typeof AppSettingsNotificationsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/app/settings/members': {
       id: '/app/settings/members'
       path: '/settings/members'
@@ -437,6 +530,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/app/settings/api-docs'
       preLoaderRoute: typeof AppSettingsApiDocsRouteImport
       parentRoute: typeof AppRouteRoute
+    }
+    '/api/workflows/email-digests': {
+      id: '/api/workflows/email-digests'
+      path: '/api/workflows/email-digests'
+      fullPath: '/api/workflows/email-digests'
+      preLoaderRoute: typeof ApiWorkflowsEmailDigestsRouteImport
+      parentRoute: typeof rootRouteImport
     }
     '/api/trpc/$': {
       id: '/api/trpc/$'
@@ -471,6 +571,8 @@ interface AppRouteRouteChildren {
   AppSettingsApiKeysRoute: typeof AppSettingsApiKeysRoute
   AppSettingsBillingRoute: typeof AppSettingsBillingRoute
   AppSettingsMembersRoute: typeof AppSettingsMembersRoute
+  AppSettingsNotificationsRoute: typeof AppSettingsNotificationsRoute
+  AppSettingsSecurityRoute: typeof AppSettingsSecurityRoute
   AppSettingsTeamsRoute: typeof AppSettingsTeamsRoute
   AppTeamTeamIdRoute: typeof AppTeamTeamIdRoute
   AppSettingsIndexRoute: typeof AppSettingsIndexRoute
@@ -485,6 +587,8 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppSettingsApiKeysRoute: AppSettingsApiKeysRoute,
   AppSettingsBillingRoute: AppSettingsBillingRoute,
   AppSettingsMembersRoute: AppSettingsMembersRoute,
+  AppSettingsNotificationsRoute: AppSettingsNotificationsRoute,
+  AppSettingsSecurityRoute: AppSettingsSecurityRoute,
   AppSettingsTeamsRoute: AppSettingsTeamsRoute,
   AppTeamTeamIdRoute: AppTeamTeamIdRoute,
   AppSettingsIndexRoute: AppSettingsIndexRoute,
@@ -500,12 +604,15 @@ const rootRouteChildren: RootRouteChildren = {
   PrivacyRoute: PrivacyRoute,
   TermsRoute: TermsRoute,
   ApiMcpRoute: ApiMcpRoute,
+  AuthForgotPasswordRoute: AuthForgotPasswordRoute,
+  AuthResetPasswordRoute: AuthResetPasswordRoute,
   AuthSignInRoute: AuthSignInRoute,
   AuthSignUpRoute: AuthSignUpRoute,
   ShareTokenRoute: ShareTokenRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiPublicSplatRoute: ApiPublicSplatRoute,
   ApiTrpcSplatRoute: ApiTrpcSplatRoute,
+  ApiWorkflowsEmailDigestsRoute: ApiWorkflowsEmailDigestsRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

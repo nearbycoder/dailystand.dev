@@ -16,7 +16,7 @@ const plans = [
 		id: "free",
 		price: "$0",
 		period: "/forever",
-		features: ["1 team", "5 members", "7-day history"],
+		features: ["1 team", "5 members", "7-day history", "MCP support"],
 	},
 	{
 		name: "PRO",
@@ -29,6 +29,7 @@ const plans = [
 			"15 members",
 			"90-day history",
 			"Basic analytics",
+			"MCP support",
 		],
 	},
 	{
@@ -41,6 +42,7 @@ const plans = [
 			"Unlimited members",
 			"Unlimited history",
 			"Advanced analytics",
+			"MCP support",
 			"Slack integration",
 			"Priority support",
 		],

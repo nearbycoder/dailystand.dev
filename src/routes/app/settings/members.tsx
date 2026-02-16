@@ -65,7 +65,7 @@ function MembersPage() {
 		if (result.error) {
 			setInviteError(result.error.message ?? "Failed to invite")
 		} else {
-			setInviteSuccess(`Invitation sent to ${email}`)
+			setInviteSuccess(`Invitation created for ${email}`)
 			setEmail("")
 			await queryClient.invalidateQueries()
 		}

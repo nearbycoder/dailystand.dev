@@ -1,19 +1,20 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { authClient } from "@/lib/auth-client";
-import { ThemeToggle } from "@/components/theme-toggle";
 import {
-	Check,
 	ArrowRight,
-	Terminal,
-	Users,
 	BarChart3,
-	Clock,
-	Shield,
-	Zap,
 	Bot,
+	Check,
+	Clock,
+	FileText,
 	Github,
 	Server,
+	Shield,
+	Terminal,
+	Users,
+	Zap,
 } from "lucide-react";
+import { ThemeToggle } from "@/components/theme-toggle";
+import { authClient } from "@/lib/auth-client";
 
 export const Route = createFileRoute("/")({
 	component: LandingPage,
@@ -62,6 +63,12 @@ const features = [
 		description:
 			"Use MCP tools with AI to generate and submit your daily standups automatically.",
 	},
+	{
+		icon: <FileText className="w-5 h-5" />,
+		title: "Markdown + CSV Exports",
+		description:
+			"Export standup history and analytics as Markdown for sharing or CSV for deeper analysis.",
+	},
 ];
 
 const plans = [
@@ -69,7 +76,7 @@ const plans = [
 		name: "FREE",
 		price: "$0",
 		period: "/forever",
-		features: ["1 team", "5 members", "7-day history"],
+		features: ["1 team", "5 members", "7-day history", "MCP support"],
 	},
 	{
 		name: "PRO",
@@ -81,6 +88,7 @@ const plans = [
 			"15 members",
 			"90-day history",
 			"Basic analytics",
+			"MCP support",
 		],
 	},
 	{
@@ -92,6 +100,7 @@ const plans = [
 			"Unlimited members",
 			"Unlimited history",
 			"Advanced analytics",
+			"MCP support",
 			"Slack integration (coming soon)",
 			"Linear integration (coming soon)",
 			"Priority support",
@@ -308,7 +317,9 @@ function LandingPage() {
 							TERMS
 						</Link>
 						<span className="text-ds-muted2 hidden sm:inline">|</span>
-						<span>&copy; {new Date().getFullYear()} // ALL RIGHTS RESERVED</span>
+						<span>
+							&copy; {new Date().getFullYear()} // ALL RIGHTS RESERVED
+						</span>
 					</div>
 				</div>
 			</footer>

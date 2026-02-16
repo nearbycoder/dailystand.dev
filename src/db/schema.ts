@@ -1,5 +1,6 @@
 import { relations } from "drizzle-orm";
 import {
+	boolean,
 	date,
 	index,
 	pgTable,
@@ -96,3 +97,50 @@ export const standupShareRelations = relations(standupShare, ({ one }) => ({
 		references: [organization.id],
 	}),
 }));
+
+export const emailDigestPreference = pgTable(
+	"email_digest_preference",
+	{
+		id: serial("id").primaryKey(),
+		userId: text("user_id")
+			.notNull()
+			.references(() => user.id, { onDelete: "cascade" }),
+		organizationId: text("organization_id")
+			.notNull()
+			.references(() => organization.id, { onDelete: "cascade" }),
+		enabled: boolean("enabled").default(false).notNull(),
+		cadence: text("cadence", { enum: ["weekly", "daily"] })
+			.default("weekly")
+			.notNull(),
+		timezone: text("timezone").default("UTC").notNull(),
+		lastDailySentAt: timestamp("last_daily_sent_at"),
+		lastWeeklySentAt: timestamp("last_weekly_sent_at"),
+		createdAt: timestamp("created_at").defaultNow().notNull(),
+		updatedAt: timestamp("updated_at")
+			.defaultNow()
+			.$onUpdate(() => new Date())
+			.notNull(),
+	},
+	(table) => [
+		uniqueIndex("email_digest_pref_user_org_uidx").on(
+			table.userId,
+			table.organizationId,
+		),
+		index("email_digest_pref_org_idx").on(table.organizationId),
+		index("email_digest_pref_enabled_idx").on(table.enabled),
+	],
+);
+
+export const emailDigestPreferenceRelations = relations(
+	emailDigestPreference,
+	({ one }) => ({
+		user: one(user, {
+			fields: [emailDigestPreference.userId],
+			references: [user.id],
+		}),
+		organization: one(organization, {
+			fields: [emailDigestPreference.organizationId],
+			references: [organization.id],
+		}),
+	}),
+);

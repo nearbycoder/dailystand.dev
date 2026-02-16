@@ -4,12 +4,20 @@ import { authClient } from "@/lib/auth-client"
 import { Terminal } from "lucide-react"
 
 export const Route = createFileRoute("/auth/sign-in")({
+	validateSearch: (search) => ({
+		invitationId:
+			typeof search.invitationId === "string"
+				? search.invitationId
+				: undefined,
+		email: typeof search.email === "string" ? search.email : undefined,
+	}),
 	component: SignIn,
 })
 
 function SignIn() {
 	const navigate = useNavigate()
-	const [email, setEmail] = useState("")
+	const search = Route.useSearch()
+	const [email, setEmail] = useState(search.email ?? "")
 	const [password, setPassword] = useState("")
 	const [error, setError] = useState("")
 	const [loading, setLoading] = useState(false)
@@ -25,6 +33,19 @@ function SignIn() {
 			setError(result.error.message ?? "Sign in failed")
 			setLoading(false)
 			return
+		}
+
+		if (search.invitationId) {
+			const inviteResult = await authClient.organization.acceptInvitation({
+				invitationId: search.invitationId,
+			})
+			if (inviteResult.error) {
+				setError(
+					inviteResult.error.message ?? "Signed in, but invite acceptance failed",
+				)
+				setLoading(false)
+				return
+			}
 		}
 
 		navigate({ to: "/app" })
@@ -47,6 +68,12 @@ function SignIn() {
 					<p className="text-sm text-ds-muted mb-8">
 						// authenticate to continue
 					</p>
+					{search.invitationId && (
+						<p className="mb-8 border border-ds-accent/50 bg-ds-accent/10 p-3 text-xs text-ds-accent">
+							You were invited to join a team. Sign in with the invited email
+							to accept access automatically.
+						</p>
+					)}
 
 					<form onSubmit={handleSubmit} className="space-y-6">
 						{error && (
@@ -78,6 +105,14 @@ function SignIn() {
 								required
 								className="w-full bg-ds-input-bg border-[3px] border-ds-muted3 px-4 py-3 text-ds-fg font-mono text-sm focus:border-ds-accent focus:outline-none transition-colors"
 							/>
+							<div className="mt-2 text-right">
+								<Link
+									to="/auth/forgot-password"
+									className="text-xs font-bold tracking-wider text-ds-muted transition-colors hover:text-ds-accent"
+								>
+									[FORGOT_PASSWORD?]
+								</Link>
+							</div>
 						</div>
 						<button
 							type="submit"
@@ -92,6 +127,10 @@ function SignIn() {
 						No account?{" "}
 						<Link
 							to="/auth/sign-up"
+							search={{
+								invitationId: search.invitationId,
+								email: search.email ?? email,
+							}}
 							className="text-ds-accent font-bold hover:underline"
 						>
 							[CREATE_ACCOUNT]

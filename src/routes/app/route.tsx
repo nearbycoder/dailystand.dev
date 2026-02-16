@@ -5,7 +5,7 @@ import {
 	useNavigate,
 } from "@tanstack/react-router"
 import { authClient } from "@/lib/auth-client"
-import { useState } from "react"
+import { useMemo, useState } from "react"
 import {
 	LayoutDashboard,
 	BarChart3,
@@ -190,7 +190,21 @@ function AppShell({
 	const navigate = useNavigate()
 	const trpc = useTRPC()
 	const { data: teams } = useQuery(trpc.teams.list.queryOptions())
+	const { data: orgMembers } = useQuery(trpc.org.listMembers.queryOptions())
 	const [mobileNavOpen, setMobileNavOpen] = useState(false)
+	const viewerId = session.user.id
+
+	const canViewAllTeams = useMemo(() => {
+		const currentMember = (orgMembers ?? []).find(
+			(member) => member.userId === viewerId,
+		)
+		if (!currentMember?.role) return false
+		const roleParts = currentMember.role
+			.split(",")
+			.map((part) => part.trim().toLowerCase())
+			.filter(Boolean)
+		return roleParts.includes("owner") || roleParts.includes("admin")
+	}, [orgMembers, viewerId])
 
 	const handleSignOut = async () => {
 		await authClient.signOut()
@@ -206,6 +220,8 @@ function AppShell({
 				<SidebarContent
 					session={session}
 					teams={teams}
+					viewerId={viewerId}
+					canViewAllTeams={canViewAllTeams}
 					onSignOut={handleSignOut}
 				/>
 			</aside>
@@ -240,6 +256,8 @@ function AppShell({
 							<SidebarContent
 								session={session}
 								teams={teams}
+								viewerId={viewerId}
+								canViewAllTeams={canViewAllTeams}
 								onSignOut={handleSignOut}
 								onNavigate={closeMobileNav}
 							/>
@@ -259,6 +277,8 @@ function AppShell({
 function SidebarContent({
 	session,
 	teams,
+	viewerId,
+	canViewAllTeams,
 	onSignOut,
 	onNavigate,
 }: {
@@ -267,11 +287,25 @@ function SidebarContent({
 		| {
 				id: string
 				name: string
+				members?: {
+					id: string
+					name: string
+					image: string | null
+				}[]
 		  }[]
 		| undefined
+	viewerId: string
+	canViewAllTeams: boolean
 	onSignOut: () => Promise<void>
 	onNavigate?: () => void
 }) {
+	const myTeams = useMemo(() => {
+		if (!teams || teams.length === 0) return []
+		return teams.filter((team) =>
+			team.members?.some((member) => member.id === viewerId),
+		)
+	}, [teams, viewerId])
+
 	return (
 		<div className="flex h-full min-h-0 flex-col">
 			<div className="border-b-[3px] border-ds-border-strong p-4">
@@ -308,14 +342,31 @@ function SidebarContent({
 					onNavigate={onNavigate}
 				/>
 
-				{teams && teams.length > 0 && (
+				{myTeams.length > 0 && (
 					<>
 						<div className="px-4 py-3 text-xs font-bold tracking-widest text-ds-muted2">
-							// TEAMS
+							// MY_TEAMS
+						</div>
+						{myTeams.map((team) => (
+							<NavLink
+								key={`my-${team.id}`}
+								to="/app/team/$teamId"
+								params={{ teamId: team.id }}
+								icon={Users}
+								label={team.name.toUpperCase()}
+								onNavigate={onNavigate}
+							/>
+						))}
+					</>
+				)}
+				{canViewAllTeams && teams && teams.length > 0 && (
+					<>
+						<div className="px-4 py-3 text-xs font-bold tracking-widest text-ds-muted2">
+							// ALL_TEAMS
 						</div>
 						{teams.map((team) => (
 							<NavLink
-								key={team.id}
+								key={`all-${team.id}`}
 								to="/app/team/$teamId"
 								params={{ teamId: team.id }}
 								icon={Users}

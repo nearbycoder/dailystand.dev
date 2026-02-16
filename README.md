@@ -21,6 +21,7 @@ Open source, self-hostable async standups for modern teams.
 - API keys (with expiring or non-expiring tokens)
 - Public REST API (`/api/public/v1/*`)
 - MCP server (`/api/mcp`) authenticated by API key
+- React Email + Resend digest workflows (daily/weekly, plan-aware)
 - Organization/team/member management UI (including search/filter/pagination on members)
 - Stripe-backed billing (optional) via Better Auth Stripe plugin
 - Landing page messaging for MCP+AI workflows and open-source/self-hosted deployment
@@ -53,6 +54,7 @@ Limits are enforced across:
 - [Drizzle ORM](https://orm.drizzle.team) + PostgreSQL
 - [Better Auth](https://www.better-auth.com) (organization, API key, Stripe plugins)
 - [Stripe](https://stripe.com) (optional, for paid plans)
+- [Sentry](https://sentry.io) (optional monitoring + tracing)
 - [Tailwind CSS v4](https://tailwindcss.com)
 - [Sonner](https://sonner.emilkowal.ski/) for toasts
 
@@ -75,6 +77,19 @@ BETTER_AUTH_SECRET=your-secret-here
 BETTER_AUTH_TRUSTED_ORIGINS=http://localhost:3000
 ALLOWED_HOSTS=localhost,127.0.0.1
 API_ALLOWED_ORIGINS=http://localhost:3000
+RESET_PASSWORD_TOKEN_EXPIRES_IN=3600
+RESEND_API_KEY=re_...
+RESEND_FROM_EMAIL=DailyStand <no-reply@your-domain.com>
+EMAIL_DIGEST_WORKFLOW_SECRET=replace-with-random-secret
+
+# Optional: enable Sentry
+VITE_SENTRY_DSN=https://...@o0.ingest.sentry.io/0
+SENTRY_DSN=https://...@o0.ingest.sentry.io/0
+VITE_SENTRY_TRACES_SAMPLE_RATE=0.1
+SENTRY_TRACES_SAMPLE_RATE=0.1
+SENTRY_AUTH_TOKEN=
+SENTRY_ORG=
+SENTRY_PROJECT=
 
 # Optional: enable billing
 STRIPE_SECRET_KEY=sk_test_...
@@ -92,7 +107,11 @@ bunx --bun @better-auth/cli secret
 Notes:
 
 - Stripe is optional. If Stripe env vars are missing, billing flows are disabled.
-- Dev host allowlist currently includes `43c61fda6a66.ngrok.app` in Vite and Better Auth config.
+- If `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are set, invite and password reset emails are sent via Resend.
+- If Resend env vars are missing, invite/reset links are not emailed and are logged server-side for local development.
+- `EMAIL_DIGEST_WORKFLOW_SECRET` secures the digest workflow endpoint (`/api/workflows/email-digests`).
+- Sentry is optional. Client + server instrumentation is enabled when DSN env vars are configured.
+- Source map upload is enabled only when `SENTRY_AUTH_TOKEN`, `SENTRY_ORG`, and `SENTRY_PROJECT` are provided.
 
 ### 3) Push schema
 
@@ -195,14 +214,46 @@ Includes:
 
 Exports honor plan history limits.
 
+## Email digest workflows
+
+- User settings: `/app/settings/notifications`
+- Free plan: weekly digest only
+- Pro/Business: users can opt in and choose daily or weekly
+- Emails are rendered with React Email and sent via Resend
+
+Run manually:
+
+```bash
+bun run workflow:email-digests
+bun run workflow:email-digests daily
+bun run workflow:email-digests weekly
+```
+
+Trigger via workflow endpoint:
+
+```bash
+curl -X POST http://localhost:3000/api/workflows/email-digests \
+  -H "x-workflow-secret: $EMAIL_DIGEST_WORKFLOW_SECRET" \
+  -H "content-type: application/json" \
+  -d '{"cadence":"all"}'
+```
+
+## Sentry
+
+- SDK: `@sentry/tanstackstart-react`
+- Client init is wired in `src/router.tsx`
+- Server instrumentation is in `instrument.server.mjs` and loaded via `NODE_OPTIONS`
+- Server entry is wrapped in `src/server.ts` with `wrapFetchWithSentry`
+- Vite plugin `sentryTanstackStart` is enabled only when org/project/auth token env vars are present
+
 ## Scripts
 
 | Command | Description |
 |---|---|
-| `bun run dev` | Start dev server on port 3000 |
-| `bun run build` | Build for production |
+| `bun run dev` | Start dev server on port 3000 (loads `instrument.server.mjs`) |
+| `bun run build` | Build for production and copy server instrumentation file |
 | `bun run preview` | Preview production build |
-| `bun run start` | Start production server |
+| `bun run start` | Start production server with Sentry instrumentation import |
 | `bun run test` | Run tests |
 | `bun run lint` | Lint with Biome |
 | `bun run format` | Format with Biome |
@@ -213,6 +264,7 @@ Exports honor plan history limits.
 | `bun run db:pull` | Pull schema from DB |
 | `bun run db:studio` | Open Drizzle Studio |
 | `bun run db:seed` | Reset and seed DB |
+| `bun run workflow:email-digests` | Run daily+weekly digest workflows |
 
 ## Key routes
 

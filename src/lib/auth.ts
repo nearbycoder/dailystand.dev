@@ -8,6 +8,7 @@ import { and, eq } from "drizzle-orm";
 import Stripe from "stripe";
 import { db } from "@/db";
 import { member } from "@/db/schema";
+import { sendInviteEmail, sendPasswordResetEmail } from "@/lib/email";
 import {
 	countOrganizationMembers,
 	countTeamMembers,
@@ -18,6 +19,11 @@ import {
 
 const stripeSecretKey = process.env.STRIPE_SECRET_KEY;
 const stripeWebhookSecret = process.env.STRIPE_WEBHOOK_SECRET;
+const resetPasswordTokenExpiresInSeconds = (() => {
+	const value = Number(process.env.RESET_PASSWORD_TOKEN_EXPIRES_IN ?? "3600");
+	if (!Number.isFinite(value) || value <= 0) return 3600;
+	return Math.floor(value);
+})();
 
 function parseCsvEnv(value?: string): string[] {
 	return (value ?? "")
@@ -161,6 +167,19 @@ export const auth = betterAuth({
 	trustedOrigins,
 	emailAndPassword: {
 		enabled: true,
+		resetPasswordTokenExpiresIn: resetPasswordTokenExpiresInSeconds,
+		sendResetPassword: async ({ user, url }) => {
+			try {
+				await sendPasswordResetEmail({
+					to: user.email,
+					userName: user.name,
+					resetUrl: url,
+				});
+			} catch (error) {
+				console.error("[AUTH] Failed to send reset password email", error);
+				console.info(`[AUTH] Password reset requested for ${user.email}: ${url}`);
+			}
+		},
 	},
 	plugins: [
 		tanstackStartCookies(),
@@ -183,6 +202,23 @@ export const auth = betterAuth({
 					if (resolved.limits.members < 0) return Number.MAX_SAFE_INTEGER;
 					return resolved.limits.members;
 				},
+			},
+			sendInvitationEmail: async (data, request) => {
+				try {
+					await sendInviteEmail({
+						invitationId: data.id,
+						to: data.email,
+						organizationName: data.organization.name,
+						inviterName: data.inviter.user.name ?? data.inviter.user.email,
+						role: data.role,
+						request,
+					});
+				} catch (error) {
+					console.error("[AUTH] Failed to send invitation email", error);
+					console.info(
+						`[AUTH] Invite created for ${data.email}. Invitation ID: ${data.id}`,
+					);
+				}
 			},
 			organizationHooks: {
 				beforeCreateInvitation: async ({ invitation, inviter }) => {

@@ -4,13 +4,21 @@ import { authClient } from "@/lib/auth-client"
 import { Terminal } from "lucide-react"
 
 export const Route = createFileRoute("/auth/sign-up")({
+	validateSearch: (search) => ({
+		invitationId:
+			typeof search.invitationId === "string"
+				? search.invitationId
+				: undefined,
+		email: typeof search.email === "string" ? search.email : undefined,
+	}),
 	component: SignUp,
 })
 
 function SignUp() {
 	const navigate = useNavigate()
+	const search = Route.useSearch()
 	const [name, setName] = useState("")
-	const [email, setEmail] = useState("")
+	const [email, setEmail] = useState(search.email ?? "")
 	const [password, setPassword] = useState("")
 	const [error, setError] = useState("")
 	const [loading, setLoading] = useState(false)
@@ -26,6 +34,19 @@ function SignUp() {
 			setError(result.error.message ?? "Sign up failed")
 			setLoading(false)
 			return
+		}
+
+		if (search.invitationId) {
+			const inviteResult = await authClient.organization.acceptInvitation({
+				invitationId: search.invitationId,
+			})
+			if (inviteResult.error) {
+				setError(
+					inviteResult.error.message ?? "Account created, but invite acceptance failed",
+				)
+				setLoading(false)
+				return
+			}
 		}
 
 		navigate({ to: "/app" })
@@ -48,6 +69,12 @@ function SignUp() {
 					<p className="text-sm text-ds-muted mb-8">
 						// start running standups with your team
 					</p>
+					{search.invitationId && (
+						<p className="mb-8 border border-ds-accent/50 bg-ds-accent/10 p-3 text-xs text-ds-accent">
+							Invitation detected. Create an account with the invited email and
+							we will accept the invite automatically.
+						</p>
+					)}
 
 					<form onSubmit={handleSubmit} className="space-y-6">
 						{error && (
@@ -108,6 +135,10 @@ function SignUp() {
 						Have an account?{" "}
 						<Link
 							to="/auth/sign-in"
+							search={{
+								invitationId: search.invitationId,
+								email: search.email ?? email,
+							}}
 							className="text-ds-accent font-bold hover:underline"
 						>
 							[SIGN_IN]

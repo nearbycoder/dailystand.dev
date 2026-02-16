@@ -1,4 +1,5 @@
 import { fileURLToPath, URL } from "node:url";
+import { sentryTanstackStart } from "@sentry/tanstackstart-react";
 import tailwindcss from "@tailwindcss/vite";
 import { devtools } from "@tanstack/devtools-vite";
 import { tanstackStart } from "@tanstack/react-start/plugin/vite";
@@ -13,6 +14,9 @@ const config = defineConfig(({ mode }) => {
 		.split(",")
 		.map((value) => value.trim())
 		.filter(Boolean);
+	const hasSentryVitePluginConfig = Boolean(
+		env.SENTRY_AUTH_TOKEN && env.SENTRY_ORG && env.SENTRY_PROJECT,
+	);
 
 	return {
 		...(allowedHosts.length > 0 ? { server: { allowedHosts } } : {}),
@@ -31,6 +35,15 @@ const config = defineConfig(({ mode }) => {
 			tailwindcss(),
 			tanstackStart(),
 			viteReact(),
+			...(hasSentryVitePluginConfig
+				? [
+						sentryTanstackStart({
+							authToken: env.SENTRY_AUTH_TOKEN,
+							org: env.SENTRY_ORG,
+							project: env.SENTRY_PROJECT,
+						}),
+					]
+				: []),
 		],
 	};
 });

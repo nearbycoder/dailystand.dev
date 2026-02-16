@@ -21,3 +21,4 @@ todos.json
 .cta.json
 playwright-report
 test-results
+playwright/.auth

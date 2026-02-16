@@ -239,9 +239,9 @@ function NotFound() {
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
-	const runtimePublicEnv = readServerRuntimePublicEnv();
+	const runtimePublicEnv = readRuntimePublicEnv();
 	const runtimePublicEnvScript = `window.__DS_PUBLIC_ENV__ = ${serializeInlineRuntimeEnv(runtimePublicEnv)};`;
-	const posthogRuntimeEnv = readRuntimePublicEnv();
+	const posthogRuntimeEnv = runtimePublicEnv;
 	const posthogApiKey = posthogRuntimeEnv.VITE_PUBLIC_POSTHOG_KEY;
 	const posthogApiHost =
 		posthogRuntimeEnv.VITE_PUBLIC_POSTHOG_HOST || "https://us.i.posthog.com";

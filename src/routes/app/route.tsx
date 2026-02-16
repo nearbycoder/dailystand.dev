@@ -58,12 +58,21 @@ function AppLayout() {
 	const { data: session, isPending } = authClient.useSession();
 	const navigate = useNavigate();
 	const [isHydrated, setIsHydrated] = useState(false);
+	const shouldRedirectToSignIn = isHydrated && !isPending && !session?.user;
 
 	useEffect(() => {
 		setIsHydrated(true);
 	}, []);
 
-	if (!isHydrated || isPending) {
+	useEffect(() => {
+		if (!shouldRedirectToSignIn) return;
+		void navigate({
+			to: "/auth/sign-in",
+			search: { invitationId: undefined, email: undefined },
+		});
+	}, [navigate, shouldRedirectToSignIn]);
+
+	if (!isHydrated || isPending || shouldRedirectToSignIn) {
 		return (
 			<div className="min-h-screen bg-ds-bg text-ds-fg font-mono flex items-center justify-center">
 				<span className="text-ds-accent animate-pulse">LOADING...</span>
@@ -72,11 +81,11 @@ function AppLayout() {
 	}
 
 	if (!session?.user) {
-		navigate({
-			to: "/auth/sign-in",
-			search: { invitationId: undefined, email: undefined },
-		});
-		return null;
+		return (
+			<div className="min-h-screen bg-ds-bg text-ds-fg font-mono flex items-center justify-center">
+				<span className="text-ds-accent animate-pulse">LOADING...</span>
+			</div>
+		);
 	}
 
 	const activeOrgId = session.session.activeOrganizationId;

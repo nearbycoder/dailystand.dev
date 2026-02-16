@@ -48,7 +48,7 @@ function DocsShell() {
 	return (
 		<div className="min-h-screen bg-ds-bg text-ds-fg font-mono selection:bg-ds-selection-bg selection:text-ds-selection-fg">
 			<header className="border-b-[3px] border-ds-border-strong">
-				<div className="mx-auto flex w-full max-w-[1500px] flex-wrap items-center gap-3 px-4 py-3 sm:px-6">
+				<div className="mx-auto flex w-full max-w-[1500px] flex-col gap-3 px-4 py-3 sm:flex-row sm:items-center sm:px-6">
 					<div className="flex items-center gap-2">
 						<Terminal className="h-5 w-5 text-ds-accent" />
 						<span className="text-lg font-extrabold tracking-tighter">
@@ -58,7 +58,7 @@ function DocsShell() {
 							// PUBLIC API + MCP
 						</span>
 					</div>
-					<div className="ml-auto flex items-center gap-2">
+					<div className="flex flex-wrap items-center gap-2 sm:ml-auto sm:flex-nowrap">
 						<Link
 							to="/"
 							className="border-[2px] border-ds-border px-2 py-1 text-[10px] font-extrabold tracking-widest text-ds-text-tertiary transition-colors hover:border-ds-accent hover:text-ds-accent sm:px-3"
@@ -75,7 +75,7 @@ function DocsShell() {
 					</div>
 				</div>
 				<div className="mx-auto w-full max-w-[1500px] border-t-[3px] border-ds-border px-4 py-3 sm:px-6">
-					<div className="grid grid-cols-1 gap-2 lg:grid-cols-[220px_minmax(0,1fr)_auto_auto] lg:items-center">
+					<div className="grid grid-cols-1 gap-2 md:grid-cols-2 lg:grid-cols-[220px_minmax(0,1fr)_auto_auto] lg:items-center">
 						<div className="text-[10px] font-bold tracking-widest text-ds-muted2">
 							// REQUEST AUTH CONTEXT
 						</div>
@@ -106,11 +106,11 @@ function DocsShell() {
 						<button
 							type="button"
 							onClick={() => setApiKey("")}
-							className="border-[3px] border-ds-border bg-transparent px-3 py-2 text-xs font-extrabold tracking-widest text-ds-text-tertiary transition-colors hover:border-ds-accent hover:text-ds-accent"
+							className="w-full border-[3px] border-ds-border bg-transparent px-3 py-2 text-xs font-extrabold tracking-widest text-ds-text-tertiary transition-colors hover:border-ds-accent hover:text-ds-accent md:w-auto"
 						>
 							CLEAR_KEY
 						</button>
-						<div className="truncate text-[10px] font-bold tracking-widest text-ds-muted2 sm:text-right">
+						<div className="break-all text-[10px] font-bold tracking-widest text-ds-muted2 md:text-right lg:break-normal lg:truncate">
 							BASE: {baseUrl}/api/public/v1
 						</div>
 					</div>
@@ -128,15 +128,15 @@ function DocsShell() {
 							Traditional API docs flow with live explorer support.
 						</p>
 					</div>
-					<nav className="flex gap-2 overflow-x-auto p-3 lg:block lg:space-y-0 lg:overflow-visible lg:p-4">
+					<nav className="grid grid-cols-1 gap-2 p-3 sm:grid-cols-2 lg:block lg:space-y-0 lg:p-4">
 						{docsNavItems.map((item) => (
 							<Link
 								key={item.to}
 								to={item.to}
-								className="block min-w-[175px] shrink-0 border-[3px] border-ds-border p-3 transition-colors hover:border-ds-accent hover:bg-ds-accent/5 lg:mb-2 lg:min-w-0"
+								className="block border-[3px] border-ds-border p-3 transition-colors hover:border-ds-accent hover:bg-ds-accent/5 lg:mb-2"
 								activeProps={{
 									className:
-										"block min-w-[175px] shrink-0 border-[3px] border-ds-accent bg-ds-accent/10 p-3 lg:mb-2 lg:min-w-0",
+										"block border-[3px] border-ds-accent bg-ds-accent/10 p-3 lg:mb-2",
 								}}
 							>
 								<div className="text-xs font-extrabold tracking-widest">

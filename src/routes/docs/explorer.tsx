@@ -201,11 +201,11 @@ function DocsExplorerPage() {
 			</section>
 
 			<section className="border-[3px] border-ds-border p-4 sm:p-5">
-				<div className="mb-4 flex flex-wrap gap-2">
+				<div className="mb-4 grid grid-cols-2 gap-2 sm:flex sm:flex-wrap">
 					<button
 						type="button"
 						onClick={() => setMode("rest")}
-						className={`border-[3px] px-3 py-2 text-xs font-extrabold tracking-widest ${
+						className={`w-full border-[3px] px-3 py-2 text-xs font-extrabold tracking-widest sm:w-auto ${
 							mode === "rest"
 								? "border-ds-accent bg-ds-accent/10 text-ds-accent"
 								: "border-ds-border text-ds-text-tertiary hover:border-ds-accent hover:text-ds-accent"
@@ -216,7 +216,7 @@ function DocsExplorerPage() {
 					<button
 						type="button"
 						onClick={() => setMode("mcp")}
-						className={`border-[3px] px-3 py-2 text-xs font-extrabold tracking-widest ${
+						className={`w-full border-[3px] px-3 py-2 text-xs font-extrabold tracking-widest sm:w-auto ${
 							mode === "mcp"
 								? "border-ds-accent bg-ds-accent/10 text-ds-accent"
 								: "border-ds-border text-ds-text-tertiary hover:border-ds-accent hover:text-ds-accent"
@@ -296,12 +296,12 @@ function DocsExplorerPage() {
 								<button
 									type="button"
 									onClick={() => void copyText(restResponse.body)}
-									className="absolute right-3 top-3 inline-flex items-center gap-1 border-[2px] border-ds-border px-2 py-1 text-[10px] font-extrabold tracking-widest text-ds-text-tertiary transition-colors hover:border-ds-accent hover:text-ds-accent"
+									className="mb-2 inline-flex items-center gap-1 border-[2px] border-ds-border px-2 py-1 text-[10px] font-extrabold tracking-widest text-ds-text-tertiary transition-colors hover:border-ds-accent hover:text-ds-accent sm:absolute sm:right-3 sm:top-3 sm:mb-0"
 								>
 									<Copy className="h-3 w-3" />
 									COPY
 								</button>
-								<pre className="max-h-[420px] overflow-auto border-[2px] border-ds-border bg-ds-surface p-4 pr-4 text-[11px] leading-relaxed text-ds-fg sm:pr-20 sm:text-xs">
+								<pre className="max-h-[420px] overflow-auto border-[2px] border-ds-border bg-ds-surface p-4 text-[11px] leading-relaxed text-ds-fg sm:pr-20 sm:text-xs">
 									{restResponse.body}
 								</pre>
 							</div>
@@ -404,12 +404,12 @@ function DocsExplorerPage() {
 								<button
 									type="button"
 									onClick={() => void copyText(mcpResponse.body)}
-									className="absolute right-3 top-3 inline-flex items-center gap-1 border-[2px] border-ds-border px-2 py-1 text-[10px] font-extrabold tracking-widest text-ds-text-tertiary transition-colors hover:border-ds-accent hover:text-ds-accent"
+									className="mb-2 inline-flex items-center gap-1 border-[2px] border-ds-border px-2 py-1 text-[10px] font-extrabold tracking-widest text-ds-text-tertiary transition-colors hover:border-ds-accent hover:text-ds-accent sm:absolute sm:right-3 sm:top-3 sm:mb-0"
 								>
 									<Copy className="h-3 w-3" />
 									COPY
 								</button>
-								<pre className="max-h-[420px] overflow-auto border-[2px] border-ds-border bg-ds-surface p-4 pr-4 text-[11px] leading-relaxed text-ds-fg sm:pr-20 sm:text-xs">
+								<pre className="max-h-[420px] overflow-auto border-[2px] border-ds-border bg-ds-surface p-4 text-[11px] leading-relaxed text-ds-fg sm:pr-20 sm:text-xs">
 									{mcpResponse.body}
 								</pre>
 							</div>

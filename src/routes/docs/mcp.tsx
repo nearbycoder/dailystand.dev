@@ -122,12 +122,12 @@ function DocsMcpPage() {
 								<button
 									type="button"
 									onClick={() => void copySnippet(curl)}
-									className="absolute right-3 top-3 inline-flex items-center gap-1 border-[2px] border-ds-border px-2 py-1 text-[10px] font-extrabold tracking-widest text-ds-text-tertiary transition-colors hover:border-ds-accent hover:text-ds-accent"
+									className="mb-2 inline-flex items-center gap-1 border-[2px] border-ds-border px-2 py-1 text-[10px] font-extrabold tracking-widest text-ds-text-tertiary transition-colors hover:border-ds-accent hover:text-ds-accent sm:absolute sm:right-3 sm:top-3 sm:mb-0"
 								>
 									<Copy className="h-3 w-3" />
 									COPY
 								</button>
-								<pre className="overflow-x-auto border-[2px] border-ds-border bg-ds-surface p-4 pr-4 text-[11px] leading-relaxed text-ds-fg sm:pr-20 sm:text-xs">
+								<pre className="overflow-x-auto border-[2px] border-ds-border bg-ds-surface p-4 text-[11px] leading-relaxed text-ds-fg sm:pr-20 sm:text-xs">
 									{curl}
 								</pre>
 							</div>

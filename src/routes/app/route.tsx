@@ -125,45 +125,51 @@ function OrgSetup() {
 	};
 
 	return (
-		<div className="min-h-screen bg-ds-bg text-ds-fg selection:bg-ds-selection-bg selection:text-ds-selection-fg font-mono flex items-center justify-center p-4 sm:p-6">
+		<div className="min-h-screen bg-ds-bg text-ds-fg selection:bg-ds-selection-bg selection:text-ds-selection-fg font-mono flex items-start justify-center p-4 py-6 sm:items-center sm:p-6">
 			<div className="w-full max-w-md">
-				<div className="mb-8 flex items-center gap-3 sm:mb-10">
+				<div className="mb-6 flex items-center gap-3 sm:mb-10">
 					<Terminal className="w-6 h-6 text-ds-accent" />
 					<span className="text-xl font-extrabold tracking-tighter">
 						DAILYSTAND
 					</span>
 				</div>
 
-				<div className="border-[3px] border-ds-border-strong p-6 sm:p-8">
+				<div className="border-[3px] border-ds-border-strong p-4 sm:p-8">
 					<h1 className="mb-2 text-2xl font-extrabold tracking-tighter">
 						{hasOrganizations ? "SELECT_ORG" : "CREATE_ORG"}
 					</h1>
-					<p className="mb-8 text-sm text-ds-muted">// set up your workspace</p>
+					<p className="mb-6 text-sm text-ds-muted">// set up your workspace</p>
 
 					{hasOrganizations && (
-						<div className="space-y-2 mb-8">
-							{organizations.map((org) => (
-								<button
-									key={org.id}
-									onClick={() => handleSelect(org.id)}
-									className="w-full flex items-center gap-3 p-3 border-[3px] border-ds-muted3 hover:border-ds-accent hover:bg-ds-accent/5 transition-all text-left"
-								>
-									<div className="w-8 h-8 bg-ds-accent text-ds-accent-fg flex items-center justify-center font-extrabold text-sm">
-										{org.name.charAt(0)}
-									</div>
-									<div>
-										<div className="font-bold text-sm">{org.name}</div>
-										<div className="text-ds-muted text-xs">{org.slug}</div>
-									</div>
-								</button>
-							))}
+						<div className="mb-6 space-y-2">
+							<div className="max-h-[42vh] space-y-2 overflow-y-auto pr-1">
+								{organizations.map((org) => (
+									<button
+										key={org.id}
+										onClick={() => handleSelect(org.id)}
+										className="flex w-full items-center gap-3 border-[3px] border-ds-muted3 p-3 text-left transition-all hover:border-ds-accent hover:bg-ds-accent/5 sm:p-3.5"
+									>
+										<div className="flex h-8 w-8 shrink-0 items-center justify-center bg-ds-accent text-sm font-extrabold text-ds-accent-fg">
+											{org.name.charAt(0)}
+										</div>
+										<div className="min-w-0">
+											<div className="truncate text-sm font-bold">
+												{org.name}
+											</div>
+											<div className="truncate text-xs text-ds-muted">
+												{org.slug}
+											</div>
+										</div>
+									</button>
+								))}
+							</div>
 							<div className="text-center text-ds-muted2 text-xs font-bold tracking-widest py-4">
 								// OR CREATE NEW
 							</div>
 						</div>
 					)}
 
-					<form onSubmit={handleCreate} className="space-y-6">
+					<form onSubmit={handleCreate} className="space-y-4 sm:space-y-6">
 						{error && (
 							<div className="border-[3px] border-red-500 bg-red-500/10 p-3 text-red-400 text-sm font-bold">
 								ERROR: {error}

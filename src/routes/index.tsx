@@ -190,47 +190,52 @@ function LandingPage() {
 				}}
 			/>
 			{/* Nav */}
-			<header className="border-b-[3px] border-ds-border-strong p-3 sm:p-4">
-				<div className="mx-auto flex max-w-6xl flex-wrap items-center justify-between gap-3">
-					<div className="flex items-center gap-3">
-						<Terminal className="w-6 h-6 text-ds-accent" />
-						<span className="text-xl font-extrabold tracking-tighter">
-							DAILYSTAND
-						</span>
-					</div>
-					<div className="ml-auto flex items-center gap-2 sm:gap-4">
-						<ThemeToggle />
-						<Link to="/docs">
-							<button className="text-sm font-bold tracking-wider text-ds-text-tertiary transition-colors hover:text-ds-accent">
-								[DOCS]
-							</button>
-						</Link>
-						{isLoggedIn ? (
-							<Link to="/app">
-								<button className="border-[3px] border-ds-accent bg-ds-accent px-3 py-2 text-sm font-bold tracking-wider text-ds-accent-fg transition-all duration-150 hover:bg-ds-accent-hover sm:px-6">
-									DASHBOARD &rarr;
+				<header className="border-b-[3px] border-ds-border-strong p-3 sm:p-4">
+					<div className="mx-auto flex max-w-6xl flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+						<div className="flex items-center justify-between gap-3">
+							<Terminal className="w-6 h-6 text-ds-accent" />
+							<span className="text-xl font-extrabold tracking-tighter">
+								DAILYSTAND
+							</span>
+							<div className="ml-auto sm:hidden">
+								<ThemeToggle />
+							</div>
+						</div>
+						<div className="flex flex-wrap items-center gap-2 sm:ml-auto sm:flex-nowrap sm:gap-4">
+							<div className="hidden sm:block">
+								<ThemeToggle />
+							</div>
+							<Link to="/docs">
+								<button className="whitespace-nowrap text-sm font-bold tracking-wider text-ds-text-tertiary transition-colors hover:text-ds-accent">
+									[DOCS]
 								</button>
 							</Link>
-						) : (
-							<>
+							{isLoggedIn ? (
+								<Link to="/app">
+									<button className="w-full whitespace-nowrap border-[3px] border-ds-accent bg-ds-accent px-3 py-2 text-sm font-bold tracking-wider text-ds-accent-fg transition-all duration-150 hover:bg-ds-accent-hover sm:w-auto sm:px-6">
+										DASHBOARD &rarr;
+									</button>
+								</Link>
+							) : (
+								<>
 								<Link
 									to="/auth/sign-in"
 									search={{ invitationId: undefined, email: undefined }}
 								>
-									<button className="text-sm font-bold tracking-wider text-ds-text-tertiary transition-colors hover:text-ds-fg">
-										[SIGN_IN]
-									</button>
-								</Link>
-								<Link
-									to="/auth/sign-up"
-									search={{ invitationId: undefined, email: undefined }}
-								>
-									<button className="border-[3px] border-ds-border-strong px-3 py-2 text-sm font-bold tracking-wider transition-all duration-150 hover:bg-ds-border-strong hover:text-ds-bg sm:px-6">
-										GET_STARTED
-									</button>
-								</Link>
-							</>
-						)}
+										<button className="whitespace-nowrap text-sm font-bold tracking-wider text-ds-text-tertiary transition-colors hover:text-ds-fg">
+											[SIGN_IN]
+										</button>
+									</Link>
+									<Link
+										to="/auth/sign-up"
+										search={{ invitationId: undefined, email: undefined }}
+									>
+										<button className="w-full whitespace-nowrap border-[3px] border-ds-border-strong px-3 py-2 text-sm font-bold tracking-wider transition-all duration-150 hover:bg-ds-border-strong hover:text-ds-bg sm:w-auto sm:px-6">
+											GET_STARTED
+										</button>
+									</Link>
+								</>
+							)}
 					</div>
 				</div>
 			</header>

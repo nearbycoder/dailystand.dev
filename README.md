@@ -148,6 +148,10 @@ Notes:
 bun run db:push
 ```
 
+Important:
+
+- Commit and push Drizzle artifacts (`drizzle/*.sql`, `drizzle/meta/*`, `drizzle.config.ts`) with schema changes. Deploy environments cannot run migrations without them.
+
 ### 4) Seed data (optional)
 
 ```bash
@@ -356,6 +360,7 @@ bun run test:e2e
 
 - Dockerfile: `Dockerfile`
 - Built image runs `bun run start` and exposes port `3000`
+- Runtime image also includes `drizzle/`, `drizzle.config.ts`, and `src/db/` so `bun run db:migrate` / `bun run db:push` can run in deployment environments.
 
 ## Key routes
 

@@ -3,10 +3,29 @@ import { createRouter as createTanStackRouter } from "@tanstack/react-router";
 import { getContext } from "./integrations/tanstack-query/root-provider";
 import { routeTree } from "./routeTree.gen";
 
+type RuntimePublicEnv = {
+	VITE_SENTRY_DSN?: string;
+	VITE_SENTRY_TRACES_SAMPLE_RATE?: string;
+	VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE?: string;
+	VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE?: string;
+	VITE_SENTRY_SEND_DEFAULT_PII?: string;
+	VITE_SENTRY_ENABLE_IN_DEV?: string;
+};
+
 function parseRate(value: string | undefined, fallback: number) {
 	const parsed = Number(value);
 	if (!Number.isFinite(parsed)) return fallback;
 	return Math.max(0, Math.min(1, parsed));
+}
+
+function readRuntimePublicEnv(): RuntimePublicEnv {
+	if (typeof window === "undefined") {
+		return {};
+	}
+	return (
+		(window as Window & { __DS_PUBLIC_ENV__?: RuntimePublicEnv })
+			.__DS_PUBLIC_ENV__ ?? {}
+	);
 }
 
 export function getRouter() {
@@ -20,26 +39,41 @@ export function getRouter() {
 		defaultPreloadStaleTime: 0,
 	});
 
+	const runtimeEnv = readRuntimePublicEnv();
+	const sentryDsn = runtimeEnv.VITE_SENTRY_DSN ?? import.meta.env.VITE_SENTRY_DSN;
+	const sentryEnableInDev =
+		runtimeEnv.VITE_SENTRY_ENABLE_IN_DEV ??
+		import.meta.env.VITE_SENTRY_ENABLE_IN_DEV;
+	const sentryTracesSampleRate =
+		runtimeEnv.VITE_SENTRY_TRACES_SAMPLE_RATE ??
+		import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE;
+	const sentryReplaysSessionSampleRate =
+		runtimeEnv.VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE ??
+		import.meta.env.VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE;
+	const sentryReplaysOnErrorSampleRate =
+		runtimeEnv.VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE ??
+		import.meta.env.VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE;
+	const sentrySendDefaultPii =
+		runtimeEnv.VITE_SENTRY_SEND_DEFAULT_PII ??
+		import.meta.env.VITE_SENTRY_SEND_DEFAULT_PII;
+
 	if (
 		!router.isServer &&
-		import.meta.env.VITE_SENTRY_DSN &&
+		sentryDsn &&
 		!Sentry.getClient()
 	) {
 		const replaysSessionSampleRate = parseRate(
-			import.meta.env.VITE_SENTRY_REPLAYS_SESSION_SAMPLE_RATE,
+			sentryReplaysSessionSampleRate,
 			0,
 		);
 		const replaysOnErrorSampleRate = parseRate(
-			import.meta.env.VITE_SENTRY_REPLAYS_ON_ERROR_SAMPLE_RATE,
+			sentryReplaysOnErrorSampleRate,
 			1,
 		);
-		const tracesSampleRate = parseRate(
-			import.meta.env.VITE_SENTRY_TRACES_SAMPLE_RATE,
-			0.1,
-		);
+		const tracesSampleRate = parseRate(sentryTracesSampleRate, 0.1);
 
 		Sentry.init({
-			dsn: import.meta.env.VITE_SENTRY_DSN,
+			dsn: sentryDsn,
 			integrations: [
 				Sentry.tanstackRouterBrowserTracingIntegration(router),
 				...(replaysSessionSampleRate > 0 || replaysOnErrorSampleRate > 0
@@ -49,10 +83,8 @@ export function getRouter() {
 			tracesSampleRate,
 			replaysSessionSampleRate,
 			replaysOnErrorSampleRate,
-			sendDefaultPii: import.meta.env.VITE_SENTRY_SEND_DEFAULT_PII === "true",
-			enabled:
-				import.meta.env.PROD ||
-				import.meta.env.VITE_SENTRY_ENABLE_IN_DEV === "true",
+			sendDefaultPii: sentrySendDefaultPii === "true",
+			enabled: import.meta.env.PROD || sentryEnableInDev === "true",
 		});
 	}
 

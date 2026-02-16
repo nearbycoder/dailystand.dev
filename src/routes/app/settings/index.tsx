@@ -6,6 +6,7 @@ import {
 	CreditCard,
 	KeyRound,
 	LockKeyhole,
+	UserRound,
 	Users,
 	Users2,
 } from "lucide-react";
@@ -97,6 +98,15 @@ function SettingsIndex() {
 						</div>
 						<div className="mt-1 block overflow-hidden text-ellipsis whitespace-nowrap text-ds-muted text-xs">
 							Password &amp; sessions
+						</div>
+					</div>
+				</Link>
+				<Link to="/app/settings/profile">
+					<div className="h-full min-h-[140px] border-[3px] border-ds-border p-6 hover:bg-ds-surface hover:border-ds-muted2 transition-all cursor-pointer group">
+						<UserRound className="mb-3 h-6 w-6 text-orange-500 dark:text-orange-400" />
+						<div className="font-extrabold text-sm tracking-wider">PROFILE</div>
+						<div className="mt-1 block overflow-hidden text-ellipsis whitespace-nowrap text-ds-muted text-xs">
+							Edit your bio
 						</div>
 					</div>
 				</Link>

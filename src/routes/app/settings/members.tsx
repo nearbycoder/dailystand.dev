@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { UserNameLink } from "@/components/user-name-link";
 import { useTRPC } from "@/integrations/trpc/react";
 import type { TRPCRouter } from "@/integrations/trpc/router";
 import { authClient } from "@/lib/auth-client";
@@ -335,7 +336,11 @@ function MembersPage() {
 												.toUpperCase()}
 										</div>
 										<div>
-											<div className="text-sm font-bold">{member.name}</div>
+											<UserNameLink
+												userId={member.userId}
+												name={member.name}
+												className="text-sm font-bold"
+											/>
 											<div className="break-all text-xs text-ds-muted">
 												{member.email}
 											</div>

@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import { type ReactNode, useMemo } from "react";
 import { AutoLinkText } from "@/components/auto-link-text";
+import { UserNameLink } from "@/components/user-name-link";
 import { useTRPC } from "@/integrations/trpc/react";
 import type { TRPCRouter } from "@/integrations/trpc/router";
 import { authClient } from "@/lib/auth-client";
@@ -203,9 +204,12 @@ function DashboardHome() {
 															.join("")
 															.toUpperCase()}
 													</div>
-													<span className="text-sm font-bold tracking-wider">
-														{standup.user.name.toUpperCase()}
-													</span>
+													<UserNameLink
+														userId={standup.user.id}
+														name={standup.user.name}
+														uppercase
+														className="text-sm font-bold tracking-wider"
+													/>
 													{standup.user.id === viewerId && (
 														<span className="border border-ds-accent bg-ds-accent/10 px-1.5 py-0.5 text-[9px] font-extrabold tracking-widest text-ds-accent">
 															YOU

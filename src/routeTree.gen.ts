@@ -30,9 +30,11 @@ import { Route as AppAnalyticsRouteImport } from './routes/app/analytics'
 import { Route as ApiOgRouteImport } from './routes/api/og'
 import { Route as ApiMcpRouteImport } from './routes/api/mcp'
 import { Route as AppSettingsIndexRouteImport } from './routes/app/settings/index'
+import { Route as AppUserUserIdRouteImport } from './routes/app/user.$userId'
 import { Route as AppTeamTeamIdRouteImport } from './routes/app/team.$teamId'
 import { Route as AppSettingsTeamsRouteImport } from './routes/app/settings/teams'
 import { Route as AppSettingsSecurityRouteImport } from './routes/app/settings/security'
+import { Route as AppSettingsProfileRouteImport } from './routes/app/settings/profile'
 import { Route as AppSettingsNotificationsRouteImport } from './routes/app/settings/notifications'
 import { Route as AppSettingsMembersRouteImport } from './routes/app/settings/members'
 import { Route as AppSettingsBillingRouteImport } from './routes/app/settings/billing'
@@ -148,6 +150,11 @@ const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
   path: '/settings/',
   getParentRoute: () => AppRouteRoute,
 } as any)
+const AppUserUserIdRoute = AppUserUserIdRouteImport.update({
+  id: '/user/$userId',
+  path: '/user/$userId',
+  getParentRoute: () => AppRouteRoute,
+} as any)
 const AppTeamTeamIdRoute = AppTeamTeamIdRouteImport.update({
   id: '/team/$teamId',
   path: '/team/$teamId',
@@ -161,6 +168,11 @@ const AppSettingsTeamsRoute = AppSettingsTeamsRouteImport.update({
 const AppSettingsSecurityRoute = AppSettingsSecurityRouteImport.update({
   id: '/settings/security',
   path: '/settings/security',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppSettingsProfileRoute = AppSettingsProfileRouteImport.update({
+  id: '/settings/profile',
+  path: '/settings/profile',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppSettingsNotificationsRoute =
@@ -241,9 +253,11 @@ export interface FileRoutesByFullPath {
   '/app/settings/billing': typeof AppSettingsBillingRoute
   '/app/settings/members': typeof AppSettingsMembersRoute
   '/app/settings/notifications': typeof AppSettingsNotificationsRoute
+  '/app/settings/profile': typeof AppSettingsProfileRoute
   '/app/settings/security': typeof AppSettingsSecurityRoute
   '/app/settings/teams': typeof AppSettingsTeamsRoute
   '/app/team/$teamId': typeof AppTeamTeamIdRoute
+  '/app/user/$userId': typeof AppUserUserIdRoute
   '/app/settings/': typeof AppSettingsIndexRoute
 }
 export interface FileRoutesByTo {
@@ -274,9 +288,11 @@ export interface FileRoutesByTo {
   '/app/settings/billing': typeof AppSettingsBillingRoute
   '/app/settings/members': typeof AppSettingsMembersRoute
   '/app/settings/notifications': typeof AppSettingsNotificationsRoute
+  '/app/settings/profile': typeof AppSettingsProfileRoute
   '/app/settings/security': typeof AppSettingsSecurityRoute
   '/app/settings/teams': typeof AppSettingsTeamsRoute
   '/app/team/$teamId': typeof AppTeamTeamIdRoute
+  '/app/user/$userId': typeof AppUserUserIdRoute
   '/app/settings': typeof AppSettingsIndexRoute
 }
 export interface FileRoutesById {
@@ -310,9 +326,11 @@ export interface FileRoutesById {
   '/app/settings/billing': typeof AppSettingsBillingRoute
   '/app/settings/members': typeof AppSettingsMembersRoute
   '/app/settings/notifications': typeof AppSettingsNotificationsRoute
+  '/app/settings/profile': typeof AppSettingsProfileRoute
   '/app/settings/security': typeof AppSettingsSecurityRoute
   '/app/settings/teams': typeof AppSettingsTeamsRoute
   '/app/team/$teamId': typeof AppTeamTeamIdRoute
+  '/app/user/$userId': typeof AppUserUserIdRoute
   '/app/settings/': typeof AppSettingsIndexRoute
 }
 export interface FileRouteTypes {
@@ -347,9 +365,11 @@ export interface FileRouteTypes {
     | '/app/settings/billing'
     | '/app/settings/members'
     | '/app/settings/notifications'
+    | '/app/settings/profile'
     | '/app/settings/security'
     | '/app/settings/teams'
     | '/app/team/$teamId'
+    | '/app/user/$userId'
     | '/app/settings/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -380,9 +400,11 @@ export interface FileRouteTypes {
     | '/app/settings/billing'
     | '/app/settings/members'
     | '/app/settings/notifications'
+    | '/app/settings/profile'
     | '/app/settings/security'
     | '/app/settings/teams'
     | '/app/team/$teamId'
+    | '/app/user/$userId'
     | '/app/settings'
   id:
     | '__root__'
@@ -415,9 +437,11 @@ export interface FileRouteTypes {
     | '/app/settings/billing'
     | '/app/settings/members'
     | '/app/settings/notifications'
+    | '/app/settings/profile'
     | '/app/settings/security'
     | '/app/settings/teams'
     | '/app/team/$teamId'
+    | '/app/user/$userId'
     | '/app/settings/'
   fileRoutesById: FileRoutesById
 }
@@ -589,6 +613,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppSettingsIndexRouteImport
       parentRoute: typeof AppRouteRoute
     }
+    '/app/user/$userId': {
+      id: '/app/user/$userId'
+      path: '/user/$userId'
+      fullPath: '/app/user/$userId'
+      preLoaderRoute: typeof AppUserUserIdRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
     '/app/team/$teamId': {
       id: '/app/team/$teamId'
       path: '/team/$teamId'
@@ -608,6 +639,13 @@ declare module '@tanstack/react-router' {
       path: '/settings/security'
       fullPath: '/app/settings/security'
       preLoaderRoute: typeof AppSettingsSecurityRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/settings/profile': {
+      id: '/app/settings/profile'
+      path: '/settings/profile'
+      fullPath: '/app/settings/profile'
+      preLoaderRoute: typeof AppSettingsProfileRouteImport
       parentRoute: typeof AppRouteRoute
     }
     '/app/settings/notifications': {
@@ -686,9 +724,11 @@ interface AppRouteRouteChildren {
   AppSettingsBillingRoute: typeof AppSettingsBillingRoute
   AppSettingsMembersRoute: typeof AppSettingsMembersRoute
   AppSettingsNotificationsRoute: typeof AppSettingsNotificationsRoute
+  AppSettingsProfileRoute: typeof AppSettingsProfileRoute
   AppSettingsSecurityRoute: typeof AppSettingsSecurityRoute
   AppSettingsTeamsRoute: typeof AppSettingsTeamsRoute
   AppTeamTeamIdRoute: typeof AppTeamTeamIdRoute
+  AppUserUserIdRoute: typeof AppUserUserIdRoute
   AppSettingsIndexRoute: typeof AppSettingsIndexRoute
 }
 
@@ -702,9 +742,11 @@ const AppRouteRouteChildren: AppRouteRouteChildren = {
   AppSettingsBillingRoute: AppSettingsBillingRoute,
   AppSettingsMembersRoute: AppSettingsMembersRoute,
   AppSettingsNotificationsRoute: AppSettingsNotificationsRoute,
+  AppSettingsProfileRoute: AppSettingsProfileRoute,
   AppSettingsSecurityRoute: AppSettingsSecurityRoute,
   AppSettingsTeamsRoute: AppSettingsTeamsRoute,
   AppTeamTeamIdRoute: AppTeamTeamIdRoute,
+  AppUserUserIdRoute: AppUserUserIdRoute,
   AppSettingsIndexRoute: AppSettingsIndexRoute,
 }
 

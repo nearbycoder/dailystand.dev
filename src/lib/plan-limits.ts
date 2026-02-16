@@ -131,15 +131,35 @@ export async function resolveOrganizationPlanLimits({
 	userId?: string | null;
 	userIds?: string[];
 }) {
-	const effectiveSubscription = await resolveEffectiveSubscription({
-		organizationId,
-		userId,
-		userIds,
+	const _unusedUserId = userId;
+	const _unusedUserIds = userIds;
+	void _unusedUserId;
+	void _unusedUserIds;
+
+	const orgSubs = await db.query.subscription.findMany({
+		where: eq(subscription.referenceId, organizationId),
+		orderBy: [desc(subscription.periodEnd)],
 	});
+	const orgSub = pickBestSubscription(orgSubs);
+
+	if (!orgSub) {
+		return {
+			subscription: null,
+			scope: "none" as const,
+			plan: "free" as const,
+			status: "active",
+			referenceId: null,
+			limits: getPlanLimits("free"),
+		};
+	}
 
 	return {
-		...effectiveSubscription,
-		limits: getPlanLimits(effectiveSubscription.plan),
+		subscription: orgSub,
+		scope: "organization" as const,
+		plan: normalizePlanName(orgSub.plan),
+		status: orgSub.status ?? "active",
+		referenceId: orgSub.referenceId,
+		limits: getPlanLimits(orgSub.plan),
 	};
 }
 

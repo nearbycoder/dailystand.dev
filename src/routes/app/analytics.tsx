@@ -18,6 +18,7 @@ import {
 import type { ReactNode } from "react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
+import { UserNameLink } from "@/components/user-name-link";
 import { useTRPC } from "@/integrations/trpc/react";
 import type { TRPCRouter } from "@/integrations/trpc/router";
 import { getLocalDateString } from "@/lib/date";
@@ -494,9 +495,11 @@ function Dashboard() {
 													key={person.userId}
 													className="flex items-center justify-between border border-ds-muted3 px-2 py-1.5 text-xs"
 												>
-													<span className="font-bold text-ds-text-secondary">
-														{person.name}
-													</span>
+													<UserNameLink
+														userId={person.userId}
+														name={person.name}
+														className="font-bold text-ds-text-secondary"
+													/>
 													<span className="text-ds-text-tertiary">
 														{person.entries} entries
 													</span>
@@ -513,6 +516,7 @@ function Dashboard() {
 											<TaskLine
 												key={`${task.date}-${task.userId}-${index}`}
 												date={task.date}
+												userId={task.userId}
 												userName={task.userName}
 												type={task.type}
 												content={task.content}
@@ -558,18 +562,14 @@ function Dashboard() {
 										</div>
 										<div className="mb-2 text-[10px] font-bold tracking-widest text-ds-text-tertiary">
 											TOP_PEOPLE:{" "}
-											{day.topContributors.length > 0
-												? day.topContributors
-														.slice(0, 5)
-														.map((person) => person.name)
-														.join(", ")
-												: "NONE"}
+											<PeopleInlineList people={day.topContributors.slice(0, 5)} />
 										</div>
 										<div className="space-y-1.5">
 											{day.sampleTasks.slice(0, 5).map((task, index) => (
 												<TaskLine
 													key={`${day.date}-${task.userId}-${index}`}
 													date={day.date}
+													userId={task.userId}
 													userName={task.userName}
 													type={task.type}
 													content={task.content}
@@ -612,18 +612,14 @@ function Dashboard() {
 										</div>
 										<div className="mb-2 text-[10px] font-bold tracking-widest text-ds-text-tertiary">
 											TOP_PEOPLE:{" "}
-											{team.topContributors.length > 0
-												? team.topContributors
-														.slice(0, 5)
-														.map((person) => person.name)
-														.join(", ")
-												: "NONE"}
+											<PeopleInlineList people={team.topContributors.slice(0, 5)} />
 										</div>
 										<div className="space-y-1.5">
 											{team.sampleTasks.slice(0, 5).map((task, index) => (
 												<TaskLine
 													key={`${team.teamName}-${task.userId}-${index}`}
 													date={task.date}
+													userId={task.userId}
 													userName={task.userName}
 													type={task.type}
 													content={task.content}
@@ -649,9 +645,12 @@ function Dashboard() {
 										className="border-[2px] border-ds-muted3 p-3"
 									>
 										<div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-											<div className="text-xs font-extrabold tracking-widest text-ds-text-secondary">
-												{person.name.toUpperCase()}
-											</div>
+											<UserNameLink
+												userId={person.userId}
+												name={person.name}
+												uppercase
+												className="text-xs font-extrabold tracking-widest text-ds-text-secondary"
+											/>
 											<div className="text-[10px] font-bold tracking-widest text-ds-text-tertiary">
 												{person.entries} ENTRIES • {person.daysPosted} DAYS
 											</div>
@@ -672,6 +671,7 @@ function Dashboard() {
 												<TaskLine
 													key={`${person.userId}-${task.date}-${index}`}
 													date={task.date}
+													userId={person.userId}
 													userName={person.name}
 													type={task.type}
 													content={`${task.content} (${task.teamName})`}
@@ -709,6 +709,7 @@ function Dashboard() {
 												<TaskLine
 													key={`${keyword.term}-${sample.userId}-${index}`}
 													date={sample.date}
+													userId={sample.userId}
 													userName={sample.userName}
 													type={sample.type}
 													content={sample.content}
@@ -851,11 +852,13 @@ function DataMetricCard({
 
 function TaskLine({
 	date,
+	userId,
 	userName,
 	type,
 	content,
 }: {
 	date: string;
+	userId?: string;
 	userName: string;
 	type: "completed" | "planned" | "blocker";
 	content: string;
@@ -879,9 +882,35 @@ function TaskLine({
 					{formatDate(date).toUpperCase()}
 				</span>
 			</div>
-			<div className="font-bold text-ds-text-secondary">{userName}</div>
+			{userId ? (
+				<UserNameLink
+					userId={userId}
+					name={userName}
+					className="font-bold text-ds-text-secondary"
+				/>
+			) : (
+				<div className="font-bold text-ds-text-secondary">{userName}</div>
+			)}
 			<div className="mt-0.5 text-ds-muted">{content}</div>
 		</div>
+	);
+}
+
+function PeopleInlineList({
+	people,
+}: {
+	people: Array<{ userId: string; name: string }>;
+}) {
+	if (people.length === 0) return "NONE";
+	return (
+		<>
+			{people.map((person, index) => (
+				<span key={person.userId}>
+					{index > 0 ? ", " : ""}
+					<UserNameLink userId={person.userId} name={person.name} />
+				</span>
+			))}
+		</>
 	);
 }
 
@@ -1280,9 +1309,12 @@ function ContributorPanel({
 								<span className="text-[10px] font-bold text-ds-text-tertiary">
 									#{index + 1}
 								</span>
-								<span className="truncate text-xs font-bold text-ds-text-secondary">
-									{contributor.name.toUpperCase()}
-								</span>
+								<UserNameLink
+									userId={contributor.userId}
+									name={contributor.name}
+									uppercase
+									className="truncate text-xs font-bold text-ds-text-secondary"
+								/>
 							</div>
 							<p className="mt-1 text-[10px] font-bold tracking-widest text-ds-text-tertiary">
 								{contributor.daysPosted} DAYS • {contributor.teams} TEAMS

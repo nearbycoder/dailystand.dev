@@ -12,7 +12,6 @@ import { sendInviteEmail, sendPasswordResetEmail } from "@/lib/email";
 import {
 	countOrganizationMembers,
 	countTeamMembers,
-	listOrganizationBillingUserIds,
 	normalizeLimit,
 	resolveOrganizationPlanLimits,
 } from "@/lib/plan-limits";
@@ -149,14 +148,9 @@ async function resolveOrgPlanLimitsForAuth(
 	organizationId: string,
 	userId?: string,
 ) {
-	const fallbackUserIds = userId
-		? undefined
-		: await listOrganizationBillingUserIds(organizationId);
-
 	return resolveOrganizationPlanLimits({
 		organizationId,
 		userId,
-		userIds: fallbackUserIds,
 	});
 }
 

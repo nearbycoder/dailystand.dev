@@ -15,6 +15,9 @@ Open source, self-hostable async standups for modern teams.
 - Dashboard focused on your teams and today's team standups
 - Advanced analytics at `/app/analytics` with overlays/popovers and drilldowns
 - Team and personal history with markdown copy flows
+- Org-scoped user profile pages (`/app/user/:userId`) with read-only standup timelines
+- Profile settings page (`/app/settings/profile`) for user bio editing
+- User names across dashboards, team views, analytics, and member/team settings link to profile pages
 - Export analytics range to markdown or CSV
 - Per-day public share links for personal standups, with retract support
 - Auto-linking for URLs in standup content (including domains like `x.com`)
@@ -23,6 +26,8 @@ Open source, self-hostable async standups for modern teams.
 - MCP server (`/api/mcp`) authenticated by API key
 - React Email + Resend digest workflows (daily/weekly, plan-aware)
 - Organization/team/member management UI (including search/filter/pagination on members)
+- Workspace switching across organizations from the app shell
+- Any signed-in member can create their own organization/workspace
 - Stripe-backed billing (optional) via Better Auth Stripe plugin
 - Landing page messaging for MCP+AI workflows and open-source/self-hosted deployment
 - Integrations roadmap callouts for Slack + Linear (coming soon)
@@ -45,6 +50,12 @@ Limits are enforced across:
 - tRPC procedures
 - Public API
 - MCP tools
+
+Billing is organization-scoped:
+
+- each organization has its own plan/subscription
+- newly created organizations start on the Free plan by default
+- upgrading one organization does not upgrade other organizations you belong to
 
 ## Tech stack
 
@@ -212,6 +223,11 @@ Reference docs are available in-app at `/app/settings/api-docs`.
 - Standup date uses local browser date (`YYYY-MM-DD`) for timezone-safe "today" behavior.
 - Submitting a daily standup navigates to history.
 - Team members can copy team day updates as markdown.
+- User profile pages show:
+  - read-only standup history by day
+  - organization join date
+  - team memberships and join dates
+  - optional user bio from profile settings
 - Users can copy:
   - one history day as markdown
   - all personal history as markdown

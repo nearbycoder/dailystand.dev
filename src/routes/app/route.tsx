@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-router";
 import {
 	BarChart3,
+	ChevronDown,
 	History,
 	LayoutDashboard,
 	LogOut,
@@ -19,6 +20,20 @@ import {
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { ThemeToggle } from "@/components/theme-toggle";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import {
 	Sheet,
 	SheetContent,
@@ -74,20 +89,13 @@ function AppLayout() {
 }
 
 function OrgSetup() {
-	const trpc = useTRPC();
 	const [orgName, setOrgName] = useState("");
 	const [orgSlug, setOrgSlug] = useState("");
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState("");
 	const { data: orgs } = authClient.useListOrganizations();
-	const { data: memberships } = useQuery(
-		trpc.org.listMyMemberships.queryOptions(),
-	);
 	const organizations = orgs ?? [];
 	const hasOrganizations = organizations.length > 0;
-	const canCreateOrganization =
-		(memberships?.length ?? 0) === 0 ||
-		(memberships ?? []).some((membership) => membership.canManageOrganization);
 
 	const handleCreate = async (e: React.FormEvent) => {
 		e.preventDefault();
@@ -149,64 +157,54 @@ function OrgSetup() {
 									</div>
 								</button>
 							))}
-							{canCreateOrganization ? (
-								<div className="text-center text-ds-muted2 text-xs font-bold tracking-widest py-4">
-									// OR CREATE NEW
-								</div>
-							) : (
-								<div className="text-center text-ds-muted2 text-xs font-bold tracking-widest py-4">
-									// MEMBER_ACCESS: CONTACT OWNER/ADMIN TO CREATE ORGS
-								</div>
-							)}
+							<div className="text-center text-ds-muted2 text-xs font-bold tracking-widest py-4">
+								// OR CREATE NEW
+							</div>
 						</div>
 					)}
 
-					{canCreateOrganization ? (
-						<form onSubmit={handleCreate} className="space-y-6">
-							{error && (
-								<div className="border-[3px] border-red-500 bg-red-500/10 p-3 text-red-400 text-sm font-bold">
-									ERROR: {error}
-								</div>
-							)}
-							<div>
-								<label className="block text-xs font-bold tracking-widest text-ds-text-tertiary mb-2">
-									ORG_NAME
-								</label>
-								<input
-									placeholder="Acme Corp"
-									value={orgName}
-									onChange={(e) => {
-										setOrgName(e.target.value);
-										setOrgSlug(
-											e.target.value.toLowerCase().replace(/\s+/g, "-"),
-										);
-									}}
-									required
-									className="w-full bg-ds-input-bg border-[3px] border-ds-muted3 px-4 py-3 text-ds-fg font-mono text-sm focus:border-ds-accent focus:outline-none transition-colors placeholder:text-ds-muted2"
-								/>
+					<form onSubmit={handleCreate} className="space-y-6">
+						{error && (
+							<div className="border-[3px] border-red-500 bg-red-500/10 p-3 text-red-400 text-sm font-bold">
+								ERROR: {error}
 							</div>
-							<div>
-								<label className="block text-xs font-bold tracking-widest text-ds-text-tertiary mb-2">
-									SLUG
-								</label>
-								<input
-									placeholder="acme-corp"
-									value={orgSlug}
-									onChange={(e) => setOrgSlug(e.target.value)}
-									required
-									className="w-full bg-ds-input-bg border-[3px] border-ds-muted3 px-4 py-3 text-ds-fg font-mono text-sm focus:border-ds-accent focus:outline-none transition-colors placeholder:text-ds-muted2"
-								/>
-							</div>
-							<button
-								type="submit"
-								disabled={loading}
-								className="w-full bg-ds-accent text-ds-accent-fg py-3 font-extrabold text-sm tracking-wider hover:bg-ds-accent-hover transition-colors disabled:opacity-50"
-							>
-								<Plus className="w-4 h-4 inline mr-2" />
-								{loading ? "CREATING..." : "CREATE_ORG"}
-							</button>
-						</form>
-					) : null}
+						)}
+						<div>
+							<label className="block text-xs font-bold tracking-widest text-ds-text-tertiary mb-2">
+								ORG_NAME
+							</label>
+							<input
+								placeholder="Acme Corp"
+								value={orgName}
+								onChange={(e) => {
+									setOrgName(e.target.value);
+									setOrgSlug(e.target.value.toLowerCase().replace(/\s+/g, "-"));
+								}}
+								required
+								className="w-full bg-ds-input-bg border-[3px] border-ds-muted3 px-4 py-3 text-ds-fg font-mono text-sm focus:border-ds-accent focus:outline-none transition-colors placeholder:text-ds-muted2"
+							/>
+						</div>
+						<div>
+							<label className="block text-xs font-bold tracking-widest text-ds-text-tertiary mb-2">
+								SLUG
+							</label>
+							<input
+								placeholder="acme-corp"
+								value={orgSlug}
+								onChange={(e) => setOrgSlug(e.target.value)}
+								required
+								className="w-full bg-ds-input-bg border-[3px] border-ds-muted3 px-4 py-3 text-ds-fg font-mono text-sm focus:border-ds-accent focus:outline-none transition-colors placeholder:text-ds-muted2"
+							/>
+						</div>
+						<button
+							type="submit"
+							disabled={loading}
+							className="w-full bg-ds-accent text-ds-accent-fg py-3 font-extrabold text-sm tracking-wider hover:bg-ds-accent-hover transition-colors disabled:opacity-50"
+						>
+							<Plus className="w-4 h-4 inline mr-2" />
+							{loading ? "CREATING..." : "CREATE_ORG"}
+						</button>
+					</form>
 				</div>
 			</div>
 		</div>
@@ -222,8 +220,10 @@ function AppShell({
 	const trpc = useTRPC();
 	const { data: teams } = useQuery(trpc.teams.list.queryOptions());
 	const { data: orgMembers } = useQuery(trpc.org.listMembers.queryOptions());
+	const { data: organizationsData } = authClient.useListOrganizations();
 	const [mobileNavOpen, setMobileNavOpen] = useState(false);
 	const viewerId = session.user.id;
+	const organizations = organizationsData ?? [];
 
 	const canViewAllTeams = useMemo(() => {
 		const currentMember = (orgMembers ?? []).find(
@@ -250,6 +250,7 @@ function AppShell({
 			<aside className="hidden w-56 shrink-0 flex-col border-r-[3px] border-ds-border-strong md:flex md:h-svh md:max-h-svh md:overflow-hidden">
 				<SidebarContent
 					session={session}
+					organizations={organizations}
 					teams={teams}
 					viewerId={viewerId}
 					canViewAllTeams={canViewAllTeams}
@@ -286,6 +287,7 @@ function AppShell({
 						<div className="flex h-full flex-col">
 							<SidebarContent
 								session={session}
+								organizations={organizations}
 								teams={teams}
 								viewerId={viewerId}
 								canViewAllTeams={canViewAllTeams}
@@ -307,6 +309,7 @@ function AppShell({
 
 function SidebarContent({
 	session,
+	organizations,
 	teams,
 	viewerId,
 	canViewAllTeams,
@@ -314,6 +317,11 @@ function SidebarContent({
 	onNavigate,
 }: {
 	session: NonNullable<ReturnType<typeof authClient.useSession>["data"]>;
+	organizations: {
+		id: string;
+		name: string;
+		slug: string;
+	}[];
 	teams:
 		| {
 				id: string;
@@ -330,6 +338,70 @@ function SidebarContent({
 	onSignOut: () => Promise<void>;
 	onNavigate?: () => void;
 }) {
+	const activeOrganizationId = session.session.activeOrganizationId ?? "";
+	const [switchingOrgId, setSwitchingOrgId] = useState<string | null>(null);
+	const [workspaceError, setWorkspaceError] = useState("");
+	const [createOrgOpen, setCreateOrgOpen] = useState(false);
+	const [newOrgName, setNewOrgName] = useState("");
+	const [newOrgSlug, setNewOrgSlug] = useState("");
+	const [createOrgError, setCreateOrgError] = useState("");
+	const [creatingOrg, setCreatingOrg] = useState(false);
+	const activeOrganization = useMemo(
+		() =>
+			organizations.find(
+				(organization) => organization.id === activeOrganizationId,
+			) ?? null,
+		[organizations, activeOrganizationId],
+	);
+
+	const switchOrganization = async (organizationId: string) => {
+		if (!organizationId || organizationId === activeOrganizationId) return;
+		setWorkspaceError("");
+		setSwitchingOrgId(organizationId);
+		const result = await authClient.organization.setActive({ organizationId });
+		if (result?.error) {
+			setWorkspaceError(
+				result.error.message ?? "Failed to switch organization.",
+			);
+			setSwitchingOrgId(null);
+			return;
+		}
+		onNavigate?.();
+		window.location.reload();
+	};
+
+	const createOrganization = async (event: React.FormEvent) => {
+		event.preventDefault();
+		if (!newOrgName.trim()) return;
+		setCreateOrgError("");
+		setCreatingOrg(true);
+		const result = await authClient.organization.create({
+			name: newOrgName.trim(),
+			slug: (newOrgSlug.trim() || newOrgName.trim())
+				.toLowerCase()
+				.replace(/\s+/g, "-"),
+		});
+		if (result.error) {
+			setCreateOrgError(
+				result.error.message ?? "Failed to create organization.",
+			);
+			setCreatingOrg(false);
+			return;
+		}
+		const activateResult = await authClient.organization.setActive({
+			organizationId: result.data.id,
+		});
+		if (activateResult?.error) {
+			setCreateOrgError(
+				activateResult.error.message ?? "Failed to activate organization.",
+			);
+			setCreatingOrg(false);
+			return;
+		}
+		onNavigate?.();
+		window.location.reload();
+	};
+
 	const myTeams = useMemo(() => {
 		if (!teams || teams.length === 0) return [];
 		return teams.filter((team) =>
@@ -355,6 +427,141 @@ function SidebarContent({
 						<span className="font-extrabold tracking-tighter">DAILYSTAND</span>
 					</Link>
 				</div>
+
+				<div className="border-b-[3px] border-ds-border-strong p-3">
+					<div className="mb-2 text-[10px] font-bold tracking-widest text-ds-muted2">
+						// WORKSPACE
+					</div>
+					<DropdownMenu>
+						<DropdownMenuTrigger asChild>
+							<button
+								type="button"
+								disabled={switchingOrgId !== null || creatingOrg}
+								className="flex w-full items-center justify-between gap-2 border-[2px] border-ds-muted3 bg-ds-input-bg px-2.5 py-1.5 text-xs font-bold text-ds-fg transition-colors hover:border-ds-accent focus:border-ds-accent focus:outline-none disabled:cursor-not-allowed disabled:opacity-60"
+							>
+								<span className="truncate">
+									{activeOrganization?.name ?? "CURRENT_ORG"}
+								</span>
+								<ChevronDown className="h-3.5 w-3.5 shrink-0 text-ds-text-tertiary" />
+							</button>
+						</DropdownMenuTrigger>
+						<DropdownMenuContent
+							align="start"
+							sideOffset={6}
+							className="w-[220px] border-[2px] border-ds-muted3 bg-ds-bg p-1"
+						>
+							{organizations.length > 0 ? (
+								organizations.map((organization) => (
+									<DropdownMenuItem
+										key={organization.id}
+										disabled={
+											switchingOrgId !== null ||
+											creatingOrg ||
+											organization.id === activeOrganizationId
+										}
+										onSelect={() => void switchOrganization(organization.id)}
+										className="cursor-pointer rounded-none px-2 py-1.5 font-mono text-xs font-bold tracking-wider text-ds-text-secondary hover:bg-ds-surface hover:text-ds-fg"
+									>
+										<span className="min-w-0 flex-1 truncate">
+											{organization.name}
+										</span>
+										{organization.id === activeOrganizationId ? (
+											<span className="text-[9px] font-extrabold tracking-widest text-ds-accent">
+												ACTIVE
+											</span>
+										) : null}
+									</DropdownMenuItem>
+								))
+							) : (
+								<div className="px-2 py-1.5 text-[10px] font-bold tracking-widest text-ds-muted">
+									NO_ORGANIZATIONS
+								</div>
+							)}
+							<DropdownMenuSeparator className="my-1 bg-ds-muted3" />
+							<DropdownMenuItem
+								disabled={switchingOrgId !== null || creatingOrg}
+								onSelect={() => {
+									setCreateOrgError("");
+									setNewOrgName("");
+									setNewOrgSlug("");
+									setCreateOrgOpen(true);
+								}}
+								className="cursor-pointer rounded-none px-2 py-1.5 font-mono text-xs font-extrabold tracking-wider text-ds-accent hover:bg-ds-surface hover:text-ds-accent"
+							>
+								<Plus className="h-3 w-3" />
+								CREATE_NEW_ORG
+							</DropdownMenuItem>
+						</DropdownMenuContent>
+					</DropdownMenu>
+					<div className="mt-2 flex items-center justify-between gap-2">
+						{switchingOrgId ? (
+							<span className="text-[10px] font-bold tracking-widest text-ds-muted">
+								SWITCHING...
+							</span>
+						) : null}
+					</div>
+					{workspaceError ? (
+						<div className="mt-2 border-[2px] border-red-500/70 bg-red-500/10 px-2 py-1 text-[10px] font-bold tracking-widest text-red-400">
+							{workspaceError}
+						</div>
+					) : null}
+				</div>
+
+				<Dialog open={createOrgOpen} onOpenChange={setCreateOrgOpen}>
+					<DialogContent className="border-[3px] border-ds-border-strong bg-ds-bg p-5 font-mono text-ds-fg sm:max-w-md">
+						<DialogHeader>
+							<DialogTitle className="text-base font-extrabold tracking-wider">
+								CREATE_NEW_ORGANIZATION
+							</DialogTitle>
+							<DialogDescription className="text-xs text-ds-muted">
+								Start a separate workspace with its own free plan and billing.
+							</DialogDescription>
+						</DialogHeader>
+						<form onSubmit={createOrganization} className="space-y-3">
+							<input
+								value={newOrgName}
+								onChange={(event) => {
+									setNewOrgName(event.target.value);
+									setNewOrgSlug(
+										event.target.value.toLowerCase().replace(/\s+/g, "-"),
+									);
+								}}
+								placeholder="Organization name"
+								required
+								className="w-full border-[2px] border-ds-muted3 bg-ds-input-bg px-2.5 py-2 text-sm text-ds-fg focus:border-ds-accent focus:outline-none"
+							/>
+							<input
+								value={newOrgSlug}
+								onChange={(event) => setNewOrgSlug(event.target.value)}
+								placeholder="organization-slug"
+								required
+								className="w-full border-[2px] border-ds-muted3 bg-ds-input-bg px-2.5 py-2 text-sm text-ds-fg focus:border-ds-accent focus:outline-none"
+							/>
+							{createOrgError ? (
+								<div className="border-[2px] border-red-500/70 bg-red-500/10 px-2 py-1 text-[10px] font-bold tracking-widest text-red-400">
+									{createOrgError}
+								</div>
+							) : null}
+							<div className="flex items-center justify-end gap-2">
+								<button
+									type="button"
+									onClick={() => setCreateOrgOpen(false)}
+									disabled={creatingOrg}
+									className="border-[2px] border-ds-muted3 px-3 py-1.5 text-[10px] font-extrabold tracking-widest text-ds-text-tertiary transition-colors hover:border-ds-accent hover:text-ds-accent disabled:cursor-not-allowed disabled:opacity-60"
+								>
+									CANCEL
+								</button>
+								<button
+									type="submit"
+									disabled={creatingOrg}
+									className="bg-ds-accent px-3 py-1.5 text-[10px] font-extrabold tracking-widest text-ds-accent-fg transition-colors hover:bg-ds-accent-hover disabled:cursor-not-allowed disabled:opacity-60"
+								>
+									{creatingOrg ? "CREATING..." : "CREATE_ORG"}
+								</button>
+							</div>
+						</form>
+					</DialogContent>
+				</Dialog>
 
 				<nav className="min-h-0 flex-1 overflow-y-auto py-2">
 					<NavLink
@@ -436,9 +643,14 @@ function SidebarContent({
 							{session.user.name?.charAt(0).toUpperCase() ?? "U"}
 						</div>
 						<div className="min-w-0 flex-1">
-							<div className="truncate text-xs font-bold">
+							<Link
+								to="/app/user/$userId"
+								params={{ userId: session.user.id }}
+								onClick={onNavigate}
+								className="block truncate text-xs font-bold underline-offset-4 transition-colors hover:text-ds-accent hover:underline"
+							>
 								{session.user.name}
-							</div>
+							</Link>
 							<div className="truncate text-[10px] text-ds-muted">
 								{session.user.email}
 							</div>

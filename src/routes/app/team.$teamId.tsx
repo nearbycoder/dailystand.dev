@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { AutoLinkText } from "@/components/auto-link-text";
+import { UserNameLink } from "@/components/user-name-link";
 import { useTRPC } from "@/integrations/trpc/react";
 
 export const Route = createFileRoute("/app/team/$teamId")({
@@ -408,9 +409,12 @@ function DaySection({
 										.join("")
 										.toUpperCase()}
 								</div>
-								<span className="font-bold text-sm tracking-wider">
-									{standup.user.name.toUpperCase()}
-								</span>
+								<UserNameLink
+									userId={standup.user.id}
+									name={standup.user.name}
+									uppercase
+									className="text-sm font-bold tracking-wider"
+								/>
 							</div>
 							<div className="grid grid-cols-1 gap-3 pl-0 sm:pl-10 md:grid-cols-3">
 								{standup.completed.length > 0 && (

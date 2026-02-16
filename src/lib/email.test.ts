@@ -18,6 +18,8 @@ describe("email helpers", () => {
 	const originalResendApiKey = process.env.RESEND_API_KEY
 	const originalFromEmail = process.env.RESEND_FROM_EMAIL
 	const originalBetterAuthUrl = process.env.BETTER_AUTH_URL
+	const originalDryRunEmails = process.env.DRY_RUN_EMAILS
+	const originalNodeEnv = process.env.NODE_ENV
 
 	beforeEach(() => {
 		vi.restoreAllMocks()
@@ -39,14 +41,52 @@ describe("email helpers", () => {
 		} else {
 			process.env.BETTER_AUTH_URL = originalBetterAuthUrl
 		}
+		if (originalDryRunEmails === undefined) {
+			delete process.env.DRY_RUN_EMAILS
+		} else {
+			process.env.DRY_RUN_EMAILS = originalDryRunEmails
+		}
+		if (originalNodeEnv === undefined) {
+			delete process.env.NODE_ENV
+		} else {
+			process.env.NODE_ENV = originalNodeEnv
+		}
 	})
 
 	it("reports resend as unconfigured when api key is missing", async () => {
 		const email = await loadEmailModule({
 			RESEND_API_KEY: undefined,
 			RESEND_FROM_EMAIL: "DailyStand <no-reply@dailystand.dev>",
+			DRY_RUN_EMAILS: "false",
+			NODE_ENV: "test",
 		})
 		expect(email.isResendConfigured()).toBe(false)
+	})
+
+	it("defaults to dry run mode in development", async () => {
+		const infoSpy = vi.spyOn(console, "info").mockImplementation(() => {})
+		const fetchMock = vi.fn()
+		vi.stubGlobal("fetch", fetchMock)
+
+		const email = await loadEmailModule({
+			RESEND_API_KEY: undefined,
+			RESEND_FROM_EMAIL: "DailyStand <no-reply@dailystand.dev>",
+			DRY_RUN_EMAILS: undefined,
+			NODE_ENV: "development",
+		})
+
+		expect(email.isEmailDryRunEnabled()).toBe(true)
+		expect(email.isResendConfigured()).toBe(true)
+
+		await email.sendResendEmailMessage({
+			to: "test@example.com",
+			subject: "Hello",
+			html: "<p>hello</p>",
+			text: "hello",
+		})
+
+		expect(fetchMock).not.toHaveBeenCalled()
+		expect(infoSpy).toHaveBeenCalled()
 	})
 
 	it("sends resend message with expected payload", async () => {
@@ -58,6 +98,8 @@ describe("email helpers", () => {
 		const email = await loadEmailModule({
 			RESEND_API_KEY: "rs_test_key",
 			RESEND_FROM_EMAIL: "DailyStand <no-reply@dailystand.dev>",
+			DRY_RUN_EMAILS: "false",
+			NODE_ENV: "test",
 		})
 
 		await email.sendResendEmailMessage({
@@ -90,6 +132,8 @@ describe("email helpers", () => {
 		const email = await loadEmailModule({
 			RESEND_API_KEY: "rs_test_key",
 			RESEND_FROM_EMAIL: "DailyStand <no-reply@dailystand.dev>",
+			DRY_RUN_EMAILS: "false",
+			NODE_ENV: "test",
 		})
 
 		await expect(
@@ -111,6 +155,8 @@ describe("email helpers", () => {
 			RESEND_API_KEY: undefined,
 			RESEND_FROM_EMAIL: "DailyStand <no-reply@dailystand.dev>",
 			BETTER_AUTH_URL: "https://dailystand.dev",
+			DRY_RUN_EMAILS: "false",
+			NODE_ENV: "test",
 		})
 
 		await email.sendInviteEmail({
@@ -134,6 +180,8 @@ describe("email helpers", () => {
 		const email = await loadEmailModule({
 			RESEND_API_KEY: "rs_test_key",
 			RESEND_FROM_EMAIL: "DailyStand <no-reply@dailystand.dev>",
+			DRY_RUN_EMAILS: "false",
+			NODE_ENV: "test",
 		})
 
 		await email.sendPasswordResetEmail({

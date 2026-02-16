@@ -80,6 +80,7 @@ API_ALLOWED_ORIGINS=http://localhost:3000
 RESET_PASSWORD_TOKEN_EXPIRES_IN=3600
 RESEND_API_KEY=re_...
 RESEND_FROM_EMAIL=DailyStand <no-reply@your-domain.com>
+DRY_RUN_EMAILS=true
 EMAIL_DIGEST_WORKFLOW_SECRET=replace-with-random-secret
 
 # Optional: enable Sentry
@@ -107,7 +108,8 @@ bunx --bun @better-auth/cli secret
 Notes:
 
 - Stripe is optional. If Stripe env vars are missing, billing flows are disabled.
-- If `RESEND_API_KEY` and `RESEND_FROM_EMAIL` are set, invite and password reset emails are sent via Resend.
+- `DRY_RUN_EMAILS` defaults to enabled in local development and prevents real email sends.
+- Set `DRY_RUN_EMAILS=false` to send real emails (with `RESEND_API_KEY` + `RESEND_FROM_EMAIL` configured).
 - If Resend env vars are missing, invite/reset links are not emailed and are logged server-side for local development.
 - `EMAIL_DIGEST_WORKFLOW_SECRET` secures the digest workflow endpoint (`/api/workflows/email-digests`).
 - Sentry is optional. Client + server instrumentation is enabled when DSN env vars are configured.
@@ -220,6 +222,7 @@ Exports honor plan history limits.
 - Free plan: weekly digest only
 - Pro/Business: users can opt in and choose daily or weekly
 - Emails are rendered with React Email and sent via Resend
+- In local development, `DRY_RUN_EMAILS=true` logs email attempts and skips real sends
 
 Run manually:
 

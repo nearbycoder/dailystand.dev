@@ -20,12 +20,37 @@ type PasswordResetEmailPayload = {
 	resetUrl: string;
 };
 
-const resendApiKey = process.env.RESEND_API_KEY;
-const resendFromEmail =
-	process.env.RESEND_FROM_EMAIL ?? "DailyStand <no-reply@dailystand.dev>";
+const DEFAULT_RESEND_FROM_EMAIL = "DailyStand <no-reply@dailystand.dev>";
+const TRUTHY_VALUES = new Set(["1", "true", "yes", "on"]);
+const FALSY_VALUES = new Set(["0", "false", "no", "off"]);
+
+function parseBooleanEnv(value: string | undefined): boolean | null {
+	if (!value) return null;
+	const normalized = value.trim().toLowerCase();
+	if (TRUTHY_VALUES.has(normalized)) return true;
+	if (FALSY_VALUES.has(normalized)) return false;
+	return null;
+}
+
+function resolveResendApiKey(): string {
+	return process.env.RESEND_API_KEY?.trim() ?? "";
+}
+
+function resolveResendFromEmail(): string {
+	return process.env.RESEND_FROM_EMAIL?.trim() || DEFAULT_RESEND_FROM_EMAIL;
+}
+
+export function isEmailDryRunEnabled(): boolean {
+	const explicit = parseBooleanEnv(process.env.DRY_RUN_EMAILS);
+	if (explicit !== null) return explicit;
+
+	const nodeEnv = process.env.NODE_ENV?.toLowerCase();
+	return nodeEnv !== "production" && nodeEnv !== "test";
+}
 
 export function isResendConfigured() {
-	return Boolean(resendApiKey && resendFromEmail);
+	if (isEmailDryRunEnabled()) return true;
+	return Boolean(resolveResendApiKey() && resolveResendFromEmail());
 }
 
 function resolveAppBaseUrl(request?: Request): string {
@@ -36,7 +61,19 @@ function resolveAppBaseUrl(request?: Request): string {
 }
 
 export async function sendResendEmailMessage(payload: EmailPayload) {
-	if (!isResendConfigured()) {
+	const resendApiKey = resolveResendApiKey();
+	const resendFromEmail = resolveResendFromEmail();
+
+	if (isEmailDryRunEnabled()) {
+		console.info("[EMAIL] DRY_RUN_EMAILS enabled; skipping Resend send.", {
+			to: payload.to,
+			subject: payload.subject,
+			from: resendFromEmail,
+		});
+		return;
+	}
+
+	if (!resendApiKey || !resendFromEmail) {
 		throw new Error("RESEND is not configured.");
 	}
 

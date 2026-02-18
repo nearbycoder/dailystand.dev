@@ -42,6 +42,7 @@ import { Route as AppSettingsApiKeysRouteImport } from './routes/app/settings/ap
 import { Route as AppSettingsApiDocsRouteImport } from './routes/app/settings/api-docs'
 import { Route as ApiWorkflowsEmailDigestsRouteImport } from './routes/api/workflows/email-digests'
 import { Route as ApiTrpcSplatRouteImport } from './routes/api.trpc.$'
+import { Route as ApiSettingsApiKeysRouteImport } from './routes/api/settings/api-keys'
 import { Route as ApiPublicSplatRouteImport } from './routes/api/public/$'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
@@ -212,6 +213,11 @@ const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
   path: '/api/trpc/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiSettingsApiKeysRoute = ApiSettingsApiKeysRouteImport.update({
+  id: '/api/settings/api-keys',
+  path: '/api/settings/api-keys',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicSplatRoute = ApiPublicSplatRouteImport.update({
   id: '/api/public/$',
   path: '/api/public/$',
@@ -246,6 +252,7 @@ export interface FileRoutesByFullPath {
   '/docs/': typeof DocsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/public/$': typeof ApiPublicSplatRoute
+  '/api/settings/api-keys': typeof ApiSettingsApiKeysRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/api/workflows/email-digests': typeof ApiWorkflowsEmailDigestsRoute
   '/app/settings/api-docs': typeof AppSettingsApiDocsRoute
@@ -281,6 +288,7 @@ export interface FileRoutesByTo {
   '/docs': typeof DocsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/public/$': typeof ApiPublicSplatRoute
+  '/api/settings/api-keys': typeof ApiSettingsApiKeysRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/api/workflows/email-digests': typeof ApiWorkflowsEmailDigestsRoute
   '/app/settings/api-docs': typeof AppSettingsApiDocsRoute
@@ -319,6 +327,7 @@ export interface FileRoutesById {
   '/docs/': typeof DocsIndexRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/public/$': typeof ApiPublicSplatRoute
+  '/api/settings/api-keys': typeof ApiSettingsApiKeysRoute
   '/api/trpc/$': typeof ApiTrpcSplatRoute
   '/api/workflows/email-digests': typeof ApiWorkflowsEmailDigestsRoute
   '/app/settings/api-docs': typeof AppSettingsApiDocsRoute
@@ -358,6 +367,7 @@ export interface FileRouteTypes {
     | '/docs/'
     | '/api/auth/$'
     | '/api/public/$'
+    | '/api/settings/api-keys'
     | '/api/trpc/$'
     | '/api/workflows/email-digests'
     | '/app/settings/api-docs'
@@ -393,6 +403,7 @@ export interface FileRouteTypes {
     | '/docs'
     | '/api/auth/$'
     | '/api/public/$'
+    | '/api/settings/api-keys'
     | '/api/trpc/$'
     | '/api/workflows/email-digests'
     | '/app/settings/api-docs'
@@ -430,6 +441,7 @@ export interface FileRouteTypes {
     | '/docs/'
     | '/api/auth/$'
     | '/api/public/$'
+    | '/api/settings/api-keys'
     | '/api/trpc/$'
     | '/api/workflows/email-digests'
     | '/app/settings/api-docs'
@@ -460,6 +472,7 @@ export interface RootRouteChildren {
   ShareTokenRoute: typeof ShareTokenRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiPublicSplatRoute: typeof ApiPublicSplatRoute
+  ApiSettingsApiKeysRoute: typeof ApiSettingsApiKeysRoute
   ApiTrpcSplatRoute: typeof ApiTrpcSplatRoute
   ApiWorkflowsEmailDigestsRoute: typeof ApiWorkflowsEmailDigestsRoute
 }
@@ -697,6 +710,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiTrpcSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/settings/api-keys': {
+      id: '/api/settings/api-keys'
+      path: '/api/settings/api-keys'
+      fullPath: '/api/settings/api-keys'
+      preLoaderRoute: typeof ApiSettingsApiKeysRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/$': {
       id: '/api/public/$'
       path: '/api/public/$'
@@ -787,6 +807,7 @@ const rootRouteChildren: RootRouteChildren = {
   ShareTokenRoute: ShareTokenRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiPublicSplatRoute: ApiPublicSplatRoute,
+  ApiSettingsApiKeysRoute: ApiSettingsApiKeysRoute,
   ApiTrpcSplatRoute: ApiTrpcSplatRoute,
   ApiWorkflowsEmailDigestsRoute: ApiWorkflowsEmailDigestsRoute,
 }

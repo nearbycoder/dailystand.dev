@@ -41,14 +41,6 @@ const EXPIRATION_OPTIONS = [
 	{ value: "365", label: "365 days" },
 	{ value: "never", label: "Never expires" },
 ] as const;
-const API_SCOPE_BASE = [
-	"profile:read",
-	"teams:read",
-	"standups:read",
-	"standups:write",
-	"analytics:read",
-] as const;
-const API_SCOPE_MEMBER_MANAGE = "members:manage";
 
 type ExpirationOptionValue = (typeof EXPIRATION_OPTIONS)[number]["value"];
 
@@ -86,7 +78,7 @@ function isApiKeyRecord(value: unknown): value is ApiKeyRecord {
 
 function isCreatedApiKeyRecord(value: unknown): value is CreatedApiKeyRecord {
 	if (!isRecord(value)) return false;
-	const key = value["key"];
+	const key = value.key;
 	return isApiKeyRecord(value) && typeof key === "string" && key.length > 0;
 }
 
@@ -169,26 +161,26 @@ function ApiKeysPage() {
 			expiresInSeconds: number | null;
 			includeMemberManage: boolean;
 		}) => {
-			const permissions = {
-				dailystand: input.includeMemberManage
-					? [...API_SCOPE_BASE, API_SCOPE_MEMBER_MANAGE]
-					: [...API_SCOPE_BASE],
-			};
-			const result = await authClient.apiKey.create({
-				name: input.name,
-				expiresIn: input.expiresInSeconds,
-				metadata: {
-					source: "settings.api-keys",
+			const response = await fetch("/api/settings/api-keys", {
+				method: "POST",
+				headers: {
+					"content-type": "application/json",
 				},
-				permissions,
+				credentials: "same-origin",
+				body: JSON.stringify(input),
 			});
-			if (result.error || !result.data) {
-				throw new Error(result.error?.message ?? "Failed to create API key.");
+			const payload = (await response.json().catch(() => null)) as {
+				success?: boolean;
+				data?: unknown;
+				error?: string;
+			} | null;
+			if (!response.ok || !payload?.success || !payload.data) {
+				throw new Error(payload?.error ?? "Failed to create API key.");
 			}
-			if (!isCreatedApiKeyRecord(result.data)) {
+			if (!isCreatedApiKeyRecord(payload.data)) {
 				throw new Error("API key response did not match expected shape.");
 			}
-			return result.data;
+			return payload.data;
 		},
 		onSuccess: (created) => {
 			setCreateError("");

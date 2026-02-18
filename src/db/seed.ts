@@ -55,7 +55,36 @@ async function resetDatabase() {
 	await pool.query(`TRUNCATE TABLE ${quotedTables} RESTART IDENTITY CASCADE`);
 }
 
-const PASSWORD = "password123";
+function parseBooleanEnv(value: string | undefined): boolean | null {
+	if (!value) return null;
+	const normalized = value.trim().toLowerCase();
+	if (["1", "true", "yes", "on"].includes(normalized)) return true;
+	if (["0", "false", "no", "off"].includes(normalized)) return false;
+	return null;
+}
+
+function assertSeedSafety() {
+	const nodeEnv = process.env.NODE_ENV?.toLowerCase() ?? "";
+	const allowProdSeed = parseBooleanEnv(process.env.ALLOW_PROD_SEED) ?? false;
+	if (nodeEnv !== "production") return;
+	if (!allowProdSeed) {
+		throw new Error(
+			"Refusing to run db:seed in production. Set ALLOW_PROD_SEED=true only for controlled one-off operations.",
+		);
+	}
+	const explicitPassword = process.env.SEED_DEFAULT_PASSWORD?.trim();
+	if (!explicitPassword) {
+		throw new Error(
+			"SEED_DEFAULT_PASSWORD is required when ALLOW_PROD_SEED=true in production.",
+		);
+	}
+}
+
+function resolveSeedPassword() {
+	const configured = process.env.SEED_DEFAULT_PASSWORD?.trim();
+	if (configured) return configured;
+	return randomBytes(18).toString("base64url");
+}
 
 type SeedPerson = {
 	name: string;
@@ -754,17 +783,19 @@ async function seedEnterpriseOrg(hashedPassword: string) {
 }
 
 async function seed() {
+	assertSeedSafety();
 	console.log("Seeding database...");
 	console.log("Resetting database tables...");
 	await resetDatabase();
 	console.log("Database reset complete.");
 
-	const hashedPassword = await hashPassword(PASSWORD);
+	const seedPassword = resolveSeedPassword();
+	const hashedPassword = await hashPassword(seedPassword);
 
 	const demo = await seedDemoOrg(hashedPassword);
 	const enterprise = await seedEnterpriseOrg(hashedPassword);
 
-	console.log("\nDone! All users have password: password123");
+	console.log(`\nDone! All users have password: ${seedPassword}`);
 	console.log("\nDemo org sign-ins:");
 	for (const person of DEMO_PEOPLE) {
 		console.log(`  ${person.email}`);

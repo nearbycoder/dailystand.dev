@@ -53,8 +53,54 @@ function normalizePath(path: string): string {
 	return path.startsWith("/") ? path : `/${path}`;
 }
 
+function normalizeOrigin(value: string | undefined): string | null {
+	if (!value) return null;
+	const trimmed = value.trim();
+	if (!trimmed) return null;
+	const candidate = /^https?:\/\//i.test(trimmed)
+		? trimmed
+		: `https://${trimmed}`;
+	try {
+		return new URL(candidate).origin;
+	} catch {
+		return null;
+	}
+}
+
+function isLocalDevelopmentOrigin(origin: string): boolean {
+	try {
+		const hostname = new URL(origin).hostname.toLowerCase();
+		return hostname === "localhost" || hostname === "127.0.0.1";
+	} catch {
+		return false;
+	}
+}
+
+function resolveSiteUrl(): string {
+	const processEnv = typeof process !== "undefined" ? process.env : undefined;
+	const configured =
+		normalizeOrigin(processEnv?.SITE_URL) ??
+		normalizeOrigin(processEnv?.VITE_SITE_URL) ??
+		normalizeOrigin(processEnv?.BETTER_AUTH_URL);
+	if (configured) return configured;
+
+	const vercelDomain =
+		normalizeOrigin(processEnv?.VERCEL_PROJECT_PRODUCTION_URL) ??
+		normalizeOrigin(processEnv?.VERCEL_URL);
+	if (vercelDomain) return vercelDomain;
+
+	if (typeof window !== "undefined") {
+		const browserOrigin = normalizeOrigin(window.location.origin);
+		if (browserOrigin && !isLocalDevelopmentOrigin(browserOrigin)) {
+			return browserOrigin;
+		}
+	}
+
+	return SITE_URL;
+}
+
 export function absoluteUrl(path: string): string {
-	return new URL(normalizePath(path), SITE_URL).toString();
+	return new URL(normalizePath(path), resolveSiteUrl()).toString();
 }
 
 export function buildOgImageUrl(options: {
@@ -62,7 +108,7 @@ export function buildOgImageUrl(options: {
 	title?: string;
 	subtitle?: string;
 }): string {
-	const url = new URL("/api/og", SITE_URL);
+	const url = new URL("/api/og", resolveSiteUrl());
 	url.searchParams.set("page", options.page ?? "home");
 	if (options.title) {
 		url.searchParams.set("title", options.title.slice(0, 70));
@@ -105,8 +151,8 @@ export function buildPageSeo(options: SeoOptions): {
 			{ property: "og:description", content: options.description },
 			{ property: "og:url", content: canonical },
 			{ property: "og:image", content: ogImage },
-			{ property: "og:image:width", content: "1200" },
-			{ property: "og:image:height", content: "630" },
+			{ property: "og:image:width", content: "1400" },
+			{ property: "og:image:height", content: "735" },
 			{ property: "og:image:alt", content: `${SITE_NAME} preview image` },
 			{ name: "twitter:card", content: "summary_large_image" },
 			{ name: "twitter:title", content: options.title },

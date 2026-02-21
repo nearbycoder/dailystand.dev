@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it } from "vitest";
 import {
 	absoluteUrl,
 	buildHomeStructuredData,
@@ -8,9 +8,41 @@ import {
 } from "./seo";
 
 describe("seo helpers", () => {
+	const originalSiteUrl = process.env.SITE_URL;
+	const originalViteSiteUrl = process.env.VITE_SITE_URL;
+	const originalBetterAuthUrl = process.env.BETTER_AUTH_URL;
+	const originalVercelProductionUrl = process.env.VERCEL_PROJECT_PRODUCTION_URL;
+	const originalVercelUrl = process.env.VERCEL_URL;
+
+	afterEach(() => {
+		if (originalSiteUrl === undefined) delete process.env.SITE_URL;
+		else process.env.SITE_URL = originalSiteUrl;
+		if (originalViteSiteUrl === undefined) delete process.env.VITE_SITE_URL;
+		else process.env.VITE_SITE_URL = originalViteSiteUrl;
+		if (originalBetterAuthUrl === undefined) delete process.env.BETTER_AUTH_URL;
+		else process.env.BETTER_AUTH_URL = originalBetterAuthUrl;
+		if (originalVercelProductionUrl === undefined)
+			delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
+		else
+			process.env.VERCEL_PROJECT_PRODUCTION_URL = originalVercelProductionUrl;
+		if (originalVercelUrl === undefined) delete process.env.VERCEL_URL;
+		else process.env.VERCEL_URL = originalVercelUrl;
+	});
+
 	it("builds absolute urls for root and relative paths", () => {
 		expect(absoluteUrl("/")).toBe("https://dailystand.dev/");
 		expect(absoluteUrl("docs/rest")).toBe("https://dailystand.dev/docs/rest");
+	});
+
+	it("resolves URLs from runtime domain environment variables", () => {
+		process.env.SITE_URL = "https://standup.example.com";
+		delete process.env.VERCEL_PROJECT_PRODUCTION_URL;
+		delete process.env.VERCEL_URL;
+
+		expect(absoluteUrl("/")).toBe("https://standup.example.com/");
+		expect(buildOgImageUrl({ page: "home" })).toContain(
+			"https://standup.example.com/api/og",
+		);
 	});
 
 	it("builds OG image urls with defaults and truncation", () => {

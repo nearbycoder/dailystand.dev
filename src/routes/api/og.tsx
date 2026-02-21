@@ -55,9 +55,29 @@ const OG_THEMES: Record<OgPage, OgTheme> = {
 	},
 };
 
-const OG_WIDTH = 1200;
-const OG_HEIGHT = 630;
-const SITE_MONO_FONT = "ui-monospace";
+const OG_WIDTH = 1400;
+const OG_HEIGHT = 735;
+const SITE_MONO_FONT = '"DS Mono", ui-monospace';
+const OG_FONT_REGULAR_URL =
+	"https://cdn.jsdelivr.net/npm/@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-400-normal.woff";
+const OG_FONT_BOLD_URL =
+	"https://cdn.jsdelivr.net/npm/@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-700-normal.woff";
+
+const ogMonoRegularPromise = fetch(OG_FONT_REGULAR_URL)
+	.then((response) => {
+		if (!response.ok)
+			throw new Error(`Font request failed: ${response.status}`);
+		return response.arrayBuffer();
+	})
+	.catch(() => null);
+
+const ogMonoBoldPromise = fetch(OG_FONT_BOLD_URL)
+	.then((response) => {
+		if (!response.ok)
+			throw new Error(`Font request failed: ${response.status}`);
+		return response.arrayBuffer();
+	})
+	.catch(() => null);
 
 function sanitizeText(
 	value: string | null,
@@ -77,18 +97,14 @@ function resolvePage(value: string | null): OgPage {
 	return "home";
 }
 
-function normalizeHomeTitle(value: string): string {
-	return value
-		.replace(/\s*\|\s*DailyStand$/i, "")
-		.trim()
-		.slice(0, 56);
-}
-
-function renderHomeOg(title: string, subtitle: string, theme: OgTheme) {
+function renderHomeOg(_title: string, subtitle: string, theme: OgTheme) {
 	const accent = theme.accent;
-	const headline = normalizeHomeTitle(title).toUpperCase();
-	const headlineHasMeeting = headline.includes("MEETING");
-	const headlineParts = headlineHasMeeting ? headline.split("MEETING") : null;
+	const meetingAccent = "#a3e635";
+	const cleanSubtitle = subtitle.replace(/[,\s]+$/g, "");
+	const summary =
+		cleanSubtitle.length > 136
+			? `${cleanSubtitle.slice(0, 133).trimEnd()}...`
+			: cleanSubtitle;
 	const featureCards = [
 		{
 			title: "DAILY STANDUPS",
@@ -96,19 +112,11 @@ function renderHomeOg(title: string, subtitle: string, theme: OgTheme) {
 		},
 		{
 			title: "TEAM VISIBILITY",
-			description: "See what everyone is working on without meetings.",
+			description: "Know what everyone is working on without meetings.",
 		},
 		{
 			title: "ANALYTICS",
 			description: "Track delivery velocity and recurring blockers.",
-		},
-		{
-			title: "LIGHTNING FAST",
-			description: "Submit standups in under 60 seconds.",
-		},
-		{
-			title: "SECURE BY DEFAULT",
-			description: "Org-level access control and private team data.",
 		},
 		{
 			title: "MCP + AI STANDUPS",
@@ -133,9 +141,7 @@ function renderHomeOg(title: string, subtitle: string, theme: OgTheme) {
 					position: "absolute",
 					inset: 0,
 					backgroundImage:
-						"linear-gradient(90deg, rgba(161, 161, 170, 0.08) 1px, transparent 1px), linear-gradient(180deg, rgba(161, 161, 170, 0.06) 1px, transparent 1px)",
-					backgroundSize: "54px 54px",
-					opacity: 0.18,
+						"linear-gradient(120deg, rgba(163, 230, 53, 0.12) 0%, rgba(0, 0, 0, 0) 45%), radial-gradient(circle at 88% 12%, rgba(163, 230, 53, 0.1) 0%, rgba(0, 0, 0, 0) 34%)",
 				}}
 			/>
 			<div
@@ -153,48 +159,43 @@ function renderHomeOg(title: string, subtitle: string, theme: OgTheme) {
 						display: "flex",
 						alignItems: "center",
 						justifyContent: "space-between",
-						padding: "14px 28px",
-						borderBottom: "3px solid #ffffff",
+						padding: "18px 34px",
+						borderBottom: "2px solid #2d2d2d",
 					}}
 				>
 					<div
 						style={{
 							display: "flex",
-							alignItems: "center",
-							gap: "10px",
-							fontSize: 38,
 							fontWeight: 800,
-							letterSpacing: "-0.01em",
+							letterSpacing: "0.12em",
+							color: accent,
+							fontSize: 20,
 						}}
 					>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							width="24"
-							height="24"
-							viewBox="0 0 24 24"
-							fill="none"
-							stroke="currentColor"
-							strokeWidth="2"
-							strokeLinecap="round"
-							strokeLinejoin="round"
-							style={{ color: accent, width: "32px", height: "32px" }}
-						>
-							<title>Terminal logo</title>
-							<path d="M12 19h8" />
-							<path d="m4 17 6-6-6-6" />
-						</svg>
-						<span>DAILYSTAND</span>
+						{"// ASYNC STANDUPS"}
 					</div>
 					<div
 						style={{
 							display: "flex",
-							fontSize: 26,
+							gap: "8px",
+							fontSize: 14,
 							fontWeight: 700,
-							letterSpacing: "0.12em",
-							color: accent,
+							letterSpacing: "0.08em",
+							color: "#d4d4d8",
 						}}
 					>
-						{"// FEATURES"}
+						{["OPEN SOURCE", "SELF HOSTED"].map((item) => (
+							<span
+								key={item}
+								style={{
+									padding: "4px 8px",
+									border: "1px solid #3f3f46",
+									background: "#050505",
+								}}
+							>
+								{item}
+							</span>
+						))}
 					</div>
 				</div>
 
@@ -203,167 +204,144 @@ function renderHomeOg(title: string, subtitle: string, theme: OgTheme) {
 						display: "flex",
 						flexDirection: "column",
 						gap: "12px",
-						padding: "18px 20px 20px",
+						padding: "24px 34px 20px",
 						flex: 1,
-						justifyContent: "space-between",
 					}}
 				>
 					<div
 						style={{
 							display: "flex",
-							justifyContent: "space-between",
-							gap: "20px",
-						}}
-					>
-						<div
-							style={{
-								display: "flex",
-								fontSize: 14,
-								fontWeight: 700,
-								letterSpacing: "0.14em",
-								color: accent,
-							}}
-						>
-							{"// ASYNC STANDUPS FOR MODERN TEAMS"}
-						</div>
-						<div
-							style={{
-								display: "flex",
-								fontSize: 16,
-								fontWeight: 800,
-								lineHeight: 1.3,
-								color: "#d4d4d8",
-								maxWidth: "520px",
-							}}
-						>
-							{subtitle}
-						</div>
-					</div>
-					<div
-						style={{
-							display: "flex",
-							fontSize: 94,
-							fontWeight: 800,
-							lineHeight: 0.82,
-							letterSpacing: "-0.055em",
-							color: "#f5f5f5",
-						}}
-					>
-						{headlineHasMeeting && headlineParts ? (
-							<>
-								<span>{headlineParts[0]}</span>
-								<span style={{ color: accent }}>MEETING</span>
-								<span>{headlineParts[1]}</span>
-							</>
-						) : (
-							headline
-						)}
-						<span style={{ color: accent }}>_</span>
-					</div>
-					<div
-						style={{
-							display: "flex",
-							flexWrap: "wrap",
-							border: "3px solid #ffffff",
-							background: "#000000",
-						}}
-					>
-						{featureCards.map((item, index) => {
-							const isRightEdge = index % 3 === 2;
-							const isBottomRow = index >= 3;
-							return (
-								<div
-									key={item.title}
-									style={{
-										display: "flex",
-										flexDirection: "column",
-										width: "33.333%",
-										minHeight: "96px",
-										padding: "12px 14px",
-										gap: "8px",
-										borderRight: isRightEdge ? "0" : "3px solid #ffffff",
-										borderBottom: isBottomRow ? "0" : "3px solid #ffffff",
-										background: index === 5 ? "#0e1800" : "#000000",
-									}}
-								>
-									<div
-										style={{
-											display: "flex",
-											alignItems: "center",
-											gap: "8px",
-											fontSize: 14,
-											fontWeight: 700,
-											letterSpacing: "0.09em",
-											color: "#f4f4f5",
-										}}
-									>
-										<span style={{ color: accent }}>{">"}</span>
-										<span>{item.title}</span>
-									</div>
-									<div
-										style={{
-											display: "flex",
-											fontSize: 12,
-											fontWeight: 800,
-											lineHeight: 1.35,
-											color: "#d4d4d8",
-										}}
-									>
-										{item.description}
-									</div>
-								</div>
-							);
-						})}
-					</div>
-					<div
-						style={{
-							display: "flex",
+							flexDirection: "column",
 							gap: "10px",
+						}}
+					>
+						<div
+							style={{
+								display: "flex",
+								alignItems: "baseline",
+								fontSize: 96,
+								fontWeight: 900,
+								lineHeight: 0.9,
+								letterSpacing: "-0.05em",
+								color: "#f5f5f5",
+								maxWidth: "1220px",
+								flexWrap: "wrap",
+							}}
+						>
+							<span>KILL</span>
+							<span style={{ marginLeft: "8px" }}>THE</span>
+							<span style={{ color: meetingAccent, marginLeft: "18px" }}>
+								MEETING
+							</span>
+							<span style={{ color: meetingAccent, marginLeft: "4px" }}>_</span>
+						</div>
+						<div
+							style={{
+								display: "flex",
+								fontSize: 25,
+								maxWidth: "1080px",
+								lineHeight: 1.28,
+								fontWeight: 800,
+								color: "#d4d4d8",
+							}}
+						>
+							{summary}
+						</div>
+					</div>
+
+					<div
+						style={{
+							display: "flex",
+							gap: "0",
 							flexWrap: "wrap",
 						}}
 					>
-						{[
-							"MCP_SUPPORT // AI AUTOMATION",
-							"OPEN_SOURCE // SELF_HOSTED",
-							"REST_API + MCP_SERVER",
-						].map((item, index) => (
+						{featureCards.map((item) => (
 							<div
-								key={item}
+								key={item.title}
 								style={{
 									display: "flex",
-									padding: "6px 10px",
-									border:
-										index === 0 ? `2px solid ${accent}` : "2px solid #ffffff",
-									background: index === 0 ? "#101d00" : "#050505",
-									color: index === 0 ? accent : "#f4f4f5",
-									fontSize: 13,
-									fontWeight: 800,
-									letterSpacing: "0.08em",
+									flexDirection: "column",
+									width: "50%",
+									boxSizing: "border-box",
+									padding: "14px 16px",
+									gap: "8px",
+									background: "#050505",
+									border: "2px solid #ffffff",
 								}}
 							>
-								{item}
+								<div
+									style={{
+										display: "flex",
+										alignItems: "center",
+										gap: "8px",
+										fontSize: 20,
+										fontWeight: 800,
+										letterSpacing: "0.04em",
+										color: "#f4f4f5",
+									}}
+								>
+									<span style={{ color: accent }}>{">"}</span>
+									<span>{item.title}</span>
+								</div>
+								<div
+									style={{
+										display: "flex",
+										fontSize: 17,
+										fontWeight: 800,
+										lineHeight: 1.3,
+										color: "#d4d4d8",
+									}}
+								>
+									{item.description}
+								</div>
 							</div>
 						))}
 					</div>
+
 					<div
 						style={{
+							marginTop: "auto",
 							display: "flex",
-							width: "100%",
 							alignItems: "center",
 							justifyContent: "space-between",
-							fontSize: 14,
-							letterSpacing: "0.08em",
-							color: "#a1a1aa",
+							paddingTop: "10px",
+							borderTop: "2px solid #27272a",
 						}}
 					>
-						<span>dailystand.dev</span>
 						<div
 							style={{
 								display: "flex",
-								color: "#d4d4d8",
+								gap: "9px",
 							}}
 						>
-							{"Built for distributed engineering teams"}
+							{["REST API", "MCP + AI", "ANALYTICS"].map((item) => (
+								<span
+									key={item}
+									style={{
+										display: "flex",
+										padding: "5px 9px",
+										border: "1px solid #3f3f46",
+										fontSize: 14,
+										fontWeight: 700,
+										letterSpacing: "0.08em",
+										color: "#d4d4d8",
+									}}
+								>
+									{item}
+								</span>
+							))}
+						</div>
+						<div
+							style={{
+								display: "flex",
+								fontSize: 15,
+								fontWeight: 800,
+								letterSpacing: "0.08em",
+								color: "#a1a1aa",
+							}}
+						>
+							dailystand.dev
 						</div>
 					</div>
 				</div>
@@ -491,7 +469,7 @@ function renderDefaultOg(title: string, subtitle: string, theme: OgTheme) {
 export const Route = createFileRoute("/api/og")({
 	server: {
 		handlers: {
-			GET: ({ request }) => {
+			GET: async ({ request }) => {
 				const url = new URL(request.url);
 				const page = resolvePage(url.searchParams.get("page"));
 				const theme = OG_THEMES[page];
@@ -509,10 +487,32 @@ export const Route = createFileRoute("/api/og")({
 					page === "home"
 						? renderHomeOg(title, subtitle, theme)
 						: renderDefaultOg(title, subtitle, theme);
+				const [monoRegular, monoBold] = await Promise.all([
+					ogMonoRegularPromise,
+					ogMonoBoldPromise,
+				]);
+				const fonts = [];
+				if (monoRegular) {
+					fonts.push({
+						name: "DS Mono",
+						data: monoRegular,
+						style: "normal" as const,
+						weight: 400 as const,
+					});
+				}
+				if (monoBold) {
+					fonts.push({
+						name: "DS Mono",
+						data: monoBold,
+						style: "normal" as const,
+						weight: 700 as const,
+					});
+				}
 
 				return new ImageResponse(imageMarkup, {
 					width: OG_WIDTH,
 					height: OG_HEIGHT,
+					fonts: fonts.length ? fonts : undefined,
 				});
 			},
 		},

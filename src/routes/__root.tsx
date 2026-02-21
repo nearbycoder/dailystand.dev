@@ -11,7 +11,7 @@ import type { TRPCOptionsProxy } from "@trpc/tanstack-react-query";
 import { Toaster } from "@/components/ui/sonner";
 import Providers from "@/integrations/tanstack-query/root-provider";
 import type { TRPCRouter } from "@/integrations/trpc/router";
-import { buildOgImageUrl, SITE_NAME } from "@/lib/seo";
+import { absoluteUrl, buildOgImageUrl, SITE_NAME } from "@/lib/seo";
 import appCss from "../styles.css?url";
 
 interface MyRouterContext {
@@ -42,6 +42,7 @@ declare global {
 const defaultTitle = "DailyStand | Async Standup Software for Remote Teams";
 const defaultDescription =
 	"DailyStand is open source async standup software for remote engineering teams with analytics, API access, and MCP automation tools.";
+const defaultOgUrl = absoluteUrl("/");
 const defaultOgImage = buildOgImageUrl({
 	page: "home",
 	title: defaultTitle,
@@ -49,8 +50,7 @@ const defaultOgImage = buildOgImageUrl({
 });
 
 function readServerRuntimePublicEnv(): RuntimePublicEnv {
-	const processEnv =
-		typeof process !== "undefined" ? process.env : undefined;
+	const processEnv = typeof process !== "undefined" ? process.env : undefined;
 	return {
 		VITE_PUBLIC_POSTHOG_KEY: processEnv?.VITE_PUBLIC_POSTHOG_KEY,
 		VITE_PUBLIC_POSTHOG_HOST: processEnv?.VITE_PUBLIC_POSTHOG_HOST,
@@ -165,6 +165,10 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				content: defaultDescription,
 			},
 			{
+				property: "og:url",
+				content: defaultOgUrl,
+			},
+			{
 				property: "og:image",
 				content: defaultOgImage,
 			},
@@ -268,9 +272,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 	return (
 		<html lang="en" suppressHydrationWarning>
 			<head>
-				<script
-					dangerouslySetInnerHTML={{ __html: runtimePublicEnvScript }}
-				/>
+				<script dangerouslySetInnerHTML={{ __html: runtimePublicEnvScript }} />
 				<script dangerouslySetInnerHTML={{ __html: themeBootScript }} />
 				<HeadContent />
 			</head>
@@ -283,8 +285,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 							ui_host: posthogUiHost,
 							defaults: "2025-05-24",
 							capture_exceptions: true,
-							debug:
-								posthogRuntimeEnv.VITE_PUBLIC_POSTHOG_DEBUG === "true",
+							debug: posthogRuntimeEnv.VITE_PUBLIC_POSTHOG_DEBUG === "true",
 						}}
 					>
 						{app}

@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import {
 	absoluteUrl,
 	buildHomeStructuredData,
+	buildNoIndexMeta,
 	buildOgImageUrl,
 	buildPageSeo,
 	SITE_NAME,
@@ -74,7 +75,9 @@ describe("seo helpers", () => {
 		expect(seo.ogImage).toContain("/api/og");
 
 		const robots = seo.meta.find((tag) => tag.name === "robots");
-		expect(robots?.content).toBe("noindex, nofollow");
+		expect(robots?.content).toBe("noindex, nofollow, noarchive");
+		const googlebot = seo.meta.find((tag) => tag.name === "googlebot");
+		expect(googlebot?.content).toBe("noindex, nofollow, noarchive");
 
 		const ogSiteName = seo.meta.find((tag) => tag.property === "og:site_name");
 		expect(ogSiteName?.content).toBe(SITE_NAME);
@@ -91,15 +94,45 @@ describe("seo helpers", () => {
 
 		const keywords = seo.meta.find((tag) => tag.name === "keywords");
 		const ogType = seo.meta.find((tag) => tag.property === "og:type");
+		const ogImageType = seo.meta.find(
+			(tag) => tag.property === "og:image:type",
+		);
+		const twitterImageAlt = seo.meta.find(
+			(tag) => tag.name === "twitter:image:alt",
+		);
 		expect(keywords?.content).toBe("one, two");
 		expect(ogType?.content).toBe("article");
+		expect(ogImageType?.content).toBe("image/png");
+		expect(twitterImageAlt?.content).toBe("Terms preview image");
 	});
 
-	it("builds structured data graph with app and organization records", () => {
+	it("builds structured data graph with app, org, website and webpage", () => {
 		const data = buildHomeStructuredData();
 		expect(data["@context"]).toBe("https://schema.org");
-		expect(data["@graph"]).toHaveLength(2);
+		expect(data["@graph"]).toHaveLength(4);
 		expect(data["@graph"][0]?.["@type"]).toBe("SoftwareApplication");
 		expect(data["@graph"][1]?.["@type"]).toBe("Organization");
+		expect(data["@graph"][2]?.["@type"]).toBe("WebSite");
+		expect(data["@graph"][3]?.["@type"]).toBe("WebPage");
+	});
+
+	it("adds FAQ schema to home graph when faq items are provided", () => {
+		const data = buildHomeStructuredData({
+			faqItems: [
+				{
+					question: "What is DailyStand?",
+					answer: "Async standup software for remote teams.",
+				},
+			],
+		});
+		expect(data["@graph"]).toHaveLength(5);
+		expect(data["@graph"][4]?.["@type"]).toBe("FAQPage");
+	});
+
+	it("builds reusable noindex meta tags for private routes", () => {
+		expect(buildNoIndexMeta()).toEqual([
+			{ name: "robots", content: "noindex, nofollow, noarchive" },
+			{ name: "googlebot", content: "noindex, nofollow, noarchive" },
+		]);
 	});
 });

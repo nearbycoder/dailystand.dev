@@ -41,12 +41,20 @@ type SeoOptions = {
 	noIndex?: boolean;
 };
 
+export type FaqStructuredDataItem = {
+	question: string;
+	answer: string;
+};
+
 type MetaTag = {
 	title?: string;
 	name?: string;
 	property?: string;
 	content?: string;
 };
+
+const INDEX_ROBOTS = "index, follow, max-image-preview:large";
+const NOINDEX_ROBOTS = "noindex, nofollow, noarchive";
 
 function normalizePath(path: string): string {
 	if (!path || path === "/") return "/";
@@ -132,9 +140,7 @@ export function buildPageSeo(options: SeoOptions): {
 		subtitle: options.description,
 	});
 	const keywords = (options.keywords ?? PRIMARY_KEYWORDS).join(", ");
-	const robots = options.noIndex
-		? "noindex, nofollow"
-		: "index, follow, max-image-preview:large";
+	const robots = options.noIndex ? NOINDEX_ROBOTS : INDEX_ROBOTS;
 
 	return {
 		canonical,
@@ -145,48 +151,105 @@ export function buildPageSeo(options: SeoOptions): {
 			{ name: "description", content: options.description },
 			{ name: "keywords", content: keywords },
 			{ name: "robots", content: robots },
+			{ name: "googlebot", content: robots },
 			{ property: "og:site_name", content: SITE_NAME },
+			{ property: "og:locale", content: "en_US" },
 			{ property: "og:type", content: options.ogType ?? "website" },
 			{ property: "og:title", content: options.title },
 			{ property: "og:description", content: options.description },
 			{ property: "og:url", content: canonical },
 			{ property: "og:image", content: ogImage },
+			{ property: "og:image:type", content: "image/png" },
 			{ property: "og:image:width", content: "1400" },
 			{ property: "og:image:height", content: "735" },
-			{ property: "og:image:alt", content: `${SITE_NAME} preview image` },
+			{
+				property: "og:image:alt",
+				content: `${options.title} preview image`,
+			},
 			{ name: "twitter:card", content: "summary_large_image" },
 			{ name: "twitter:title", content: options.title },
 			{ name: "twitter:description", content: options.description },
 			{ name: "twitter:image", content: ogImage },
+			{
+				name: "twitter:image:alt",
+				content: `${options.title} preview image`,
+			},
 		],
 	};
 }
 
-export function buildHomeStructuredData() {
+export function buildNoIndexMeta(): MetaTag[] {
+	return [
+		{ name: "robots", content: NOINDEX_ROBOTS },
+		{ name: "googlebot", content: NOINDEX_ROBOTS },
+	];
+}
+
+function buildFaqPageEntity(items: FaqStructuredDataItem[]) {
+	return {
+		"@type": "FAQPage",
+		mainEntity: items.map((item) => ({
+			"@type": "Question",
+			name: item.question,
+			acceptedAnswer: {
+				"@type": "Answer",
+				text: item.answer,
+			},
+		})),
+	};
+}
+
+export function buildHomeStructuredData(options?: {
+	faqItems?: FaqStructuredDataItem[];
+}) {
+	const graph: Array<Record<string, unknown>> = [
+		{
+			"@type": "SoftwareApplication",
+			name: SITE_NAME,
+			applicationCategory: "BusinessApplication",
+			operatingSystem: "Web",
+			description:
+				"Async standup software for engineering teams with open source self-hosted deployment, API access, and MCP tooling.",
+			url: absoluteUrl("/"),
+			offers: {
+				"@type": "AggregateOffer",
+				lowPrice: "0",
+				highPrice: "65",
+				priceCurrency: "USD",
+			},
+		},
+		{
+			"@type": "Organization",
+			name: SITE_NAME,
+			url: absoluteUrl("/"),
+			logo: absoluteUrl("/logo512.png"),
+		},
+		{
+			"@type": "WebSite",
+			name: SITE_NAME,
+			url: absoluteUrl("/"),
+			inLanguage: "en-US",
+		},
+		{
+			"@type": "WebPage",
+			name: "Async Standup Software for Remote Teams",
+			url: absoluteUrl("/"),
+			isPartOf: {
+				"@type": "WebSite",
+				name: SITE_NAME,
+				url: absoluteUrl("/"),
+			},
+			description:
+				"Open source async standup software for remote engineering teams with analytics, API access, and MCP automation.",
+		},
+	];
+
+	if (options?.faqItems?.length) {
+		graph.push(buildFaqPageEntity(options.faqItems));
+	}
+
 	return {
 		"@context": "https://schema.org",
-		"@graph": [
-			{
-				"@type": "SoftwareApplication",
-				name: SITE_NAME,
-				applicationCategory: "BusinessApplication",
-				operatingSystem: "Web",
-				description:
-					"Async standup software for engineering teams with open source self-hosted deployment, API access, and MCP tooling.",
-				url: absoluteUrl("/"),
-				offers: {
-					"@type": "AggregateOffer",
-					lowPrice: "0",
-					highPrice: "65",
-					priceCurrency: "USD",
-				},
-			},
-			{
-				"@type": "Organization",
-				name: SITE_NAME,
-				url: absoluteUrl("/"),
-				logo: absoluteUrl("/logo512.png"),
-			},
-		],
+		"@graph": graph,
 	};
 }

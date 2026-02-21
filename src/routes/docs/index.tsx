@@ -4,10 +4,13 @@ import { toast } from "sonner";
 import { useDocsKey } from "@/components/docs/docs-key-context";
 import { buildPageSeo } from "@/lib/seo";
 
+const docsIndexTitle = "Standup API + MCP Quickstart | DailyStand Docs";
+const docsIndexDescription =
+	"Quickstart guide for the DailyStand public API and MCP server. Authenticate with API keys and run your first standup automation calls.";
+
 const docsIndexSeo = buildPageSeo({
-	title: "Standup API + MCP Quickstart | DailyStand Docs",
-	description:
-		"Quickstart guide for the DailyStand public API and MCP server. Authenticate with API keys and run your first standup automation calls.",
+	title: docsIndexTitle,
+	description: docsIndexDescription,
 	path: "/docs",
 	ogPage: "docs",
 });

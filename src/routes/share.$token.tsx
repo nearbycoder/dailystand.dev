@@ -4,9 +4,11 @@ import { AlertTriangle, CheckCircle2, Target } from "lucide-react";
 import type { ReactNode } from "react";
 import { AutoLinkText } from "@/components/auto-link-text";
 import { useTRPC } from "@/integrations/trpc/react";
+import { buildNoIndexMeta } from "@/lib/seo";
 
 export const Route = createFileRoute("/share/$token")({
 	component: SharedStandupPage,
+	head: () => ({ meta: buildNoIndexMeta() }),
 });
 
 function SharedStandupPage() {

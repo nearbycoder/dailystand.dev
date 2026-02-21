@@ -37,8 +37,6 @@ const homeSeo = buildPageSeo({
 	ogPage: "home",
 });
 
-const homeStructuredData = buildHomeStructuredData();
-
 export const Route = createFileRoute("/")({
 	component: LandingPage,
 	head: () => ({
@@ -173,6 +171,10 @@ const seoFaqItems = [
 	},
 ];
 
+const homeStructuredData = buildHomeStructuredData({
+	faqItems: seoFaqItems,
+});
+
 function LandingPage() {
 	const { data: session } = authClient.useSession();
 	const [isHydrated, setIsHydrated] = useState(false);
@@ -218,18 +220,18 @@ function LandingPage() {
 								</Link>
 							) : (
 								<>
-								<Link
-									to="/auth/sign-in"
-									search={{ invitationId: undefined, email: undefined }}
-								>
+									<Link
+										to="/auth/sign-in"
+										search={{ invitationId: undefined, email: undefined }}
+									>
 										<button className="whitespace-nowrap text-sm font-bold tracking-wider text-ds-text-tertiary transition-colors hover:text-ds-fg">
 											[SIGN_IN]
 										</button>
 									</Link>
-									<Link
-										to="/auth/sign-up"
-										search={{ invitationId: undefined, email: undefined }}
-									>
+								<Link
+									to="/auth/sign-up"
+									search={{ invitationId: undefined, email: undefined }}
+								>
 										<button className="w-full whitespace-nowrap border-[3px] border-ds-border-strong px-3 py-2 text-sm font-bold tracking-wider transition-all duration-150 hover:bg-ds-border-strong hover:text-ds-bg sm:w-auto sm:px-6">
 											GET_STARTED
 										</button>

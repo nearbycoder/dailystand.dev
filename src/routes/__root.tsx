@@ -149,8 +149,16 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				content: "index, follow, max-image-preview:large",
 			},
 			{
+				name: "googlebot",
+				content: "index, follow, max-image-preview:large",
+			},
+			{
 				property: "og:site_name",
 				content: SITE_NAME,
+			},
+			{
+				property: "og:locale",
+				content: "en_US",
 			},
 			{
 				property: "og:type",
@@ -173,6 +181,22 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				content: defaultOgImage,
 			},
 			{
+				property: "og:image:type",
+				content: "image/png",
+			},
+			{
+				property: "og:image:width",
+				content: "1400",
+			},
+			{
+				property: "og:image:height",
+				content: "735",
+			},
+			{
+				property: "og:image:alt",
+				content: `${defaultTitle} preview image`,
+			},
+			{
 				name: "twitter:card",
 				content: "summary_large_image",
 			},
@@ -187,6 +211,10 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 			{
 				name: "twitter:image",
 				content: defaultOgImage,
+			},
+			{
+				name: "twitter:image:alt",
+				content: `${defaultTitle} preview image`,
 			},
 		],
 		links: [

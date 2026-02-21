@@ -2,9 +2,11 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { Terminal } from "lucide-react";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { buildNoIndexMeta } from "@/lib/seo";
 
 export const Route = createFileRoute("/auth/forgot-password")({
 	component: ForgotPasswordPage,
+	head: () => ({ meta: buildNoIndexMeta() }),
 });
 
 function ForgotPasswordPage() {

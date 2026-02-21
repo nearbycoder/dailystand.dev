@@ -49,9 +49,11 @@ import {
 } from "@/components/ui/tooltip";
 import { useTRPC } from "@/integrations/trpc/react";
 import { authClient } from "@/lib/auth-client";
+import { buildNoIndexMeta } from "@/lib/seo";
 
 export const Route = createFileRoute("/app")({
 	component: AppLayout,
+	head: () => ({ meta: buildNoIndexMeta() }),
 });
 
 function AppLayout() {

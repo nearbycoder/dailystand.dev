@@ -3,6 +3,7 @@ import { Terminal } from "lucide-react";
 import { useState } from "react";
 import { z } from "zod";
 import { authClient } from "@/lib/auth-client";
+import { buildNoIndexMeta } from "@/lib/seo";
 
 const resetPasswordSearchSchema = z.object({
 	token: z.string().optional(),
@@ -12,6 +13,7 @@ const resetPasswordSearchSchema = z.object({
 export const Route = createFileRoute("/auth/reset-password")({
 	validateSearch: resetPasswordSearchSchema,
 	component: ResetPasswordPage,
+	head: () => ({ meta: buildNoIndexMeta() }),
 });
 
 function ResetPasswordPage() {

@@ -3,6 +3,7 @@ import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { Terminal } from "lucide-react";
 import { useState } from "react";
 import { authClient } from "@/lib/auth-client";
+import { buildNoIndexMeta } from "@/lib/seo";
 
 export const Route = createFileRoute("/auth/sign-up")({
 	validateSearch: (search) => ({
@@ -11,6 +12,7 @@ export const Route = createFileRoute("/auth/sign-up")({
 		email: typeof search.email === "string" ? search.email : undefined,
 	}),
 	component: SignUp,
+	head: () => ({ meta: buildNoIndexMeta() }),
 });
 
 function SignUp() {

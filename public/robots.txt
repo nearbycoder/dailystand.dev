@@ -1,5 +1,9 @@
 # https://www.robotstxt.org/robotstxt.html
 User-agent: *
 Allow: /
+Disallow: /app/
+Disallow: /auth/
+Disallow: /share/
+Disallow: /api/
 
 Sitemap: https://dailystand.dev/sitemap.xml

@@ -83,7 +83,7 @@ function assertSeedSafety() {
 function resolveSeedPassword() {
 	const configured = process.env.SEED_DEFAULT_PASSWORD?.trim();
 	if (configured) return configured;
-	return randomBytes(18).toString("base64url");
+	return "password123";
 }
 
 type SeedPerson = {
@@ -790,12 +790,22 @@ async function seed() {
 	console.log("Database reset complete.");
 
 	const seedPassword = resolveSeedPassword();
+	const usingConfiguredSeedPassword = Boolean(
+		process.env.SEED_DEFAULT_PASSWORD?.trim(),
+	);
 	const hashedPassword = await hashPassword(seedPassword);
 
 	const demo = await seedDemoOrg(hashedPassword);
 	const enterprise = await seedEnterpriseOrg(hashedPassword);
 
 	console.log(`\nDone! All users have password: ${seedPassword}`);
+	console.log(
+		`Password source: ${
+			usingConfiguredSeedPassword
+				? "SEED_DEFAULT_PASSWORD"
+				: "default seed value"
+		}`,
+	);
 	console.log("\nDemo org sign-ins:");
 	for (const person of DEMO_PEOPLE) {
 		console.log(`  ${person.email}`);

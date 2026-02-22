@@ -19,6 +19,7 @@ import {
 	Users,
 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
+import { AppCommandMenu } from "@/components/app-command-menu";
 import { ThemeToggle } from "@/components/theme-toggle";
 import {
 	Dialog,
@@ -263,6 +264,14 @@ function AppShell({
 
 	return (
 		<div className="min-h-screen bg-ds-bg text-ds-fg selection:bg-ds-selection-bg selection:text-ds-selection-fg font-mono md:flex md:h-svh md:overflow-hidden">
+			<AppCommandMenu
+				session={session}
+				organizations={organizations}
+				teams={teams}
+				canViewAllTeams={canViewAllTeams}
+				onSignOut={handleSignOut}
+			/>
+
 			{/* Sidebar */}
 			<aside className="hidden w-56 shrink-0 flex-col border-r-[3px] border-ds-border-strong md:flex md:h-svh md:max-h-svh md:overflow-hidden">
 				<SidebarContent

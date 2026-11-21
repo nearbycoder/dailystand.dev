@@ -106,9 +106,12 @@ function HistoryPage() {
 	const trpc = useTRPC();
 	const posthog = usePostHog();
 	const queryClient = useQueryClient();
-	const { data: history, isLoading } = useQuery(
-		trpc.standups.getMine.queryOptions({ limit: 1000 }),
-	);
+	const {
+		data: history,
+		isLoading,
+		isError,
+		refetch,
+	} = useQuery(trpc.standups.getMine.queryOptions({ limit: 1000 }));
 	const createDayShare = useMutation(
 		trpc.standups.createDayShare.mutationOptions(),
 	);
@@ -269,6 +272,25 @@ function HistoryPage() {
 							<div className="h-28 border-[3px] border-ds-muted3 p-6 animate-pulse" />
 						</div>
 					))}
+				</div>
+			) : isError ? (
+				<div className="border-[3px] border-red-500/70 bg-red-500/5 p-6">
+					<div className="mb-2 flex items-center gap-2 text-red-500 dark:text-red-400">
+						<AlertTriangle className="h-4 w-4" />
+						<span className="text-sm font-extrabold tracking-widest">
+							HISTORY_LOAD_FAILED
+						</span>
+					</div>
+					<p className="text-sm text-ds-muted">
+						Unable to load your standup history right now.
+					</p>
+					<button
+						type="button"
+						onClick={() => void refetch()}
+						className="mt-4 inline-flex items-center gap-2 border-[2px] border-ds-muted3 px-3 py-1.5 text-[10px] font-extrabold tracking-widest text-ds-text-tertiary transition-colors hover:border-ds-accent hover:text-ds-accent"
+					>
+						RETRY
+					</button>
 				</div>
 			) : history && history.length > 0 ? (
 				<div className="space-y-0">

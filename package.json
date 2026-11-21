@@ -18,6 +18,7 @@
     "start": "node --import ./.output/server/instrument.server.mjs .output/server/index.mjs",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
+    "db:migrate:safe": "bun src/db/migrate.ts",
     "db:push": "drizzle-kit push",
     "db:pull": "drizzle-kit pull",
     "db:studio": "drizzle-kit studio",

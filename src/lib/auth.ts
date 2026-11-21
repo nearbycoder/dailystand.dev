@@ -57,6 +57,13 @@ const trustedOrigins = Array.from(
 	]),
 );
 
+const betterAuthIpAddressHeaders = parseCsvEnv(
+	process.env.BETTER_AUTH_IP_ADDRESS_HEADERS,
+);
+const betterAuthTrustedProxies = parseCsvEnv(
+	process.env.BETTER_AUTH_TRUSTED_PROXIES,
+);
+
 const defaultApiKeyPermissions = [
 	"profile:read",
 	"teams:read",
@@ -228,6 +235,17 @@ export const auth = betterAuth({
 		provider: "pg",
 	}),
 	trustedOrigins,
+	advanced: {
+		ipAddress: {
+			ipAddressHeaders:
+				betterAuthIpAddressHeaders.length > 0
+					? betterAuthIpAddressHeaders
+					: ["x-real-ip", "cf-connecting-ip", "x-forwarded-for"],
+			...(betterAuthTrustedProxies.length > 0
+				? { trustedProxies: betterAuthTrustedProxies }
+				: {}),
+		},
+	},
 	rateLimit: {
 		enabled: betterAuthRateLimitEnabled,
 		window: betterAuthRateLimitWindowSeconds,

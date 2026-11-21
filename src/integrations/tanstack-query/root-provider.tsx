@@ -25,12 +25,54 @@ export const trpcClient = createTRPCClient<TRPCRouter>({
 	],
 });
 
+const NON_RETRYABLE_TRPC_CODES = new Set([
+	"BAD_REQUEST",
+	"UNAUTHORIZED",
+	"FORBIDDEN",
+	"NOT_FOUND",
+	"METHOD_NOT_SUPPORTED",
+	"CONFLICT",
+	"PRECONDITION_FAILED",
+	"PAYLOAD_TOO_LARGE",
+	"UNPROCESSABLE_CONTENT",
+	"PARSE_ERROR",
+]);
+
+export function shouldRetryQuery(
+	failureCount: number,
+	error: unknown,
+): boolean {
+	if (failureCount >= 1) return false;
+	if (error && typeof error === "object") {
+		const data = (error as { data?: { code?: unknown; httpStatus?: unknown } })
+			.data;
+		if (
+			typeof data?.code === "string" &&
+			NON_RETRYABLE_TRPC_CODES.has(data.code)
+		) {
+			return false;
+		}
+		if (
+			typeof data?.httpStatus === "number" &&
+			data.httpStatus >= 400 &&
+			data.httpStatus < 500 &&
+			data.httpStatus !== 408 &&
+			data.httpStatus !== 429
+		) {
+			return false;
+		}
+	}
+	return true;
+}
+
 function makeQueryClient() {
 	return new QueryClient({
 		defaultOptions: {
 			queries: {
 				staleTime: 30_000,
 				gcTime: 5 * 60_000,
+				retry: shouldRetryQuery,
+				retryDelay: 500,
 			},
 			dehydrate: { serializeData: superjson.serialize },
 			hydrate: { deserializeData: superjson.deserialize },

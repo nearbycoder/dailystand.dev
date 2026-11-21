@@ -49,9 +49,12 @@ function DashboardHome() {
 	const { data: session } = authClient.useSession();
 	const viewerId = session?.user?.id;
 
-	const { data: teams, isLoading: teamsLoading } = useQuery(
-		trpc.teams.list.queryOptions(),
-	);
+	const {
+		data: teams,
+		isLoading: teamsLoading,
+		isError: teamsError,
+		refetch: refetchTeams,
+	} = useQuery(trpc.teams.list.queryOptions());
 	const { data: hasSubmitted } = useQuery(
 		trpc.standups.hasSubmittedToday.queryOptions({ date: today }),
 	);
@@ -111,6 +114,25 @@ function DashboardHome() {
 							className="h-36 animate-pulse border-[3px] border-ds-muted3 bg-ds-surface/20"
 						/>
 					))}
+				</div>
+			) : teamsError ? (
+				<div className="border-[3px] border-red-500/70 bg-red-500/5 p-6">
+					<div className="mb-2 flex items-center gap-2 text-red-500 dark:text-red-400">
+						<AlertTriangle className="h-4 w-4" />
+						<span className="text-sm font-extrabold tracking-widest">
+							DASHBOARD_LOAD_FAILED
+						</span>
+					</div>
+					<p className="text-sm text-ds-muted">
+						Unable to load your teams right now.
+					</p>
+					<button
+						type="button"
+						onClick={() => void refetchTeams()}
+						className="mt-4 inline-flex items-center gap-2 border-[2px] border-ds-muted3 px-3 py-1.5 text-[10px] font-extrabold tracking-widest text-ds-text-tertiary transition-colors hover:border-ds-accent hover:text-ds-accent"
+					>
+						RETRY
+					</button>
 				</div>
 			) : myTeams.length === 0 ? (
 				<div className="border-[3px] border-ds-muted3 p-6">

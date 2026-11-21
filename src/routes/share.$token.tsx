@@ -109,25 +109,27 @@ function SharedStandupPage() {
 	);
 }
 
+const SHARE_FULL_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+	weekday: "long",
+	year: "numeric",
+	month: "long",
+	day: "numeric",
+});
+
+const SHARE_SHORT_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+	weekday: "short",
+	month: "short",
+	day: "numeric",
+});
+
 function formatDateSub(dateStr: string): string {
-	const date = new Date(dateStr + "T12:00:00");
-	return date.toLocaleDateString("en-US", {
-		weekday: "long",
-		year: "numeric",
-		month: "long",
-		day: "numeric",
-	});
+	const date = new Date(`${dateStr}T12:00:00`);
+	return SHARE_FULL_DATE_FORMATTER.format(date);
 }
 
 function formatDateHeading(dateStr: string): string {
-	const date = new Date(dateStr + "T12:00:00");
-	return date
-		.toLocaleDateString("en-US", {
-			weekday: "short",
-			month: "short",
-			day: "numeric",
-		})
-		.toUpperCase();
+	const date = new Date(`${dateStr}T12:00:00`);
+	return SHARE_SHORT_DATE_FORMATTER.format(date).toUpperCase();
 }
 
 const colorMap = {

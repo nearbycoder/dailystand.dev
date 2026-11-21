@@ -29,4 +29,20 @@ describe("AutoLinkText", () => {
 		render(<AutoLinkText text="contact me at dev@example.com" />);
 		expect(screen.queryByRole("link")).not.toBeInTheDocument();
 	});
+
+	it("handles uppercase HTTP/HTTPS protocols without double-prefixing", () => {
+		render(<AutoLinkText text="Check HTTPS://EXAMPLE.COM/docs now" />);
+		const link = screen.getByRole("link", {
+			name: "HTTPS://EXAMPLE.COM/docs",
+		});
+		expect(link).toHaveAttribute("href", "HTTPS://EXAMPLE.COM/docs");
+	});
+
+	it("handles long adversarial dotted inputs in linear time", () => {
+		const adversarial = `${"a.".repeat(5000)}!`;
+		const start = performance.now();
+		render(<AutoLinkText text={adversarial} />);
+		const elapsedMs = performance.now() - start;
+		expect(elapsedMs).toBeLessThan(250);
+	});
 });

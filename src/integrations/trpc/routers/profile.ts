@@ -80,14 +80,7 @@ export const profileRouter = {
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			const [viewerMembership, targetMembership, targetUser] = await Promise.all([
-				db.query.member.findFirst({
-					where: and(
-						eq(member.organizationId, ctx.organizationId),
-						eq(member.userId, ctx.session.user.id),
-					),
-					columns: { id: true },
-				}),
+			const [targetMembership, targetUser] = await Promise.all([
 				db.query.member.findFirst({
 					where: and(
 						eq(member.organizationId, ctx.organizationId),
@@ -107,36 +100,12 @@ export const profileRouter = {
 				}),
 			]);
 
-			if (!viewerMembership) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You are not a member of this organization.",
-				});
-			}
 			if (!targetMembership || !targetUser) {
 				throw new TRPCError({
 					code: "NOT_FOUND",
 					message: "User not found in this organization.",
 				});
 			}
-
-			const teamMembershipRows = await db.query.teamMember.findMany({
-				where: eq(teamMember.userId, input.userId),
-				columns: {
-					id: true,
-					teamId: true,
-					createdAt: true,
-				},
-				with: {
-					team: {
-						columns: {
-							id: true,
-							name: true,
-							organizationId: true,
-						},
-					},
-				},
-			});
 
 			const baseConditions = [
 				eq(standupEntry.organizationId, ctx.organizationId),
@@ -149,24 +118,43 @@ export const profileRouter = {
 			}
 
 			const entryFetchLimit = Math.min(input.limit * 12, 2000);
-			const entries = await db.query.standupEntry.findMany({
-				where: and(...historyConditions),
-				columns: {
-					id: true,
-					date: true,
-					type: true,
-					content: true,
-					teamId: true,
-					createdAt: true,
-				},
-				with: {
-					team: {
-						columns: { id: true, name: true },
+			const [teamMembershipRows, entries] = await Promise.all([
+				db.query.teamMember.findMany({
+					where: eq(teamMember.userId, input.userId),
+					columns: {
+						id: true,
+						teamId: true,
+						createdAt: true,
 					},
-				},
-				orderBy: [desc(standupEntry.date), desc(standupEntry.createdAt)],
-				limit: entryFetchLimit,
-			});
+					with: {
+						team: {
+							columns: {
+								id: true,
+								name: true,
+								organizationId: true,
+							},
+						},
+					},
+				}),
+				db.query.standupEntry.findMany({
+					where: and(...historyConditions),
+					columns: {
+						id: true,
+						date: true,
+						type: true,
+						content: true,
+						teamId: true,
+						createdAt: true,
+					},
+					with: {
+						team: {
+							columns: { id: true, name: true },
+						},
+					},
+					orderBy: [desc(standupEntry.date), desc(standupEntry.createdAt)],
+					limit: entryFetchLimit,
+				}),
+			]);
 
 			const groupedHistory = groupProfileStandupEntries(entries);
 			const days = groupedHistory.slice(0, input.limit);
@@ -176,12 +164,20 @@ export const profileRouter = {
 			let hasMore = false;
 			let nextCursorDate: string | null = null;
 			if (provisionalCursor) {
-				const olderEntry = await db.query.standupEntry.findFirst({
-					where: and(...baseConditions, lt(standupEntry.date, provisionalCursor)),
-					columns: { id: true },
-				});
-				hasMore = Boolean(olderEntry);
-				nextCursorDate = hasMore ? provisionalCursor : null;
+				if (groupedHistory.length > input.limit) {
+					hasMore = true;
+					nextCursorDate = provisionalCursor;
+				} else {
+					const olderEntry = await db.query.standupEntry.findFirst({
+						where: and(
+							...baseConditions,
+							lt(standupEntry.date, provisionalCursor),
+						),
+						columns: { id: true },
+					});
+					hasMore = Boolean(olderEntry);
+					nextCursorDate = hasMore ? provisionalCursor : null;
+				}
 			}
 
 			return {
@@ -214,21 +210,6 @@ export const profileRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			const currentMembership = await db.query.member.findFirst({
-				where: and(
-					eq(member.organizationId, ctx.organizationId),
-					eq(member.userId, ctx.session.user.id),
-				),
-				columns: { id: true },
-			});
-
-			if (!currentMembership) {
-				throw new TRPCError({
-					code: "FORBIDDEN",
-					message: "You are not a member of this organization.",
-				});
-			}
-
 			const bio = normalizeBioInput(input.bio);
 			await db
 				.update(user)

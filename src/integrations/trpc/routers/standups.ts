@@ -26,12 +26,18 @@ const analyticsRangeDaysSchema = z.union([
 	z.literal(90),
 ]);
 
-const standupEntriesInputSchema = z.array(
-	z.object({
-		type: z.enum(["completed", "planned", "blocker"]),
-		content: z.string().min(1),
-	}),
-);
+const MAX_STANDUP_ENTRIES = 100;
+const MAX_ENTRY_CONTENT_LENGTH = 4000;
+const MAX_DATE_RANGE_DAYS = 366;
+
+const standupEntriesInputSchema = z
+	.array(
+		z.object({
+			type: z.enum(["completed", "planned", "blocker"]),
+			content: z.string().trim().min(1).max(MAX_ENTRY_CONTENT_LENGTH),
+		}),
+	)
+	.max(MAX_STANDUP_ENTRIES);
 const SHARE_LINK_TTL_DAYS = 30;
 
 function groupEntriesByType<
@@ -119,20 +125,6 @@ function extractKeywordTokens(content: string): string[] {
 	return tokens;
 }
 
-function extractTopKeywords(contents: string[], limit = 12) {
-	const counts = new Map<string, number>();
-	for (const content of contents) {
-		for (const token of extractKeywordTokens(content)) {
-			counts.set(token, (counts.get(token) ?? 0) + 1);
-		}
-	}
-
-	return Array.from(counts.entries())
-		.map(([term, count]) => ({ term, count }))
-		.sort((a, b) => b.count - a.count || a.term.localeCompare(b.term))
-		.slice(0, limit);
-}
-
 function teamScopeCondition(teamId: string | null) {
 	return teamId === null
 		? isNull(standupEntry.teamId)
@@ -156,12 +148,37 @@ function chooseEntriesForTeam<T extends { teamId: string | null }>(
 	return entries.filter((entry) => entry.teamId === null);
 }
 
-function escapeCsvCell(value: string): string {
-	const normalized = value.replace(/\r?\n|\r/g, " ").trim();
-	if (/[",\n]/.test(normalized)) {
-		return `"${normalized.replace(/"/g, '""')}"`;
+function assertValidDateRange(
+	startDate: string,
+	endDate: string,
+	maxDays = MAX_DATE_RANGE_DAYS,
+) {
+	if (startDate > endDate) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: "Start date must be before end date.",
+		});
 	}
-	return normalized;
+	const rangeSpanMs =
+		Date.parse(`${endDate}T00:00:00Z`) - Date.parse(`${startDate}T00:00:00Z`);
+	const rangeDays = Math.floor(rangeSpanMs / 86_400_000) + 1;
+	if (!Number.isFinite(rangeDays) || rangeDays > maxDays) {
+		throw new TRPCError({
+			code: "BAD_REQUEST",
+			message: `Maximum date range window is ${maxDays} days.`,
+		});
+	}
+}
+
+export function escapeCsvCell(value: string): string {
+	const normalized = value.replace(/\r?\n|\r/g, " ").trim();
+	const neutralized = /^[=+\-@\t\r]/.test(normalized)
+		? `'${normalized}`
+		: normalized;
+	if (/[",\n]/.test(neutralized)) {
+		return `"${neutralized.replace(/"/g, '""')}"`;
+	}
+	return neutralized;
 }
 
 function pushMarkdownSection(
@@ -232,33 +249,29 @@ function canManageOrganizationRole(role: string) {
 async function assertActorCanReadTeamScope(
 	userId: string,
 	organizationId: string,
+	actorRole: string,
 	teamId?: string,
-) {
-	if (!teamId) return;
-	const [targetTeam, organizationMembership, scopedTeamMembership] =
-		await Promise.all([
-			db.query.team.findFirst({
-				where: and(
-					eq(team.id, teamId),
-					eq(team.organizationId, organizationId),
-				),
-				columns: { id: true },
-			}),
-			db.query.member.findFirst({
-				where: and(
-					eq(member.organizationId, organizationId),
-					eq(member.userId, userId),
-				),
-				columns: { role: true },
-			}),
-			db.query.teamMember.findFirst({
-				where: and(
-					eq(teamMember.teamId, teamId),
-					eq(teamMember.userId, userId),
-				),
-				columns: { teamId: true },
-			}),
-		]);
+): Promise<{ id: string; name: string } | null> {
+	if (!teamId) return null;
+	const isOrgManager = canManageOrganizationRole(actorRole);
+	const [targetTeam, scopedTeamMembership] = await Promise.all([
+		db.query.team.findFirst({
+			where: and(
+				eq(team.id, teamId),
+				eq(team.organizationId, organizationId),
+			),
+			columns: { id: true, name: true },
+		}),
+		isOrgManager
+			? Promise.resolve(null)
+			: db.query.teamMember.findFirst({
+					where: and(
+						eq(teamMember.teamId, teamId),
+						eq(teamMember.userId, userId),
+					),
+					columns: { teamId: true },
+				}),
+	]);
 
 	if (!targetTeam) {
 		throw new TRPCError({
@@ -267,18 +280,8 @@ async function assertActorCanReadTeamScope(
 		});
 	}
 
-	if (!organizationMembership) {
-		throw new TRPCError({
-			code: "FORBIDDEN",
-			message: "You are not a member of this organization.",
-		});
-	}
-
-	if (
-		scopedTeamMembership ||
-		canManageOrganizationRole(organizationMembership.role)
-	) {
-		return;
+	if (isOrgManager || scopedTeamMembership) {
+		return targetTeam;
 	}
 	throw new TRPCError({
 		code: "FORBIDDEN",
@@ -308,29 +311,31 @@ export const standupsRouter = {
 			const allowedTeamIds = await getUserTeamIdsInOrganization(userId, orgId);
 			assertTeamScopeAccess(targetTeamId, allowedTeamIds);
 
-			await db
-				.delete(standupEntry)
-				.where(
-					and(
-						eq(standupEntry.userId, userId),
-						eq(standupEntry.organizationId, orgId),
-						eq(standupEntry.date, input.date),
-						teamScopeCondition(targetTeamId),
-					),
+			await db.transaction(async (tx) => {
+				await tx
+					.delete(standupEntry)
+					.where(
+						and(
+							eq(standupEntry.userId, userId),
+							eq(standupEntry.organizationId, orgId),
+							eq(standupEntry.date, input.date),
+							teamScopeCondition(targetTeamId),
+						),
+					);
+
+				if (input.entries.length === 0) return;
+
+				await tx.insert(standupEntry).values(
+					input.entries.map((entry) => ({
+						userId,
+						organizationId: orgId,
+						teamId: targetTeamId,
+						date: input.date,
+						type: entry.type,
+						content: entry.content,
+					})),
 				);
-
-			if (input.entries.length === 0) return { success: true };
-
-			await db.insert(standupEntry).values(
-				input.entries.map((entry) => ({
-					userId,
-					organizationId: orgId,
-					teamId: targetTeamId,
-					date: input.date,
-					type: entry.type,
-					content: entry.content,
-				})),
-			);
+			});
 
 			return { success: true };
 		}),
@@ -339,7 +344,7 @@ export const standupsRouter = {
 		.input(
 			z.object({
 				date: dateStringSchema,
-				replaceScopes: z.array(z.string().nullable()).default([null]),
+				replaceScopes: z.array(z.string().nullable()).max(50).default([null]),
 				submissions: z
 					.array(
 						z.object({
@@ -347,6 +352,7 @@ export const standupsRouter = {
 							entries: standupEntriesInputSchema,
 						}),
 					)
+					.max(50)
 					.default([]),
 			}),
 		)
@@ -371,19 +377,6 @@ export const standupsRouter = {
 				assertTeamScopeAccess(scope, allowedTeamIds);
 			}
 
-			for (const scope of scopes) {
-				await db
-					.delete(standupEntry)
-					.where(
-						and(
-							eq(standupEntry.userId, userId),
-							eq(standupEntry.organizationId, orgId),
-							eq(standupEntry.date, input.date),
-							teamScopeCondition(scope),
-						),
-					);
-			}
-
 			const rowsToInsert = input.submissions.flatMap((submission) =>
 				submission.entries.map((entry) => ({
 					userId,
@@ -395,9 +388,39 @@ export const standupsRouter = {
 				})),
 			);
 
-			if (rowsToInsert.length > 0) {
-				await db.insert(standupEntry).values(rowsToInsert);
-			}
+			const hasGlobalScope = scopes.some((scope) => scope === null);
+			const teamScopes = scopes.filter(
+				(scope): scope is string => scope !== null,
+			);
+			const deleteScopeConditions = [
+				...(hasGlobalScope ? [isNull(standupEntry.teamId)] : []),
+				...(teamScopes.length > 0
+					? [inArray(standupEntry.teamId, teamScopes)]
+					: []),
+			];
+
+			await db.transaction(async (tx) => {
+				if (deleteScopeConditions.length > 0) {
+					const scopeFilter =
+						deleteScopeConditions.length === 1
+							? deleteScopeConditions[0]
+							: or(...deleteScopeConditions);
+					await tx
+						.delete(standupEntry)
+						.where(
+							and(
+								eq(standupEntry.userId, userId),
+								eq(standupEntry.organizationId, orgId),
+								eq(standupEntry.date, input.date),
+								scopeFilter,
+							),
+						);
+				}
+
+				if (rowsToInsert.length > 0) {
+					await tx.insert(standupEntry).values(rowsToInsert);
+				}
+			});
 
 			return { success: true };
 		}),
@@ -410,16 +433,15 @@ export const standupsRouter = {
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			await assertActorCanReadTeamScope(
-				ctx.session.user.id,
-				ctx.organizationId,
-				input.teamId,
-			);
-
-			const { floorDate } = await resolveHistoryWindow(
-				ctx.organizationId,
-				ctx.session.user.id,
-			);
+			const [, { floorDate }] = await Promise.all([
+				assertActorCanReadTeamScope(
+					ctx.session.user.id,
+					ctx.organizationId,
+					ctx.membership.role,
+					input.teamId,
+				),
+				resolveHistoryWindow(ctx.organizationId, ctx.session.user.id),
+			]);
 			if (floorDate && input.date < floorDate) {
 				return [];
 			}
@@ -469,16 +491,17 @@ export const standupsRouter = {
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			await assertActorCanReadTeamScope(
-				ctx.session.user.id,
-				ctx.organizationId,
-				input.teamId,
-			);
+			assertValidDateRange(input.startDate, input.endDate);
 
-			const { floorDate } = await resolveHistoryWindow(
-				ctx.organizationId,
-				ctx.session.user.id,
-			);
+			const [, { floorDate }] = await Promise.all([
+				assertActorCanReadTeamScope(
+					ctx.session.user.id,
+					ctx.organizationId,
+					ctx.membership.role,
+					input.teamId,
+				),
+				resolveHistoryWindow(ctx.organizationId, ctx.session.user.id),
+			]);
 
 			const conditions = [
 				eq(standupEntry.organizationId, ctx.organizationId),
@@ -540,54 +563,17 @@ export const standupsRouter = {
 			}),
 		)
 		.mutation(async ({ ctx, input }) => {
-			await assertActorCanReadTeamScope(
-				ctx.session.user.id,
-				ctx.organizationId,
-				input.teamId,
-			);
+			assertValidDateRange(input.startDate, input.endDate);
 
-			const { floorDate } = await resolveHistoryWindow(
-				ctx.organizationId,
-				ctx.session.user.id,
-			);
-
-			if (input.startDate > input.endDate) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Start date must be before end date.",
-				});
-			}
-
-			const rangeSpanMs =
-				new Date(`${input.endDate}T00:00:00`).getTime() -
-				new Date(`${input.startDate}T00:00:00`).getTime();
-			const rangeDays = Math.floor(rangeSpanMs / 86_400_000) + 1;
-			if (rangeDays > 366) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Maximum export window is 366 days.",
-				});
-			}
-
-			const scopedTeam = input.teamId
-				? await db.query.team.findFirst({
-						where: and(
-							eq(team.id, input.teamId),
-							eq(team.organizationId, ctx.organizationId),
-						),
-						columns: {
-							id: true,
-							name: true,
-						},
-					})
-				: null;
-
-			if (input.teamId && !scopedTeam) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Invalid team scope for this organization.",
-				});
-			}
+			const [scopedTeam, { floorDate }] = await Promise.all([
+				assertActorCanReadTeamScope(
+					ctx.session.user.id,
+					ctx.organizationId,
+					ctx.membership.role,
+					input.teamId,
+				),
+				resolveHistoryWindow(ctx.organizationId, ctx.session.user.id),
+			]);
 
 			const conditions = [
 				eq(standupEntry.organizationId, ctx.organizationId),
@@ -760,16 +746,15 @@ export const standupsRouter = {
 			}),
 		)
 		.query(async ({ ctx, input }) => {
-			await assertActorCanReadTeamScope(
-				ctx.session.user.id,
-				ctx.organizationId,
-				input.teamId,
-			);
-
-			const { maxDays, floorDate } = await resolveHistoryWindow(
-				ctx.organizationId,
-				ctx.session.user.id,
-			);
+			const [, { maxDays, floorDate }] = await Promise.all([
+				assertActorCanReadTeamScope(
+					ctx.session.user.id,
+					ctx.organizationId,
+					ctx.membership.role,
+					input.teamId,
+				),
+				resolveHistoryWindow(ctx.organizationId, ctx.session.user.id),
+			]);
 			const effectiveRangeDays = maxHistoryDays(maxDays, input.rangeDays);
 
 			const endDateObj = new Date();
@@ -778,38 +763,6 @@ export const standupsRouter = {
 			startDateObj.setDate(startDateObj.getDate() - (effectiveRangeDays - 1));
 			const startDate = isoDate(startDateObj);
 			const endDate = isoDate(endDateObj);
-
-			const teamRows = await db.query.team.findMany({
-				where: eq(team.organizationId, ctx.organizationId),
-				columns: { id: true, name: true },
-				with: {
-					teamMembers: {
-						columns: { userId: true },
-					},
-				},
-			});
-			const teamById = new Map(teamRows.map((row) => [row.id, row]));
-
-			if (input.teamId && !teamById.has(input.teamId)) {
-				throw new TRPCError({
-					code: "BAD_REQUEST",
-					message: "Invalid team filter.",
-				});
-			}
-
-			const orgMembers = await db.query.member.findMany({
-				where: eq(member.organizationId, ctx.organizationId),
-				columns: { userId: true },
-			});
-			const selectedTeam = input.teamId ? teamById.get(input.teamId)! : null;
-			const scopeMemberIds = new Set(
-				selectedTeam
-					? selectedTeam.teamMembers.map(
-							(teamMemberRow) => teamMemberRow.userId,
-						)
-					: orgMembers.map((memberRow) => memberRow.userId),
-			);
-			const scopeMemberCount = scopeMemberIds.size;
 
 			const conditions = [
 				eq(standupEntry.organizationId, ctx.organizationId),
@@ -823,18 +776,52 @@ export const standupsRouter = {
 				conditions.push(eq(standupEntry.teamId, input.teamId));
 			}
 
-			const entries = await db.query.standupEntry.findMany({
-				where: and(...conditions),
-				with: {
-					user: {
-						columns: { id: true, name: true },
+			const [teamRows, orgMembers, entries] = await Promise.all([
+				db.query.team.findMany({
+					where: eq(team.organizationId, ctx.organizationId),
+					columns: { id: true, name: true },
+					with: {
+						teamMembers: {
+							columns: { userId: true },
+						},
 					},
-					team: {
-						columns: { id: true, name: true },
+				}),
+				db.query.member.findMany({
+					where: eq(member.organizationId, ctx.organizationId),
+					columns: { userId: true },
+				}),
+				db.query.standupEntry.findMany({
+					where: and(...conditions),
+					with: {
+						user: {
+							columns: { id: true, name: true },
+						},
+						team: {
+							columns: { id: true, name: true },
+						},
 					},
-				},
-				orderBy: [desc(standupEntry.date), desc(standupEntry.createdAt)],
-			});
+					orderBy: [desc(standupEntry.date), desc(standupEntry.createdAt)],
+				}),
+			]);
+
+			const teamById = new Map(teamRows.map((row) => [row.id, row]));
+
+			if (input.teamId && !teamById.has(input.teamId)) {
+				throw new TRPCError({
+					code: "BAD_REQUEST",
+					message: "Invalid team filter.",
+				});
+			}
+
+			const selectedTeam = input.teamId ? teamById.get(input.teamId)! : null;
+			const scopeMemberIds = new Set(
+				selectedTeam
+					? selectedTeam.teamMembers.map(
+							(teamMemberRow) => teamMemberRow.userId,
+						)
+					: orgMembers.map((memberRow) => memberRow.userId),
+			);
+			const scopeMemberCount = scopeMemberIds.size;
 
 			const dateKeys = enumerateDateRange(startDateObj, endDateObj);
 			const dailyMap = new Map(
@@ -1190,10 +1177,10 @@ export const standupsRouter = {
 				)
 				.slice(0, 6);
 
-			const keywords = extractTopKeywords(
-				entries.map((entry) => entry.content),
-				14,
-			);
+			const keywords = Array.from(keywordDetailsMap.entries())
+				.map(([term, detail]) => ({ term, count: detail.count }))
+				.sort((a, b) => b.count - a.count || a.term.localeCompare(b.term))
+				.slice(0, 14);
 
 			const teamDrilldown = teamStats.map((teamStat) => {
 				const teamKey = teamStat.teamId ?? "__GLOBAL__";
@@ -1306,9 +1293,7 @@ export const standupsRouter = {
 					blockers: totalBlockers,
 					blockerRate: totalEntries > 0 ? totalBlockers / totalEntries : 0,
 					activeUsers,
-					activeTeams: new Set(
-						entries.map((entry) => entry.teamId ?? "__GLOBAL__"),
-					).size,
+					activeTeams: teamStatsMap.size,
 					participationRate,
 				},
 				insights: {
@@ -1350,6 +1335,11 @@ export const standupsRouter = {
 
 			const entries = await db.query.standupEntry.findMany({
 				where: and(...conditions),
+				columns: {
+					date: true,
+					type: true,
+					content: true,
+				},
 				orderBy: [desc(standupEntry.date), desc(standupEntry.createdAt)],
 				limit: 10000,
 			});
@@ -1414,14 +1404,24 @@ export const standupsRouter = {
 		.mutation(async ({ ctx, input }) => {
 			const userId = ctx.session.user.id;
 			const orgId = ctx.organizationId;
-			const hasEntries = await db.query.standupEntry.findFirst({
-				where: and(
-					eq(standupEntry.userId, userId),
-					eq(standupEntry.organizationId, orgId),
-					eq(standupEntry.date, input.date),
-				),
-				columns: { id: true },
-			});
+			const [hasEntries, existingShare] = await Promise.all([
+				db.query.standupEntry.findFirst({
+					where: and(
+						eq(standupEntry.userId, userId),
+						eq(standupEntry.organizationId, orgId),
+						eq(standupEntry.date, input.date),
+					),
+					columns: { id: true },
+				}),
+				db.query.standupShare.findFirst({
+					where: and(
+						eq(standupShare.userId, userId),
+						eq(standupShare.organizationId, orgId),
+						eq(standupShare.date, input.date),
+					),
+					columns: { id: true, token: true, revokedAt: true, expiresAt: true },
+				}),
+			]);
 
 			if (!hasEntries) {
 				throw new TRPCError({
@@ -1429,15 +1429,6 @@ export const standupsRouter = {
 					message: "No standup exists for this day.",
 				});
 			}
-
-			const existingShare = await db.query.standupShare.findFirst({
-				where: and(
-					eq(standupShare.userId, userId),
-					eq(standupShare.organizationId, orgId),
-					eq(standupShare.date, input.date),
-				),
-				columns: { id: true, token: true, revokedAt: true, expiresAt: true },
-			});
 
 			if (
 				existingShare &&
@@ -1560,6 +1551,7 @@ export const standupsRouter = {
 					eq(standupEntry.organizationId, ctx.organizationId),
 					eq(standupEntry.date, today),
 				),
+				columns: { id: true },
 			});
 			return !!entry;
 		}),

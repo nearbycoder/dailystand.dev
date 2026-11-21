@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import {
+	createContext,
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 
 const DOCS_KEY_STORAGE_KEY = "ds_docs_api_key";
 
@@ -18,34 +25,43 @@ export function DocsKeyProvider({ children }: { children: React.ReactNode }) {
 
 	useEffect(() => {
 		if (typeof window === "undefined") return;
-		const stored = window.sessionStorage.getItem(DOCS_KEY_STORAGE_KEY);
-		if (stored) setApiKeyState(stored);
+		try {
+			const stored = window.sessionStorage.getItem(DOCS_KEY_STORAGE_KEY);
+			if (stored) setApiKeyState(stored);
+		} catch {
+			// sessionStorage may be unavailable in restricted contexts.
+		}
 	}, []);
 
-	const setApiKey = (value: string) => {
+	const setApiKey = useCallback((value: string) => {
 		setApiKeyState(value);
 		if (typeof window !== "undefined") {
-			window.sessionStorage.setItem(DOCS_KEY_STORAGE_KEY, value);
+			try {
+				window.sessionStorage.setItem(DOCS_KEY_STORAGE_KEY, value);
+			} catch {
+				// Ignore storage write failures.
+			}
 		}
-	};
+	}, []);
 
 	const baseUrl = useMemo(() => {
 		if (typeof window === "undefined") return "https://your-domain.com";
 		return window.location.origin;
 	}, []);
 
+	const value = useMemo(
+		() => ({
+			apiKey,
+			setApiKey,
+			showApiKey,
+			setShowApiKey,
+			baseUrl,
+		}),
+		[apiKey, setApiKey, showApiKey, baseUrl],
+	);
+
 	return (
-		<DocsKeyContext.Provider
-			value={{
-				apiKey,
-				setApiKey,
-				showApiKey,
-				setShowApiKey,
-				baseUrl,
-			}}
-		>
-			{children}
-		</DocsKeyContext.Provider>
+		<DocsKeyContext.Provider value={value}>{children}</DocsKeyContext.Provider>
 	);
 }
 

@@ -9,56 +9,46 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
-import { Route as TermsRouteImport } from './routes/terms'
-import { Route as PrivacyRouteImport } from './routes/privacy'
-import { Route as DocsRouteRouteImport } from './routes/docs/route'
-import { Route as AppRouteRouteImport } from './routes/app/route'
 import { Route as IndexRouteImport } from './routes/index'
-import { Route as DocsIndexRouteImport } from './routes/docs/index'
-import { Route as AppIndexRouteImport } from './routes/app/index'
-import { Route as ShareTokenRouteImport } from './routes/share.$token'
-import { Route as DocsRestRouteImport } from './routes/docs/rest'
-import { Route as DocsMcpRouteImport } from './routes/docs/mcp'
-import { Route as DocsExplorerRouteImport } from './routes/docs/explorer'
-import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
-import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
-import { Route as AuthResetPasswordRouteImport } from './routes/auth/reset-password'
-import { Route as AuthForgotPasswordRouteImport } from './routes/auth/forgot-password'
-import { Route as AppStandupRouteImport } from './routes/app/standup'
-import { Route as AppHistoryRouteImport } from './routes/app/history'
-import { Route as AppAnalyticsRouteImport } from './routes/app/analytics'
-import { Route as ApiOgRouteImport } from './routes/api/og'
+import { Route as AppRouteRouteImport } from './routes/app/route'
+import { Route as DocsRouteRouteImport } from './routes/docs/route'
+import { Route as PrivacyRouteImport } from './routes/privacy'
+import { Route as TermsRouteImport } from './routes/terms'
 import { Route as ApiMcpRouteImport } from './routes/api/mcp'
-import { Route as AppSettingsIndexRouteImport } from './routes/app/settings/index'
-import { Route as AppUserUserIdRouteImport } from './routes/app/user.$userId'
-import { Route as AppTeamTeamIdRouteImport } from './routes/app/team.$teamId'
-import { Route as AppSettingsTeamsRouteImport } from './routes/app/settings/teams'
-import { Route as AppSettingsSecurityRouteImport } from './routes/app/settings/security'
-import { Route as AppSettingsProfileRouteImport } from './routes/app/settings/profile'
-import { Route as AppSettingsNotificationsRouteImport } from './routes/app/settings/notifications'
-import { Route as AppSettingsMembersRouteImport } from './routes/app/settings/members'
-import { Route as AppSettingsBillingRouteImport } from './routes/app/settings/billing'
-import { Route as AppSettingsApiKeysRouteImport } from './routes/app/settings/api-keys'
-import { Route as AppSettingsApiDocsRouteImport } from './routes/app/settings/api-docs'
-import { Route as ApiWorkflowsEmailDigestsRouteImport } from './routes/api/workflows/email-digests'
-import { Route as ApiTrpcSplatRouteImport } from './routes/api.trpc.$'
-import { Route as ApiSettingsApiKeysRouteImport } from './routes/api/settings/api-keys'
-import { Route as ApiPublicSplatRouteImport } from './routes/api/public/$'
+import { Route as ApiOgRouteImport } from './routes/api/og'
+import { Route as AppIndexRouteImport } from './routes/app/index'
+import { Route as AppAnalyticsRouteImport } from './routes/app/analytics'
+import { Route as AppHistoryRouteImport } from './routes/app/history'
+import { Route as AppStandupRouteImport } from './routes/app/standup'
+import { Route as AuthForgotPasswordRouteImport } from './routes/auth/forgot-password'
+import { Route as AuthResetPasswordRouteImport } from './routes/auth/reset-password'
+import { Route as AuthSignInRouteImport } from './routes/auth/sign-in'
+import { Route as AuthSignUpRouteImport } from './routes/auth/sign-up'
+import { Route as DocsIndexRouteImport } from './routes/docs/index'
+import { Route as DocsExplorerRouteImport } from './routes/docs/explorer'
+import { Route as DocsMcpRouteImport } from './routes/docs/mcp'
+import { Route as DocsRestRouteImport } from './routes/docs/rest'
+import { Route as ShareTokenRouteImport } from './routes/share.$token'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiPublicSplatRouteImport } from './routes/api/public/$'
+import { Route as ApiSettingsApiKeysRouteImport } from './routes/api/settings/api-keys'
+import { Route as ApiTrpcSplatRouteImport } from './routes/api.trpc.$'
+import { Route as ApiWorkflowsEmailDigestsRouteImport } from './routes/api/workflows/email-digests'
+import { Route as AppSettingsIndexRouteImport } from './routes/app/settings/index'
+import { Route as AppSettingsApiDocsRouteImport } from './routes/app/settings/api-docs'
+import { Route as AppSettingsApiKeysRouteImport } from './routes/app/settings/api-keys'
+import { Route as AppSettingsBillingRouteImport } from './routes/app/settings/billing'
+import { Route as AppSettingsMembersRouteImport } from './routes/app/settings/members'
+import { Route as AppSettingsNotificationsRouteImport } from './routes/app/settings/notifications'
+import { Route as AppSettingsProfileRouteImport } from './routes/app/settings/profile'
+import { Route as AppSettingsSecurityRouteImport } from './routes/app/settings/security'
+import { Route as AppSettingsTeamsRouteImport } from './routes/app/settings/teams'
+import { Route as AppTeamTeamIdRouteImport } from './routes/app/team.$teamId'
+import { Route as AppUserUserIdRouteImport } from './routes/app/user.$userId'
 
-const TermsRoute = TermsRouteImport.update({
-  id: '/terms',
-  path: '/terms',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const PrivacyRoute = PrivacyRouteImport.update({
-  id: '/privacy',
-  path: '/privacy',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DocsRouteRoute = DocsRouteRouteImport.update({
-  id: '/docs',
-  path: '/docs',
+const IndexRoute = IndexRouteImport.update({
+  id: '/',
+  path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AppRouteRoute = AppRouteRouteImport.update({
@@ -66,79 +56,19 @@ const AppRouteRoute = AppRouteRouteImport.update({
   path: '/app',
   getParentRoute: () => rootRouteImport,
 } as any)
-const IndexRoute = IndexRouteImport.update({
-  id: '/',
-  path: '/',
+const DocsRouteRoute = DocsRouteRouteImport.update({
+  id: '/docs',
+  path: '/docs',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DocsIndexRoute = DocsIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => DocsRouteRoute,
-} as any)
-const AppIndexRoute = AppIndexRouteImport.update({
-  id: '/',
-  path: '/',
-  getParentRoute: () => AppRouteRoute,
-} as any)
-const ShareTokenRoute = ShareTokenRouteImport.update({
-  id: '/share/$token',
-  path: '/share/$token',
+const PrivacyRoute = PrivacyRouteImport.update({
+  id: '/privacy',
+  path: '/privacy',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DocsRestRoute = DocsRestRouteImport.update({
-  id: '/rest',
-  path: '/rest',
-  getParentRoute: () => DocsRouteRoute,
-} as any)
-const DocsMcpRoute = DocsMcpRouteImport.update({
-  id: '/mcp',
-  path: '/mcp',
-  getParentRoute: () => DocsRouteRoute,
-} as any)
-const DocsExplorerRoute = DocsExplorerRouteImport.update({
-  id: '/explorer',
-  path: '/explorer',
-  getParentRoute: () => DocsRouteRoute,
-} as any)
-const AuthSignUpRoute = AuthSignUpRouteImport.update({
-  id: '/auth/sign-up',
-  path: '/auth/sign-up',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthSignInRoute = AuthSignInRouteImport.update({
-  id: '/auth/sign-in',
-  path: '/auth/sign-in',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
-  id: '/auth/reset-password',
-  path: '/auth/reset-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
-  id: '/auth/forgot-password',
-  path: '/auth/forgot-password',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const AppStandupRoute = AppStandupRouteImport.update({
-  id: '/standup',
-  path: '/standup',
-  getParentRoute: () => AppRouteRoute,
-} as any)
-const AppHistoryRoute = AppHistoryRouteImport.update({
-  id: '/history',
-  path: '/history',
-  getParentRoute: () => AppRouteRoute,
-} as any)
-const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
-  id: '/analytics',
-  path: '/analytics',
-  getParentRoute: () => AppRouteRoute,
-} as any)
-const ApiOgRoute = ApiOgRouteImport.update({
-  id: '/api/og',
-  path: '/api/og',
+const TermsRoute = TermsRouteImport.update({
+  id: '/terms',
+  path: '/terms',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiMcpRoute = ApiMcpRouteImport.update({
@@ -146,34 +76,125 @@ const ApiMcpRoute = ApiMcpRouteImport.update({
   path: '/api/mcp',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiOgRoute = ApiOgRouteImport.update({
+  id: '/api/og',
+  path: '/api/og',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AppIndexRoute = AppIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppAnalyticsRoute = AppAnalyticsRouteImport.update({
+  id: '/analytics',
+  path: '/analytics',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppHistoryRoute = AppHistoryRouteImport.update({
+  id: '/history',
+  path: '/history',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AppStandupRoute = AppStandupRouteImport.update({
+  id: '/standup',
+  path: '/standup',
+  getParentRoute: () => AppRouteRoute,
+} as any)
+const AuthForgotPasswordRoute = AuthForgotPasswordRouteImport.update({
+  id: '/auth/forgot-password',
+  path: '/auth/forgot-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthResetPasswordRoute = AuthResetPasswordRouteImport.update({
+  id: '/auth/reset-password',
+  path: '/auth/reset-password',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthSignInRoute = AuthSignInRouteImport.update({
+  id: '/auth/sign-in',
+  path: '/auth/sign-in',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AuthSignUpRoute = AuthSignUpRouteImport.update({
+  id: '/auth/sign-up',
+  path: '/auth/sign-up',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DocsIndexRoute = DocsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DocsRouteRoute,
+} as any)
+const DocsExplorerRoute = DocsExplorerRouteImport.update({
+  id: '/explorer',
+  path: '/explorer',
+  getParentRoute: () => DocsRouteRoute,
+} as any)
+const DocsMcpRoute = DocsMcpRouteImport.update({
+  id: '/mcp',
+  path: '/mcp',
+  getParentRoute: () => DocsRouteRoute,
+} as any)
+const DocsRestRoute = DocsRestRouteImport.update({
+  id: '/rest',
+  path: '/rest',
+  getParentRoute: () => DocsRouteRoute,
+} as any)
+const ShareTokenRoute = ShareTokenRouteImport.update({
+  id: '/share/$token',
+  path: '/share/$token',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
+  id: '/api/auth/$',
+  path: '/api/auth/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiPublicSplatRoute = ApiPublicSplatRouteImport.update({
+  id: '/api/public/$',
+  path: '/api/public/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiSettingsApiKeysRoute = ApiSettingsApiKeysRouteImport.update({
+  id: '/api/settings/api-keys',
+  path: '/api/settings/api-keys',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
+  id: '/api/trpc/$',
+  path: '/api/trpc/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiWorkflowsEmailDigestsRoute =
+  ApiWorkflowsEmailDigestsRouteImport.update({
+    id: '/api/workflows/email-digests',
+    path: '/api/workflows/email-digests',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 const AppSettingsIndexRoute = AppSettingsIndexRouteImport.update({
   id: '/settings/',
   path: '/settings/',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppUserUserIdRoute = AppUserUserIdRouteImport.update({
-  id: '/user/$userId',
-  path: '/user/$userId',
+const AppSettingsApiDocsRoute = AppSettingsApiDocsRouteImport.update({
+  id: '/settings/api-docs',
+  path: '/settings/api-docs',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppTeamTeamIdRoute = AppTeamTeamIdRouteImport.update({
-  id: '/team/$teamId',
-  path: '/team/$teamId',
+const AppSettingsApiKeysRoute = AppSettingsApiKeysRouteImport.update({
+  id: '/settings/api-keys',
+  path: '/settings/api-keys',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppSettingsTeamsRoute = AppSettingsTeamsRouteImport.update({
-  id: '/settings/teams',
-  path: '/settings/teams',
+const AppSettingsBillingRoute = AppSettingsBillingRouteImport.update({
+  id: '/settings/billing',
+  path: '/settings/billing',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppSettingsSecurityRoute = AppSettingsSecurityRouteImport.update({
-  id: '/settings/security',
-  path: '/settings/security',
-  getParentRoute: () => AppRouteRoute,
-} as any)
-const AppSettingsProfileRoute = AppSettingsProfileRouteImport.update({
-  id: '/settings/profile',
-  path: '/settings/profile',
+const AppSettingsMembersRoute = AppSettingsMembersRouteImport.update({
+  id: '/settings/members',
+  path: '/settings/members',
   getParentRoute: () => AppRouteRoute,
 } as any)
 const AppSettingsNotificationsRoute =
@@ -182,51 +203,30 @@ const AppSettingsNotificationsRoute =
     path: '/settings/notifications',
     getParentRoute: () => AppRouteRoute,
   } as any)
-const AppSettingsMembersRoute = AppSettingsMembersRouteImport.update({
-  id: '/settings/members',
-  path: '/settings/members',
+const AppSettingsProfileRoute = AppSettingsProfileRouteImport.update({
+  id: '/settings/profile',
+  path: '/settings/profile',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppSettingsBillingRoute = AppSettingsBillingRouteImport.update({
-  id: '/settings/billing',
-  path: '/settings/billing',
+const AppSettingsSecurityRoute = AppSettingsSecurityRouteImport.update({
+  id: '/settings/security',
+  path: '/settings/security',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppSettingsApiKeysRoute = AppSettingsApiKeysRouteImport.update({
-  id: '/settings/api-keys',
-  path: '/settings/api-keys',
+const AppSettingsTeamsRoute = AppSettingsTeamsRouteImport.update({
+  id: '/settings/teams',
+  path: '/settings/teams',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const AppSettingsApiDocsRoute = AppSettingsApiDocsRouteImport.update({
-  id: '/settings/api-docs',
-  path: '/settings/api-docs',
+const AppTeamTeamIdRoute = AppTeamTeamIdRouteImport.update({
+  id: '/team/$teamId',
+  path: '/team/$teamId',
   getParentRoute: () => AppRouteRoute,
 } as any)
-const ApiWorkflowsEmailDigestsRoute =
-  ApiWorkflowsEmailDigestsRouteImport.update({
-    id: '/api/workflows/email-digests',
-    path: '/api/workflows/email-digests',
-    getParentRoute: () => rootRouteImport,
-  } as any)
-const ApiTrpcSplatRoute = ApiTrpcSplatRouteImport.update({
-  id: '/api/trpc/$',
-  path: '/api/trpc/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiSettingsApiKeysRoute = ApiSettingsApiKeysRouteImport.update({
-  id: '/api/settings/api-keys',
-  path: '/api/settings/api-keys',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiPublicSplatRoute = ApiPublicSplatRouteImport.update({
-  id: '/api/public/$',
-  path: '/api/public/$',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
-  id: '/api/auth/$',
-  path: '/api/auth/$',
-  getParentRoute: () => rootRouteImport,
+const AppUserUserIdRoute = AppUserUserIdRouteImport.update({
+  id: '/user/$userId',
+  path: '/user/$userId',
+  getParentRoute: () => AppRouteRoute,
 } as any)
 
 export interface FileRoutesByFullPath {
@@ -479,25 +479,11 @@ export interface RootRouteChildren {
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
-    '/terms': {
-      id: '/terms'
-      path: '/terms'
-      fullPath: '/terms'
-      preLoaderRoute: typeof TermsRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/privacy': {
-      id: '/privacy'
-      path: '/privacy'
-      fullPath: '/privacy'
-      preLoaderRoute: typeof PrivacyRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/docs': {
-      id: '/docs'
-      path: '/docs'
-      fullPath: '/docs'
-      preLoaderRoute: typeof DocsRouteRouteImport
+    '/': {
+      id: '/'
+      path: '/'
+      fullPath: '/'
+      preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/app': {
@@ -507,109 +493,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AppRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/': {
-      id: '/'
-      path: '/'
-      fullPath: '/'
-      preLoaderRoute: typeof IndexRouteImport
+    '/docs': {
+      id: '/docs'
+      path: '/docs'
+      fullPath: '/docs'
+      preLoaderRoute: typeof DocsRouteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/docs/': {
-      id: '/docs/'
-      path: '/'
-      fullPath: '/docs/'
-      preLoaderRoute: typeof DocsIndexRouteImport
-      parentRoute: typeof DocsRouteRoute
-    }
-    '/app/': {
-      id: '/app/'
-      path: '/'
-      fullPath: '/app/'
-      preLoaderRoute: typeof AppIndexRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/share/$token': {
-      id: '/share/$token'
-      path: '/share/$token'
-      fullPath: '/share/$token'
-      preLoaderRoute: typeof ShareTokenRouteImport
+    '/privacy': {
+      id: '/privacy'
+      path: '/privacy'
+      fullPath: '/privacy'
+      preLoaderRoute: typeof PrivacyRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/docs/rest': {
-      id: '/docs/rest'
-      path: '/rest'
-      fullPath: '/docs/rest'
-      preLoaderRoute: typeof DocsRestRouteImport
-      parentRoute: typeof DocsRouteRoute
-    }
-    '/docs/mcp': {
-      id: '/docs/mcp'
-      path: '/mcp'
-      fullPath: '/docs/mcp'
-      preLoaderRoute: typeof DocsMcpRouteImport
-      parentRoute: typeof DocsRouteRoute
-    }
-    '/docs/explorer': {
-      id: '/docs/explorer'
-      path: '/explorer'
-      fullPath: '/docs/explorer'
-      preLoaderRoute: typeof DocsExplorerRouteImport
-      parentRoute: typeof DocsRouteRoute
-    }
-    '/auth/sign-up': {
-      id: '/auth/sign-up'
-      path: '/auth/sign-up'
-      fullPath: '/auth/sign-up'
-      preLoaderRoute: typeof AuthSignUpRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/sign-in': {
-      id: '/auth/sign-in'
-      path: '/auth/sign-in'
-      fullPath: '/auth/sign-in'
-      preLoaderRoute: typeof AuthSignInRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/reset-password': {
-      id: '/auth/reset-password'
-      path: '/auth/reset-password'
-      fullPath: '/auth/reset-password'
-      preLoaderRoute: typeof AuthResetPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/auth/forgot-password': {
-      id: '/auth/forgot-password'
-      path: '/auth/forgot-password'
-      fullPath: '/auth/forgot-password'
-      preLoaderRoute: typeof AuthForgotPasswordRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/app/standup': {
-      id: '/app/standup'
-      path: '/standup'
-      fullPath: '/app/standup'
-      preLoaderRoute: typeof AppStandupRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/app/history': {
-      id: '/app/history'
-      path: '/history'
-      fullPath: '/app/history'
-      preLoaderRoute: typeof AppHistoryRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/app/analytics': {
-      id: '/app/analytics'
-      path: '/analytics'
-      fullPath: '/app/analytics'
-      preLoaderRoute: typeof AppAnalyticsRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/api/og': {
-      id: '/api/og'
-      path: '/api/og'
-      fullPath: '/api/og'
-      preLoaderRoute: typeof ApiOgRouteImport
+    '/terms': {
+      id: '/terms'
+      path: '/terms'
+      fullPath: '/terms'
+      preLoaderRoute: typeof TermsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/mcp': {
@@ -619,102 +521,109 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiMcpRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/app/settings/': {
-      id: '/app/settings/'
-      path: '/settings'
-      fullPath: '/app/settings/'
-      preLoaderRoute: typeof AppSettingsIndexRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/app/user/$userId': {
-      id: '/app/user/$userId'
-      path: '/user/$userId'
-      fullPath: '/app/user/$userId'
-      preLoaderRoute: typeof AppUserUserIdRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/app/team/$teamId': {
-      id: '/app/team/$teamId'
-      path: '/team/$teamId'
-      fullPath: '/app/team/$teamId'
-      preLoaderRoute: typeof AppTeamTeamIdRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/app/settings/teams': {
-      id: '/app/settings/teams'
-      path: '/settings/teams'
-      fullPath: '/app/settings/teams'
-      preLoaderRoute: typeof AppSettingsTeamsRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/app/settings/security': {
-      id: '/app/settings/security'
-      path: '/settings/security'
-      fullPath: '/app/settings/security'
-      preLoaderRoute: typeof AppSettingsSecurityRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/app/settings/profile': {
-      id: '/app/settings/profile'
-      path: '/settings/profile'
-      fullPath: '/app/settings/profile'
-      preLoaderRoute: typeof AppSettingsProfileRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/app/settings/notifications': {
-      id: '/app/settings/notifications'
-      path: '/settings/notifications'
-      fullPath: '/app/settings/notifications'
-      preLoaderRoute: typeof AppSettingsNotificationsRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/app/settings/members': {
-      id: '/app/settings/members'
-      path: '/settings/members'
-      fullPath: '/app/settings/members'
-      preLoaderRoute: typeof AppSettingsMembersRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/app/settings/billing': {
-      id: '/app/settings/billing'
-      path: '/settings/billing'
-      fullPath: '/app/settings/billing'
-      preLoaderRoute: typeof AppSettingsBillingRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/app/settings/api-keys': {
-      id: '/app/settings/api-keys'
-      path: '/settings/api-keys'
-      fullPath: '/app/settings/api-keys'
-      preLoaderRoute: typeof AppSettingsApiKeysRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/app/settings/api-docs': {
-      id: '/app/settings/api-docs'
-      path: '/settings/api-docs'
-      fullPath: '/app/settings/api-docs'
-      preLoaderRoute: typeof AppSettingsApiDocsRouteImport
-      parentRoute: typeof AppRouteRoute
-    }
-    '/api/workflows/email-digests': {
-      id: '/api/workflows/email-digests'
-      path: '/api/workflows/email-digests'
-      fullPath: '/api/workflows/email-digests'
-      preLoaderRoute: typeof ApiWorkflowsEmailDigestsRouteImport
+    '/api/og': {
+      id: '/api/og'
+      path: '/api/og'
+      fullPath: '/api/og'
+      preLoaderRoute: typeof ApiOgRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/trpc/$': {
-      id: '/api/trpc/$'
-      path: '/api/trpc/$'
-      fullPath: '/api/trpc/$'
-      preLoaderRoute: typeof ApiTrpcSplatRouteImport
+    '/app/': {
+      id: '/app/'
+      path: '/'
+      fullPath: '/app/'
+      preLoaderRoute: typeof AppIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/analytics': {
+      id: '/app/analytics'
+      path: '/analytics'
+      fullPath: '/app/analytics'
+      preLoaderRoute: typeof AppAnalyticsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/history': {
+      id: '/app/history'
+      path: '/history'
+      fullPath: '/app/history'
+      preLoaderRoute: typeof AppHistoryRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/standup': {
+      id: '/app/standup'
+      path: '/standup'
+      fullPath: '/app/standup'
+      preLoaderRoute: typeof AppStandupRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/auth/forgot-password': {
+      id: '/auth/forgot-password'
+      path: '/auth/forgot-password'
+      fullPath: '/auth/forgot-password'
+      preLoaderRoute: typeof AuthForgotPasswordRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/settings/api-keys': {
-      id: '/api/settings/api-keys'
-      path: '/api/settings/api-keys'
-      fullPath: '/api/settings/api-keys'
-      preLoaderRoute: typeof ApiSettingsApiKeysRouteImport
+    '/auth/reset-password': {
+      id: '/auth/reset-password'
+      path: '/auth/reset-password'
+      fullPath: '/auth/reset-password'
+      preLoaderRoute: typeof AuthResetPasswordRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/sign-in': {
+      id: '/auth/sign-in'
+      path: '/auth/sign-in'
+      fullPath: '/auth/sign-in'
+      preLoaderRoute: typeof AuthSignInRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/auth/sign-up': {
+      id: '/auth/sign-up'
+      path: '/auth/sign-up'
+      fullPath: '/auth/sign-up'
+      preLoaderRoute: typeof AuthSignUpRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/docs/': {
+      id: '/docs/'
+      path: '/'
+      fullPath: '/docs/'
+      preLoaderRoute: typeof DocsIndexRouteImport
+      parentRoute: typeof DocsRouteRoute
+    }
+    '/docs/explorer': {
+      id: '/docs/explorer'
+      path: '/explorer'
+      fullPath: '/docs/explorer'
+      preLoaderRoute: typeof DocsExplorerRouteImport
+      parentRoute: typeof DocsRouteRoute
+    }
+    '/docs/mcp': {
+      id: '/docs/mcp'
+      path: '/mcp'
+      fullPath: '/docs/mcp'
+      preLoaderRoute: typeof DocsMcpRouteImport
+      parentRoute: typeof DocsRouteRoute
+    }
+    '/docs/rest': {
+      id: '/docs/rest'
+      path: '/rest'
+      fullPath: '/docs/rest'
+      preLoaderRoute: typeof DocsRestRouteImport
+      parentRoute: typeof DocsRouteRoute
+    }
+    '/share/$token': {
+      id: '/share/$token'
+      path: '/share/$token'
+      fullPath: '/share/$token'
+      preLoaderRoute: typeof ShareTokenRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/auth/$': {
+      id: '/api/auth/$'
+      path: '/api/auth/$'
+      fullPath: '/api/auth/$'
+      preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/public/$': {
@@ -724,12 +633,103 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/auth/$': {
-      id: '/api/auth/$'
-      path: '/api/auth/$'
-      fullPath: '/api/auth/$'
-      preLoaderRoute: typeof ApiAuthSplatRouteImport
+    '/api/settings/api-keys': {
+      id: '/api/settings/api-keys'
+      path: '/api/settings/api-keys'
+      fullPath: '/api/settings/api-keys'
+      preLoaderRoute: typeof ApiSettingsApiKeysRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/api/trpc/$': {
+      id: '/api/trpc/$'
+      path: '/api/trpc/$'
+      fullPath: '/api/trpc/$'
+      preLoaderRoute: typeof ApiTrpcSplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/workflows/email-digests': {
+      id: '/api/workflows/email-digests'
+      path: '/api/workflows/email-digests'
+      fullPath: '/api/workflows/email-digests'
+      preLoaderRoute: typeof ApiWorkflowsEmailDigestsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/app/settings/': {
+      id: '/app/settings/'
+      path: '/settings'
+      fullPath: '/app/settings/'
+      preLoaderRoute: typeof AppSettingsIndexRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/settings/api-docs': {
+      id: '/app/settings/api-docs'
+      path: '/settings/api-docs'
+      fullPath: '/app/settings/api-docs'
+      preLoaderRoute: typeof AppSettingsApiDocsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/settings/api-keys': {
+      id: '/app/settings/api-keys'
+      path: '/settings/api-keys'
+      fullPath: '/app/settings/api-keys'
+      preLoaderRoute: typeof AppSettingsApiKeysRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/settings/billing': {
+      id: '/app/settings/billing'
+      path: '/settings/billing'
+      fullPath: '/app/settings/billing'
+      preLoaderRoute: typeof AppSettingsBillingRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/settings/members': {
+      id: '/app/settings/members'
+      path: '/settings/members'
+      fullPath: '/app/settings/members'
+      preLoaderRoute: typeof AppSettingsMembersRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/settings/notifications': {
+      id: '/app/settings/notifications'
+      path: '/settings/notifications'
+      fullPath: '/app/settings/notifications'
+      preLoaderRoute: typeof AppSettingsNotificationsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/settings/profile': {
+      id: '/app/settings/profile'
+      path: '/settings/profile'
+      fullPath: '/app/settings/profile'
+      preLoaderRoute: typeof AppSettingsProfileRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/settings/security': {
+      id: '/app/settings/security'
+      path: '/settings/security'
+      fullPath: '/app/settings/security'
+      preLoaderRoute: typeof AppSettingsSecurityRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/settings/teams': {
+      id: '/app/settings/teams'
+      path: '/settings/teams'
+      fullPath: '/app/settings/teams'
+      preLoaderRoute: typeof AppSettingsTeamsRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/team/$teamId': {
+      id: '/app/team/$teamId'
+      path: '/team/$teamId'
+      fullPath: '/app/team/$teamId'
+      preLoaderRoute: typeof AppTeamTeamIdRouteImport
+      parentRoute: typeof AppRouteRoute
+    }
+    '/app/user/$userId': {
+      id: '/app/user/$userId'
+      path: '/user/$userId'
+      fullPath: '/app/user/$userId'
+      preLoaderRoute: typeof AppUserUserIdRouteImport
+      parentRoute: typeof AppRouteRoute
     }
   }
 }

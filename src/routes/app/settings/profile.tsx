@@ -29,7 +29,7 @@ function ProfileSettingsPage() {
 	const updateBio = useMutation(
 		trpc.profile.updateMyBio.mutationOptions({
 			onSuccess: async () => {
-				await queryClient.invalidateQueries();
+				await queryClient.invalidateQueries(trpc.profile.pathFilter());
 				toast.success("Profile updated");
 			},
 			onError: (error) => {

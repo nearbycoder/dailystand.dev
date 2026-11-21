@@ -9,10 +9,19 @@ function parseRate(value, fallback) {
 const dsn = process.env.SENTRY_DSN || process.env.VITE_SENTRY_DSN;
 
 if (dsn) {
+	const sendDefaultPii = process.env.SENTRY_SEND_DEFAULT_PII === "true";
 	Sentry.init({
 		dsn,
-		sendDefaultPii: process.env.SENTRY_SEND_DEFAULT_PII === "true",
-		enableLogs: process.env.SENTRY_ENABLE_LOGS === "true",
+		...(sendDefaultPii
+			? {}
+			: {
+					dataCollection: {
+						userInfo: false,
+						cookies: false,
+						httpHeaders: false,
+						httpBodies: [],
+					},
+				}),
 		tracesSampleRate: parseRate(process.env.SENTRY_TRACES_SAMPLE_RATE, 0.1),
 	});
 }

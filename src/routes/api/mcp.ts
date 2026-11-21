@@ -176,6 +176,18 @@ function toolErrorResult(error: unknown): ToolResult {
 			},
 		};
 	}
+	if (error instanceof z.ZodError) {
+		const message =
+			error.issues[0]?.message ?? "Invalid tool arguments.";
+		return {
+			isError: true,
+			content: [{ type: "text", text: message }],
+			structuredContent: {
+				code: "INVALID_ARGUMENTS",
+				status: 400,
+			},
+		};
+	}
 	return {
 		isError: true,
 		content: [{ type: "text", text: "Unexpected server error." }],
@@ -251,7 +263,7 @@ async function requireActor(
 	}
 
 	const actor = await db.query.user.findFirst({
-		where: eq(user.id, verification.key.userId),
+		where: eq(user.id, verification.key.referenceId),
 		columns: { id: true, name: true, email: true, image: true },
 	});
 
@@ -331,12 +343,15 @@ async function resolveOrganizationScope(userId: string, orgId?: string) {
 	};
 }
 
-async function assertOwnerRole(userId: string, orgId: string) {
-	const orgMember = await db.query.member.findFirst({
-		where: and(eq(member.userId, userId), eq(member.organizationId, orgId)),
-		columns: { role: true },
-	});
-	if (!orgMember || orgMember.role !== "owner") {
+function hasOwnerRole(roleValue: string): boolean {
+	return roleValue
+		.split(",")
+		.map((part) => part.trim().toLowerCase())
+		.some((part) => part === "owner");
+}
+
+function assertOwnerRole(role: string) {
+	if (!hasOwnerRole(role)) {
 		throw new McpError(
 			403,
 			"OWNER_REQUIRED",
@@ -486,12 +501,28 @@ const getStandupSchema = orgIdSchema.extend({
 	teamId: z.string().optional(),
 });
 
+const MAX_STANDUP_SECTION_ITEMS = 100;
+const MAX_ENTRY_CONTENT_LENGTH = 4000;
+const standupEntryItemSchema = z.string().max(MAX_ENTRY_CONTENT_LENGTH);
+
 const standupSubmitSchema = orgIdSchema.extend({
 	date: dateInputSchema.optional(),
 	teamId: z.string().nullable().optional(),
-	completed: z.array(z.string()).optional().default([]),
-	planned: z.array(z.string()).optional().default([]),
-	blockers: z.array(z.string()).optional().default([]),
+	completed: z
+		.array(standupEntryItemSchema)
+		.max(MAX_STANDUP_SECTION_ITEMS)
+		.optional()
+		.default([]),
+	planned: z
+		.array(standupEntryItemSchema)
+		.max(MAX_STANDUP_SECTION_ITEMS)
+		.optional()
+		.default([]),
+	blockers: z
+		.array(standupEntryItemSchema)
+		.max(MAX_STANDUP_SECTION_ITEMS)
+		.optional()
+		.default([]),
 });
 
 const getStandupHistorySchema = orgIdSchema.extend({
@@ -701,11 +732,11 @@ const tools = [
 		},
 		handler: async ({ actor }: ToolContext, rawArgs: unknown) => {
 			const args = addOrganizationMemberSchema.parse(rawArgs ?? {});
-			const { organization } = await resolveOrganizationScope(
+			const { organization, role } = await resolveOrganizationScope(
 				actor.id,
 				args.orgId,
 			);
-			await assertOwnerRole(actor.id, organization.id);
+			assertOwnerRole(role);
 
 			const targetUser = await db.query.user.findFirst({
 				where: eq(user.email, args.email),
@@ -779,20 +810,16 @@ const tools = [
 		},
 		handler: async ({ actor }: ToolContext, rawArgs: unknown) => {
 			const args = assignUserToTeamSchema.parse(rawArgs ?? {});
-			const { organization } = await resolveOrganizationScope(
+			const { organization, role } = await resolveOrganizationScope(
 				actor.id,
 				args.orgId,
 			);
-			await assertOwnerRole(actor.id, organization.id);
+			assertOwnerRole(role);
 
-			const targetTeam = await assertTeamInOrganization(
-				args.teamId,
-				organization.id,
-			);
-			const targetMember = await assertUserInOrganization(
-				args.userId,
-				organization.id,
-			);
+			const [targetTeam, targetMember] = await Promise.all([
+				assertTeamInOrganization(args.teamId, organization.id),
+				assertUserInOrganization(args.userId, organization.id),
+			]);
 
 			const existingAssignment = await db.query.teamMember.findFirst({
 				where: and(
@@ -844,17 +871,16 @@ const tools = [
 		},
 		handler: async ({ actor }: ToolContext, rawArgs: unknown) => {
 			const args = assignUserToTeamSchema.parse(rawArgs ?? {});
-			const { organization } = await resolveOrganizationScope(
+			const { organization, role } = await resolveOrganizationScope(
 				actor.id,
 				args.orgId,
 			);
-			await assertOwnerRole(actor.id, organization.id);
+			assertOwnerRole(role);
 
-			const targetTeam = await assertTeamInOrganization(
-				args.teamId,
-				organization.id,
-			);
-			await assertUserInOrganization(args.userId, organization.id);
+			const [targetTeam] = await Promise.all([
+				assertTeamInOrganization(args.teamId, organization.id),
+				assertUserInOrganization(args.userId, organization.id),
+			]);
 
 			const existingAssignment = await db.query.teamMember.findFirst({
 				where: and(
@@ -937,31 +963,33 @@ const tools = [
 				})),
 			].filter((entry) => entry.content.length > 0);
 
-			await db
-				.delete(standupEntry)
-				.where(
-					and(
-						eq(standupEntry.userId, actor.id),
-						eq(standupEntry.organizationId, organization.id),
-						eq(standupEntry.date, date),
-						targetTeamId
-							? eq(standupEntry.teamId, targetTeamId)
-							: isNull(standupEntry.teamId),
-					),
-				);
+			await db.transaction(async (tx) => {
+				await tx
+					.delete(standupEntry)
+					.where(
+						and(
+							eq(standupEntry.userId, actor.id),
+							eq(standupEntry.organizationId, organization.id),
+							eq(standupEntry.date, date),
+							targetTeamId
+								? eq(standupEntry.teamId, targetTeamId)
+								: isNull(standupEntry.teamId),
+						),
+					);
 
-			if (entries.length > 0) {
-				await db.insert(standupEntry).values(
-					entries.map((entry) => ({
-						userId: actor.id,
-						organizationId: organization.id,
-						teamId: targetTeamId,
-						date,
-						type: entry.type,
-						content: entry.content,
-					})),
-				);
-			}
+				if (entries.length > 0) {
+					await tx.insert(standupEntry).values(
+						entries.map((entry) => ({
+							userId: actor.id,
+							organizationId: organization.id,
+							teamId: targetTeamId,
+							date,
+							type: entry.type,
+							content: entry.content,
+						})),
+					);
+				}
+			});
 
 			return {
 				organization,
@@ -998,15 +1026,14 @@ const tools = [
 			);
 			const date = assertDate(args.date ?? isoDate(new Date()));
 			const teamId = args.teamId;
-			const { floorDate } = await resolveHistoryConstraints(
-				organization.id,
-				actor.id,
-			);
-
-			if (teamId) {
-				await assertTeamInOrganization(teamId, organization.id);
-				await assertActorInTeam(actor.id, teamId, "read");
-			}
+			const [{ floorDate }] = await Promise.all([
+				resolveHistoryConstraints(organization.id, actor.id),
+				teamId
+					? assertTeamInOrganization(teamId, organization.id).then(() =>
+							assertActorInTeam(actor.id, teamId, "read"),
+						)
+					: Promise.resolve(),
+			]);
 
 			if (floorDate && date < floorDate) {
 				if (teamId) {
@@ -1100,15 +1127,15 @@ const tools = [
 				args.orgId,
 			);
 			const teamId = args.teamId;
-			const { floorDate, maxDays } = await resolveHistoryConstraints(
-				organization.id,
-				actor.id,
-			);
+			const [{ floorDate, maxDays }] = await Promise.all([
+				resolveHistoryConstraints(organization.id, actor.id),
+				teamId
+					? assertTeamInOrganization(teamId, organization.id).then(() =>
+							assertActorInTeam(actor.id, teamId, "read"),
+						)
+					: Promise.resolve(),
+			]);
 			const effectiveLimit = Math.min(args.limit, maxDays);
-			if (teamId) {
-				await assertTeamInOrganization(teamId, organization.id);
-				await assertActorInTeam(actor.id, teamId, "read");
-			}
 
 			const conditions = [
 				eq(standupEntry.userId, actor.id),
@@ -1216,16 +1243,16 @@ const tools = [
 				actor.id,
 				args.orgId,
 			);
-			const targetTeam = await assertTeamInOrganization(
-				args.teamId,
-				organization.id,
-			);
-			await assertActorInTeam(actor.id, targetTeam.id, "read");
 			const date = assertDate(args.date ?? isoDate(new Date()));
-			const { floorDate } = await resolveHistoryConstraints(
-				organization.id,
-				actor.id,
-			);
+			const [targetTeam, { floorDate }] = await Promise.all([
+				assertTeamInOrganization(args.teamId, organization.id).then(
+					async (foundTeam) => {
+						await assertActorInTeam(actor.id, foundTeam.id, "read");
+						return foundTeam;
+					},
+				),
+				resolveHistoryConstraints(organization.id, actor.id),
+			]);
 
 			if (floorDate && date < floorDate) {
 				return {
@@ -1312,15 +1339,15 @@ const tools = [
 				actor.id,
 				args.orgId,
 			);
-			const targetTeam = await assertTeamInOrganization(
-				args.teamId,
-				organization.id,
-			);
-			await assertActorInTeam(actor.id, targetTeam.id, "read");
-			const { floorDate, maxDays } = await resolveHistoryConstraints(
-				organization.id,
-				actor.id,
-			);
+			const [targetTeam, { floorDate, maxDays }] = await Promise.all([
+				assertTeamInOrganization(args.teamId, organization.id).then(
+					async (foundTeam) => {
+						await assertActorInTeam(actor.id, foundTeam.id, "read");
+						return foundTeam;
+					},
+				),
+				resolveHistoryConstraints(organization.id, actor.id),
+			]);
 			const effectiveLimit = Math.min(args.limit, maxDays);
 
 			const conditions = [

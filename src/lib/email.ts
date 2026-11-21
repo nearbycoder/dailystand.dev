@@ -21,8 +21,35 @@ type PasswordResetEmailPayload = {
 };
 
 const DEFAULT_RESEND_FROM_EMAIL = "DailyStand <no-reply@dailystand.dev>";
+const RESEND_REQUEST_TIMEOUT_MS = 15_000;
 const TRUTHY_VALUES = new Set(["1", "true", "yes", "on"]);
 const FALSY_VALUES = new Set(["0", "false", "no", "off"]);
+
+export function escapeHtml(value: string): string {
+	return value
+		.replace(/&/g, "&amp;")
+		.replace(/</g, "&lt;")
+		.replace(/>/g, "&gt;")
+		.replace(/"/g, "&quot;")
+		.replace(/'/g, "&#39;");
+}
+
+function sanitizeHeaderValue(value: string): string {
+	return value.replace(/[\r\n]+/g, " ").trim();
+}
+
+function assertSafeHttpUrl(value: string): string {
+	let parsed: URL;
+	try {
+		parsed = new URL(value);
+	} catch {
+		throw new Error("Invalid email action URL.");
+	}
+	if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+		throw new Error("Unsupported email action URL protocol.");
+	}
+	return parsed.toString();
+}
 
 function parseBooleanEnv(value: string | undefined): boolean | null {
 	if (!value) return null;
@@ -86,10 +113,11 @@ export async function sendResendEmailMessage(payload: EmailPayload) {
 		body: JSON.stringify({
 			from: resendFromEmail,
 			to: [payload.to],
-			subject: payload.subject,
+			subject: sanitizeHeaderValue(payload.subject),
 			html: payload.html,
 			text: payload.text,
 		}),
+		signal: AbortSignal.timeout(RESEND_REQUEST_TIMEOUT_MS),
 	});
 
 	if (!response.ok) {
@@ -105,6 +133,7 @@ export async function sendInviteEmail(payload: InviteEmailPayload) {
 	);
 	inviteUrl.searchParams.set("invitationId", payload.invitationId);
 	inviteUrl.searchParams.set("email", payload.to);
+	const safeInviteUrl = assertSafeHttpUrl(inviteUrl.toString());
 
 	if (!isResendConfigured()) {
 		console.info(`[AUTH] Invite email not sent (RESEND not configured).`, {
@@ -114,16 +143,17 @@ export async function sendInviteEmail(payload: InviteEmailPayload) {
 		return;
 	}
 
-	const subject = `You're invited to join ${payload.organizationName} on DailyStand`;
+	const safeOrgName = sanitizeHeaderValue(payload.organizationName);
+	const subject = `You're invited to join ${safeOrgName} on DailyStand`;
 	const text = [
 		`You were invited to join ${payload.organizationName} on DailyStand as ${payload.role}.`,
 		`Invited by: ${payload.inviterName}`,
-		`Accept invite: ${inviteUrl.toString()}`,
+		`Accept invite: ${safeInviteUrl}`,
 	].join("\n");
 	const html = [
-		`<p>You were invited to join <strong>${payload.organizationName}</strong> on DailyStand as <strong>${payload.role}</strong>.</p>`,
-		`<p>Invited by: <strong>${payload.inviterName}</strong></p>`,
-		`<p><a href="${inviteUrl.toString()}">Accept invitation</a></p>`,
+		`<p>You were invited to join <strong>${escapeHtml(payload.organizationName)}</strong> on DailyStand as <strong>${escapeHtml(payload.role)}</strong>.</p>`,
+		`<p>Invited by: <strong>${escapeHtml(payload.inviterName)}</strong></p>`,
+		`<p><a href="${escapeHtml(safeInviteUrl)}">Accept invitation</a></p>`,
 	].join("");
 
 	await sendResendEmailMessage({
@@ -137,6 +167,8 @@ export async function sendInviteEmail(payload: InviteEmailPayload) {
 export async function sendPasswordResetEmail(
 	payload: PasswordResetEmailPayload,
 ) {
+	const safeResetUrl = assertSafeHttpUrl(payload.resetUrl);
+
 	if (!isResendConfigured()) {
 		console.info(
 			`[AUTH] Password reset email not sent (RESEND not configured).`,
@@ -147,21 +179,20 @@ export async function sendPasswordResetEmail(
 		return;
 	}
 
-	const greeting = payload.userName?.trim()
-		? `Hi ${payload.userName},`
-		: "Hi there,";
+	const trimmedName = payload.userName?.trim();
+	const greeting = trimmedName ? `Hi ${trimmedName},` : "Hi there,";
 
 	const subject = "Reset your DailyStand password";
 	const text = [
 		greeting,
 		"",
 		"Use this link to reset your password:",
-		payload.resetUrl,
+		safeResetUrl,
 	].join("\n");
 	const html = [
-		`<p>${greeting}</p>`,
+		`<p>${escapeHtml(greeting)}</p>`,
 		"<p>Use this link to reset your password:</p>",
-		`<p><a href="${payload.resetUrl}">Reset password</a></p>`,
+		`<p><a href="${escapeHtml(safeResetUrl)}">Reset password</a></p>`,
 	].join("");
 
 	await sendResendEmailMessage({

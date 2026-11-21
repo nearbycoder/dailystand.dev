@@ -31,6 +31,7 @@ const {
 		insert: vi.fn(),
 		update: vi.fn(),
 		delete: vi.fn(),
+		transaction: vi.fn(),
 	},
 	getHistoryFloorDateMock: vi.fn(),
 	maxHistoryDaysMock: vi.fn((max: number, requested: number) =>
@@ -95,7 +96,7 @@ function mockAuthenticatedActor(apiKey = "test-key") {
 		valid: true,
 		key: {
 			id: "key_1",
-			userId: defaultActor.id,
+			referenceId: defaultActor.id,
 			name: "Primary key",
 			prefix: "dsk_",
 			start: "dsk_",
@@ -126,6 +127,9 @@ describe("public api route contracts", () => {
 		dbMock.delete.mockReturnValue({ where: deleteWhere });
 		const insertValues = vi.fn().mockResolvedValue(undefined);
 		dbMock.insert.mockReturnValue({ values: insertValues });
+		dbMock.transaction.mockImplementation(
+			async (cb: (tx: typeof dbMock) => unknown) => cb(dbMock),
+		);
 	});
 
 	it("rejects disallowed CORS origins", async () => {
@@ -397,6 +401,47 @@ describe("public api route contracts", () => {
 			error: {
 				code: "TEAM_READ_FORBIDDEN",
 			},
+		});
+	});
+
+	it("rejects inverted and oversized date ranges on standup history", async () => {
+		mockAuthenticatedActor();
+		dbMock.query.member.findMany.mockResolvedValue([
+			validMembership("org_1", "Acme", "acme"),
+		]);
+
+		const inverted = await handlers().GET({
+			request: new Request(
+				"https://dailystand.dev/api/public/v1/standups/history?startDate=2026-02-20&endDate=2026-02-10",
+				{
+					headers: {
+						origin: "https://allowed.example",
+						"x-api-key": "test-key",
+					},
+				},
+			),
+		});
+		expect(inverted.status).toBe(400);
+		await expect(inverted.json()).resolves.toMatchObject({
+			success: false,
+			error: { code: "INVALID_DATE_RANGE" },
+		});
+
+		const oversized = await handlers().GET({
+			request: new Request(
+				"https://dailystand.dev/api/public/v1/standups/history?startDate=2024-01-01&endDate=2026-01-01",
+				{
+					headers: {
+						origin: "https://allowed.example",
+						"x-api-key": "test-key",
+					},
+				},
+			),
+		});
+		expect(oversized.status).toBe(400);
+		await expect(oversized.json()).resolves.toMatchObject({
+			success: false,
+			error: { code: "INVALID_DATE_RANGE" },
 		});
 	});
 });

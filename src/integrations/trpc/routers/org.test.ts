@@ -61,6 +61,10 @@ function createCaller() {
 describe("org router", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		dbMock.query.member.findFirst.mockResolvedValue({
+			id: "member_1",
+			role: "member",
+		});
 	});
 
 	it("returns default subscription fields when no subscription exists", async () => {

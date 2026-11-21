@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 const URL_REGEX =
-	/\b((?:https?:\/\/|www\.)[^\s<]+|(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}(?:\/[^\s<]*)?)/gi;
+	/(?:^|(?<=[\s(["'<]))((?:https?:\/\/|www\.)[^\s<]+|(?:[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.)+[a-z]{2,}(?:\/[^\s<]*)?)/gi;
 
 const SIMPLE_TRAILING_PUNCTUATION = new Set([",", ".", "!", "?", ";", ":"]);
 
@@ -37,9 +37,17 @@ function splitTrailingPunctuation(value: string): {
 	};
 }
 
-function normalizeHref(url: string): string {
-	if (url.startsWith("http://") || url.startsWith("https://")) return url;
-	return `https://${url}`;
+function normalizeHref(url: string): string | null {
+	const candidate = /^https?:\/\//i.test(url) ? url : `https://${url}`;
+	try {
+		const parsed = new URL(candidate);
+		if (parsed.protocol !== "http:" && parsed.protocol !== "https:") {
+			return null;
+		}
+		return candidate;
+	} catch {
+		return null;
+	}
 }
 
 export function AutoLinkText({
@@ -71,11 +79,12 @@ export function AutoLinkText({
 		}
 
 		const { linkPart, suffix } = splitTrailingPunctuation(rawMatch);
-		if (linkPart.length > 0) {
+		const safeHref = linkPart.length > 0 ? normalizeHref(linkPart) : null;
+		if (safeHref) {
 			nodes.push(
 				<a
 					key={`${start}-${linkPart}`}
-					href={normalizeHref(linkPart)}
+					href={safeHref}
 					target="_blank"
 					rel="noopener noreferrer"
 					className={resolvedLinkClassName}
@@ -83,6 +92,8 @@ export function AutoLinkText({
 					{linkPart}
 				</a>,
 			);
+		} else if (linkPart.length > 0) {
+			nodes.push(linkPart);
 		}
 		if (suffix.length > 0) {
 			nodes.push(suffix);

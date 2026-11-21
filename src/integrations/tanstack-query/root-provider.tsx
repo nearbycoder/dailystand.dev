@@ -28,6 +28,10 @@ export const trpcClient = createTRPCClient<TRPCRouter>({
 function makeQueryClient() {
 	return new QueryClient({
 		defaultOptions: {
+			queries: {
+				staleTime: 30_000,
+				gcTime: 5 * 60_000,
+			},
 			dehydrate: { serializeData: superjson.serialize },
 			hydrate: { deserializeData: superjson.deserialize },
 		},

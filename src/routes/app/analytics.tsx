@@ -38,11 +38,13 @@ const RANGE_OPTIONS = [
 type RouterOutputs = inferRouterOutputs<TRPCRouter>;
 type AnalyticsResponse = RouterOutputs["standups"]["getAnalytics"];
 
+const ANALYTICS_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+	month: "short",
+	day: "numeric",
+});
+
 function formatDate(dateString: string): string {
-	return new Date(`${dateString}T12:00:00`).toLocaleDateString("en-US", {
-		month: "short",
-		day: "numeric",
-	});
+	return ANALYTICS_DATE_FORMATTER.format(new Date(`${dateString}T12:00:00`));
 }
 
 function formatPercent(value: number, decimals = 0): string {
@@ -57,7 +59,7 @@ function formatDelta(value: number): string {
 function shiftDate(dateString: string, offsetDays: number): string {
 	const date = new Date(`${dateString}T12:00:00`);
 	date.setDate(date.getDate() + offsetDays);
-	return date.toISOString().split("T")[0];
+	return getLocalDateString(date);
 }
 
 function downloadTextFile(filename: string, content: string, mimeType: string) {

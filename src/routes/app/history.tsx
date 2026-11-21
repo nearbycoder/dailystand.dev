@@ -11,9 +11,10 @@ import {
 	Target,
 } from "lucide-react";
 import type { ReactNode } from "react";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { AutoLinkText } from "@/components/auto-link-text";
 import { useTRPC } from "@/integrations/trpc/react";
+import { getLocalDateString } from "@/lib/date";
 
 export const Route = createFileRoute("/app/history")({
 	component: HistoryPage,
@@ -34,14 +35,22 @@ function buildShareUrl(token: string) {
 	return `${window.location.origin}/share/${token}`;
 }
 
+const HISTORY_FULL_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+	weekday: "long",
+	year: "numeric",
+	month: "long",
+	day: "numeric",
+});
+
+const HISTORY_SHORT_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+	weekday: "short",
+	month: "short",
+	day: "numeric",
+});
+
 function formatDateSub(dateStr: string): string {
-	const date = new Date(dateStr + "T12:00:00");
-	return date.toLocaleDateString("en-US", {
-		weekday: "long",
-		year: "numeric",
-		month: "long",
-		day: "numeric",
-	});
+	const date = new Date(`${dateStr}T12:00:00`);
+	return HISTORY_FULL_DATE_FORMATTER.format(date);
 }
 
 function getSectionMarkdown(label: string, items: string[]): string[] {
@@ -106,6 +115,12 @@ function HistoryPage() {
 	const retractDayShare = useMutation(
 		trpc.standups.retractDayShare.mutationOptions(),
 	);
+	const todayStr = useMemo(() => getLocalDateString(), []);
+	const yesterdayStr = useMemo(() => {
+		const yesterday = new Date();
+		yesterday.setDate(yesterday.getDate() - 1);
+		return getLocalDateString(yesterday);
+	}, []);
 	const [copyAllState, setCopyAllState] = useState<"idle" | "copied" | "error">(
 		"idle",
 	);
@@ -179,7 +194,7 @@ function HistoryPage() {
 		setShareDayStates((prev) => ({ ...prev, [entry.date]: "sharing" }));
 		try {
 			const result = await createDayShare.mutateAsync({ date: entry.date });
-			await queryClient.invalidateQueries();
+			await queryClient.invalidateQueries(trpc.standups.getMine.pathFilter());
 			await copyTextToClipboard(buildShareUrl(result.token));
 			setShareDayStates((prev) => ({ ...prev, [entry.date]: "copied" }));
 			posthog.capture("standup_shared", {
@@ -198,7 +213,7 @@ function HistoryPage() {
 		setShareDayStates((prev) => ({ ...prev, [entry.date]: "retracting" }));
 		try {
 			await retractDayShare.mutateAsync({ date: entry.date });
-			await queryClient.invalidateQueries();
+			await queryClient.invalidateQueries(trpc.standups.getMine.pathFilter());
 			setShareDayStates((prev) => ({ ...prev, [entry.date]: "idle" }));
 			posthog.capture("standup_share_retracted", {
 				date: entry.date,
@@ -258,10 +273,13 @@ function HistoryPage() {
 			) : history && history.length > 0 ? (
 				<div className="space-y-0">
 					{history.map((entry) => {
-						const heading = formatDateHeading(entry.date);
+						const heading = formatDateHeading(
+							entry.date,
+							todayStr,
+							yesterdayStr,
+						);
 						const sub = formatDateSub(entry.date);
-						const isToday =
-							entry.date === new Date().toISOString().split("T")[0];
+						const isToday = entry.date === todayStr;
 						const count =
 							entry.completed.length +
 							entry.planned.length +
@@ -418,22 +436,16 @@ function HistoryPage() {
 	);
 }
 
-function formatDateHeading(dateStr: string): string {
-	const date = new Date(dateStr + "T12:00:00");
-	const today = new Date();
-	const yesterday = new Date();
-	yesterday.setDate(today.getDate() - 1);
+function formatDateHeading(
+	dateStr: string,
+	todayStr: string,
+	yesterdayStr: string,
+): string {
+	if (dateStr === todayStr) return "TODAY";
+	if (dateStr === yesterdayStr) return "YESTERDAY";
 
-	if (dateStr === today.toISOString().split("T")[0]) return "TODAY";
-	if (dateStr === yesterday.toISOString().split("T")[0]) return "YESTERDAY";
-
-	return date
-		.toLocaleDateString("en-US", {
-			weekday: "short",
-			month: "short",
-			day: "numeric",
-		})
-		.toUpperCase();
+	const date = new Date(`${dateStr}T12:00:00`);
+	return HISTORY_SHORT_DATE_FORMATTER.format(date).toUpperCase();
 }
 
 const colorMap = {

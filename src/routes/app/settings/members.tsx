@@ -77,7 +77,10 @@ function MembersPage() {
 			});
 			setInviteSuccess(`Invitation created for ${email}`);
 			setEmail("");
-			await queryClient.invalidateQueries();
+			await Promise.all([
+				queryClient.invalidateQueries(trpc.org.pathFilter()),
+				queryClient.invalidateQueries(trpc.teams.pathFilter()),
+			]);
 		}
 		setInviting(false);
 	};
@@ -170,7 +173,10 @@ function MembersPage() {
 			toast.success("Member role updated", {
 				description: `${member.name} is now ${nextRole.toUpperCase()}.`,
 			});
-			await queryClient.invalidateQueries();
+			await Promise.all([
+				queryClient.invalidateQueries(trpc.org.pathFilter()),
+				queryClient.invalidateQueries(trpc.teams.pathFilter()),
+			]);
 		}
 		setBusyMemberAction(null);
 	};
@@ -204,7 +210,10 @@ function MembersPage() {
 			toast.success("Member deactivated", {
 				description: `${member.name} no longer has organization access.`,
 			});
-			await queryClient.invalidateQueries();
+			await Promise.all([
+				queryClient.invalidateQueries(trpc.org.pathFilter()),
+				queryClient.invalidateQueries(trpc.teams.pathFilter()),
+			]);
 		}
 		setBusyMemberAction(null);
 	};

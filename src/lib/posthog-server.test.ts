@@ -1,7 +1,9 @@
 import { afterAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 const { posthogConstructorMock } = vi.hoisted(() => ({
-	posthogConstructorMock: vi.fn(() => ({ shutdownAsync: vi.fn() })),
+	posthogConstructorMock: vi.fn(function () {
+		return { shutdownAsync: vi.fn() };
+	}),
 }));
 
 vi.mock("posthog-node", () => ({

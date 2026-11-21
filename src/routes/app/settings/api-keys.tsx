@@ -143,14 +143,18 @@ function ApiKeysPage() {
 		[apiBase],
 	);
 
-	const apiKeysQuery = useQuery({
+	const apiKeysQuery = useQuery<ApiKeyRecord[]>({
 		queryKey: ["settings", "api-keys"],
 		queryFn: async () => {
 			const result = await authClient.apiKey.list();
 			if (result.error) {
 				throw new Error(result.error.message ?? "Failed to load API keys.");
 			}
-			const records = Array.isArray(result.data) ? result.data : [];
+			const records = Array.isArray(result.data)
+				? result.data
+				: isRecord(result.data) && Array.isArray(result.data.apiKeys)
+					? result.data.apiKeys
+					: [];
 			return records.filter(isApiKeyRecord);
 		},
 	});

@@ -1,5 +1,8 @@
 import { initTRPC, TRPCError } from "@trpc/server";
+import { and, eq } from "drizzle-orm";
 import superjson from "superjson";
+import { db } from "@/db";
+import { member } from "@/db/schema";
 
 export interface TRPCSession {
 	user: {
@@ -37,16 +40,34 @@ export const protectedProcedure = t.procedure.use(async ({ ctx, next }) => {
 });
 
 export const orgProcedure = protectedProcedure.use(async ({ ctx, next }) => {
-	if (!ctx.session.session.activeOrganizationId) {
+	const organizationId = ctx.session.session.activeOrganizationId;
+	if (!organizationId) {
 		throw new TRPCError({
 			code: "PRECONDITION_FAILED",
 			message: "No active organization",
 		});
 	}
+
+	const membership = await db.query.member.findFirst({
+		where: and(
+			eq(member.organizationId, organizationId),
+			eq(member.userId, ctx.session.user.id),
+		),
+		columns: { id: true, role: true },
+	});
+
+	if (!membership) {
+		throw new TRPCError({
+			code: "FORBIDDEN",
+			message: "You are not a member of the active organization.",
+		});
+	}
+
 	return next({
 		ctx: {
 			...ctx,
-			organizationId: ctx.session.session.activeOrganizationId,
+			organizationId,
+			membership,
 		},
 	});
 });

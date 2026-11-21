@@ -1,8 +1,12 @@
+import { TRPCError } from "@trpc/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const { dbMock } = vi.hoisted(() => ({
 	dbMock: {
 		query: {
+			member: {
+				findFirst: vi.fn(),
+			},
 			team: {
 				findMany: vi.fn(),
 				findFirst: vi.fn(),
@@ -46,6 +50,22 @@ function createCaller() {
 describe("teams router", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		dbMock.query.member.findFirst.mockResolvedValue({
+			id: "member_1",
+			role: "member",
+		});
+	});
+
+	it("rejects team listing for removed organization members", async () => {
+		dbMock.query.member.findFirst.mockResolvedValue(null);
+
+		try {
+			await createCaller().teams.list();
+			throw new Error("Expected teams.list to fail");
+		} catch (error) {
+			expect(error).toBeInstanceOf(TRPCError);
+			expect((error as TRPCError).code).toBe("FORBIDDEN");
+		}
 	});
 
 	it("lists teams with member count and member summaries", async () => {

@@ -92,28 +92,11 @@ export const orgRouter = {
 		}));
 	}),
 
-	getMyMembership: orgProcedure.query(async ({ ctx }) => {
-		const currentMembership = await db.query.member.findFirst({
-			where: and(
-				eq(member.organizationId, ctx.organizationId),
-				eq(member.userId, ctx.session.user.id),
-			),
-			columns: { id: true, role: true },
-		});
-
-		if (!currentMembership) {
-			throw new TRPCError({
-				code: "FORBIDDEN",
-				message: "You are not a member of the active organization.",
-			});
-		}
-
-		return {
-			memberId: currentMembership.id,
-			role: currentMembership.role,
-			canManageOrganization: canManageOrganizationRole(currentMembership.role),
-		};
-	}),
+	getMyMembership: orgProcedure.query(({ ctx }) => ({
+		memberId: ctx.membership.id,
+		role: ctx.membership.role,
+		canManageOrganization: canManageOrganizationRole(ctx.membership.role),
+	})),
 
 	getEmailDigestPreference: orgProcedure.query(async ({ ctx }) => {
 		const [preference, subscription] = await Promise.all([

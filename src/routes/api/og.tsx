@@ -1,5 +1,8 @@
+import { readFile } from "node:fs/promises";
+import { createRequire } from "node:module";
+import { initWasm, Resvg } from "@resvg/resvg-wasm";
 import { createFileRoute } from "@tanstack/react-router";
-import { ImageResponse } from "@vercel/og";
+import satori from "satori";
 
 type OgPage = "home" | "docs" | "privacy" | "terms";
 
@@ -58,26 +61,54 @@ const OG_THEMES: Record<OgPage, OgTheme> = {
 const OG_WIDTH = 1400;
 const OG_HEIGHT = 735;
 const SITE_MONO_FONT = '"DS Mono", ui-monospace';
-const OG_FONT_REGULAR_URL =
-	"https://cdn.jsdelivr.net/npm/@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-400-normal.woff";
-const OG_FONT_BOLD_URL =
-	"https://cdn.jsdelivr.net/npm/@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-700-normal.woff";
+const OG_CACHE_CONTROL =
+	"public, max-age=3600, s-maxage=86400, stale-while-revalidate=604800";
 
-const ogMonoRegularPromise = fetch(OG_FONT_REGULAR_URL)
-	.then((response) => {
-		if (!response.ok)
-			throw new Error(`Font request failed: ${response.status}`);
-		return response.arrayBuffer();
-	})
-	.catch(() => null);
+const nodeRequire = createRequire(import.meta.url);
 
-const ogMonoBoldPromise = fetch(OG_FONT_BOLD_URL)
-	.then((response) => {
-		if (!response.ok)
-			throw new Error(`Font request failed: ${response.status}`);
-		return response.arrayBuffer();
-	})
-	.catch(() => null);
+let resvgInitPromise: Promise<void> | null = null;
+function ensureResvgInitialized(): Promise<void> {
+	if (!resvgInitPromise) {
+		resvgInitPromise = readFile(
+			nodeRequire.resolve("@resvg/resvg-wasm/index_bg.wasm"),
+		)
+			.then((wasmBuffer) => initWasm(wasmBuffer))
+			.catch((error) => {
+				resvgInitPromise = null;
+				throw error;
+			});
+	}
+	return resvgInitPromise;
+}
+
+type OgFonts = {
+	regular: Buffer;
+	bold: Buffer;
+};
+
+let ogFontsPromise: Promise<OgFonts> | null = null;
+function loadOgFonts(): Promise<OgFonts> {
+	if (!ogFontsPromise) {
+		ogFontsPromise = Promise.all([
+			readFile(
+				nodeRequire.resolve(
+					"@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-400-normal.woff",
+				),
+			),
+			readFile(
+				nodeRequire.resolve(
+					"@fontsource/ibm-plex-mono/files/ibm-plex-mono-latin-700-normal.woff",
+				),
+			),
+		])
+			.then(([regular, bold]) => ({ regular, bold }))
+			.catch((error) => {
+				ogFontsPromise = null;
+				throw error;
+			});
+	}
+	return ogFontsPromise;
+}
 
 function sanitizeText(
 	value: string | null,
@@ -487,32 +518,45 @@ export const Route = createFileRoute("/api/og")({
 					page === "home"
 						? renderHomeOg(title, subtitle, theme)
 						: renderDefaultOg(title, subtitle, theme);
-				const [monoRegular, monoBold] = await Promise.all([
-					ogMonoRegularPromise,
-					ogMonoBoldPromise,
+				const [, ogFonts] = await Promise.all([
+					ensureResvgInitialized(),
+					loadOgFonts(),
 				]);
-				const fonts = [];
-				if (monoRegular) {
-					fonts.push({
-						name: "DS Mono",
-						data: monoRegular,
-						style: "normal" as const,
-						weight: 400 as const,
-					});
-				}
-				if (monoBold) {
-					fonts.push({
-						name: "DS Mono",
-						data: monoBold,
-						style: "normal" as const,
-						weight: 700 as const,
-					});
-				}
 
-				return new ImageResponse(imageMarkup, {
+				const svg = await satori(imageMarkup, {
 					width: OG_WIDTH,
 					height: OG_HEIGHT,
-					fonts: fonts.length ? fonts : undefined,
+					fonts: [
+						{
+							name: "DS Mono",
+							data: ogFonts.regular,
+							style: "normal",
+							weight: 400,
+						},
+						{
+							name: "DS Mono",
+							data: ogFonts.bold,
+							style: "normal",
+							weight: 700,
+						},
+					],
+				});
+
+				const png = new Resvg(svg, {
+					fitTo: {
+						mode: "width",
+						value: OG_WIDTH,
+					},
+				})
+					.render()
+					.asPng();
+
+				return new Response(Buffer.from(png), {
+					status: 200,
+					headers: {
+						"Content-Type": "image/png",
+						"Cache-Control": OG_CACHE_CONTROL,
+					},
 				});
 			},
 		},

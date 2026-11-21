@@ -198,4 +198,43 @@ describe("email helpers", () => {
 			"https://dailystand.dev/auth/reset-password?token=abc",
 		);
 	});
+
+	it("escapes HTML in invite and password reset emails and sanitizes subjects", async () => {
+		const fetchMock = vi.fn().mockResolvedValue({
+			ok: true,
+		});
+		vi.stubGlobal("fetch", fetchMock);
+
+		const email = await loadEmailModule({
+			RESEND_API_KEY: "rs_test_key",
+			RESEND_FROM_EMAIL: "DailyStand <no-reply@dailystand.dev>",
+			BETTER_AUTH_URL: "https://dailystand.dev",
+			DRY_RUN_EMAILS: "false",
+			NODE_ENV: "test",
+		});
+
+		await email.sendInviteEmail({
+			invitationId: "inv_1",
+			to: "dev@example.com",
+			organizationName: '<script>alert("x")</script>\r\nInjected',
+			inviterName: '<b>Alex</b> & "Co"',
+			role: "admin<img src=x onerror=alert(1)>",
+		});
+
+		const invitePayload = JSON.parse(fetchMock.mock.calls[0][1].body as string);
+		expect(invitePayload.subject).not.toContain("\r");
+		expect(invitePayload.subject).not.toContain("\n");
+		expect(invitePayload.html).not.toContain("<script>");
+		expect(invitePayload.html).not.toContain("<img ");
+		expect(invitePayload.html).toContain("&lt;script&gt;alert(&quot;x&quot;)&lt;/script&gt;");
+		expect(invitePayload.html).toContain("&lt;b&gt;Alex&lt;/b&gt; &amp; &quot;Co&quot;");
+
+		await expect(
+			email.sendPasswordResetEmail({
+				to: "dev@example.com",
+				userName: "<script>bad</script>",
+				resetUrl: "javascript:alert(1)",
+			}),
+		).rejects.toThrow("Unsupported email action URL protocol.");
+	});
 });

@@ -18,6 +18,12 @@ export const Route = createFileRoute("/app/standup")({
 	component: StandupForm,
 });
 
+const STANDUP_HEADER_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+	weekday: "long",
+	month: "long",
+	day: "numeric",
+});
+
 type SubmitMode = "same" | "different";
 
 type StandupDraft = {
@@ -204,7 +210,7 @@ function StandupForm() {
 					mode: mode,
 					is_update: existing && existing.length > 0,
 				});
-				queryClient.invalidateQueries();
+				void queryClient.invalidateQueries(trpc.standups.pathFilter());
 				navigate({ to: "/app/history" });
 			},
 			onError: (error) => {
@@ -351,13 +357,9 @@ function StandupForm() {
 				</h1>
 				<p className="text-ds-text-tertiary text-sm mt-1">
 					//{" "}
-					{new Date()
-						.toLocaleDateString("en-US", {
-							weekday: "long",
-							month: "long",
-							day: "numeric",
-						})
-						.toUpperCase()}
+					{STANDUP_HEADER_DATE_FORMATTER.format(
+						new Date(`${today}T12:00:00`),
+					).toUpperCase()}
 				</p>
 			</div>
 

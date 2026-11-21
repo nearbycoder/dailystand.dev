@@ -100,13 +100,19 @@ function AppLayout() {
 	return <AppShell session={session} />;
 }
 
+type OrganizationSummary = {
+	id: string;
+	name: string;
+	slug: string;
+};
+
 function OrgSetup() {
 	const [orgName, setOrgName] = useState("");
 	const [orgSlug, setOrgSlug] = useState("");
 	const [loading, setLoading] = useState(false);
 	const [error, setError] = useState("");
 	const { data: orgs } = authClient.useListOrganizations();
-	const organizations = orgs ?? [];
+	const organizations: OrganizationSummary[] = Array.isArray(orgs) ? orgs : [];
 	const hasOrganizations = organizations.length > 0;
 
 	const handleCreate = async (e: React.FormEvent) => {
@@ -237,23 +243,16 @@ function AppShell({
 	const navigate = useNavigate();
 	const trpc = useTRPC();
 	const { data: teams } = useQuery(trpc.teams.list.queryOptions());
-	const { data: orgMembers } = useQuery(trpc.org.listMembers.queryOptions());
+	const { data: myMembership } = useQuery(
+		trpc.org.getMyMembership.queryOptions(),
+	);
 	const { data: organizationsData } = authClient.useListOrganizations();
 	const [mobileNavOpen, setMobileNavOpen] = useState(false);
 	const viewerId = session.user.id;
-	const organizations = organizationsData ?? [];
-
-	const canViewAllTeams = useMemo(() => {
-		const currentMember = (orgMembers ?? []).find(
-			(member) => member.userId === viewerId,
-		);
-		if (!currentMember?.role) return false;
-		const roleParts = currentMember.role
-			.split(",")
-			.map((part) => part.trim().toLowerCase())
-			.filter(Boolean);
-		return roleParts.includes("owner") || roleParts.includes("admin");
-	}, [orgMembers, viewerId]);
+	const organizations: OrganizationSummary[] = Array.isArray(organizationsData)
+		? organizationsData
+		: [];
+	const canViewAllTeams = myMembership?.canManageOrganization ?? false;
 
 	const handleSignOut = async () => {
 		await authClient.signOut();

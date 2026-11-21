@@ -1,7 +1,8 @@
+import { apiKey } from "@better-auth/api-key";
 import { stripe } from "@better-auth/stripe";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
-import { apiKey, organization } from "better-auth/plugins";
+import { organization } from "better-auth/plugins";
 import { tanstackStartCookies } from "better-auth/tanstack-start";
 import { APIError } from "better-call";
 import { and, eq } from "drizzle-orm";

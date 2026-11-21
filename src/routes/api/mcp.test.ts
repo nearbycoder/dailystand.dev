@@ -32,6 +32,7 @@ const {
 		insert: vi.fn(),
 		update: vi.fn(),
 		delete: vi.fn(),
+		transaction: vi.fn(),
 	},
 	countOrganizationMembersMock: vi.fn(),
 	countTeamMembersMock: vi.fn(),
@@ -96,7 +97,7 @@ function mockAuthenticatedActor(apiKey = "test-key") {
 		valid: true,
 		key: {
 			id: "key_1",
-			userId: defaultActor.id,
+			referenceId: defaultActor.id,
 			name: "Primary key",
 			prefix: "dsk_",
 			start: "dsk_",
@@ -129,6 +130,9 @@ describe("mcp api route contracts", () => {
 		dbMock.delete.mockReturnValue({ where: deleteWhere });
 		const insertValues = vi.fn().mockResolvedValue(undefined);
 		dbMock.insert.mockReturnValue({ values: insertValues });
+		dbMock.transaction.mockImplementation(
+			async (cb: (tx: typeof dbMock) => unknown) => cb(dbMock),
+		);
 	});
 
 	it("returns metadata from GET with allowed origin", async () => {
@@ -483,6 +487,45 @@ describe("mcp api route contracts", () => {
 				structuredContent: {
 					code: "OWNER_REQUIRED",
 					status: 403,
+				},
+			},
+		});
+	});
+
+	it("returns INVALID_ARGUMENTS for invalid tool input payloads", async () => {
+		mockAuthenticatedActor();
+
+		const response = await handlers().POST({
+			request: new Request("https://dailystand.dev/api/mcp", {
+				method: "POST",
+				headers: {
+					origin: "https://allowed.example",
+					"content-type": "application/json",
+					"x-api-key": "test-key",
+				},
+				body: JSON.stringify({
+					jsonrpc: "2.0",
+					id: 16,
+					method: "tools/call",
+					params: {
+						name: "submit_my_standup",
+						arguments: {
+							date: "not-a-date",
+						},
+					},
+				}),
+			}),
+		});
+
+		expect(response.status).toBe(200);
+		await expect(response.json()).resolves.toMatchObject({
+			jsonrpc: "2.0",
+			id: 16,
+			result: {
+				isError: true,
+				structuredContent: {
+					code: "INVALID_ARGUMENTS",
+					status: 400,
 				},
 			},
 		});

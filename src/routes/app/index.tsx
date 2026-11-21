@@ -24,15 +24,17 @@ export const Route = createFileRoute("/app/")({
 type RouterOutputs = inferRouterOutputs<TRPCRouter>;
 type TeamStandup = RouterOutputs["standups"]["getByDate"][number];
 
+const DASHBOARD_FULL_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+	weekday: "long",
+	month: "long",
+	day: "numeric",
+	year: "numeric",
+});
+
 function formatFullDate(dateStr: string): string {
-	return new Date(`${dateStr}T12:00:00`)
-		.toLocaleDateString("en-US", {
-			weekday: "long",
-			month: "long",
-			day: "numeric",
-			year: "numeric",
-		})
-		.toUpperCase();
+	return DASHBOARD_FULL_DATE_FORMATTER.format(
+		new Date(`${dateStr}T12:00:00`),
+	).toUpperCase();
 }
 
 function getStandupItemCount(standup: TeamStandup): number {

@@ -57,12 +57,16 @@ function createCaller() {
 
 describe("profile router", () => {
 	beforeEach(() => {
-		vi.clearAllMocks();
+		vi.resetAllMocks();
+		dbMock.query.member.findFirst.mockResolvedValue({
+			id: "member_viewer",
+			role: "member",
+		});
 	});
 
 	it("returns grouped profile history with pagination cursor", async () => {
 		dbMock.query.member.findFirst
-			.mockResolvedValueOnce({ id: "member_viewer" })
+			.mockResolvedValueOnce({ id: "member_viewer", role: "member" })
 			.mockResolvedValueOnce({ role: "member", createdAt: new Date("2025-01-01") });
 		dbMock.query.user.findFirst.mockResolvedValue({
 			id: "user_2",
@@ -132,19 +136,11 @@ describe("profile router", () => {
 		});
 		expect(result.history.hasMore).toBe(true);
 		expect(result.history.nextCursorDate).toBe("2026-02-15");
+		expect(dbMock.query.standupEntry.findFirst).not.toHaveBeenCalled();
 	});
 
 	it("throws forbidden if viewer is not in active org", async () => {
-		dbMock.query.member.findFirst
-			.mockResolvedValueOnce(null)
-			.mockResolvedValueOnce({ role: "member", createdAt: new Date("2025-01-01") });
-		dbMock.query.user.findFirst.mockResolvedValue({
-			id: "user_2",
-			name: "Target User",
-			image: null,
-			bio: null,
-			createdAt: new Date("2025-01-01"),
-		});
+		dbMock.query.member.findFirst.mockResolvedValueOnce(null);
 
 		try {
 			await createCaller().profile.getUserProfile({
@@ -156,6 +152,7 @@ describe("profile router", () => {
 			expect(error).toBeInstanceOf(TRPCError);
 			expect((error as TRPCError).code).toBe("FORBIDDEN");
 		}
+		expect(dbMock.query.user.findFirst).not.toHaveBeenCalled();
 	});
 
 	it("throws not found when target user is not in active org", async () => {

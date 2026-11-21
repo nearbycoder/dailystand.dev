@@ -111,4 +111,34 @@ describe("trpc api route handler", () => {
 		if (!args) throw new Error("Expected fetchRequestHandler args");
 		await expect(args.createContext()).resolves.toEqual({ session: null });
 	});
+
+	it("rejects cross-origin POST requests while allowing same-origin POSTs", async () => {
+		const untrusted = await handlers().POST({
+			request: new Request("https://dailystand.dev/api/trpc/standups.upsert", {
+				method: "POST",
+				headers: {
+					origin: "https://evil.example",
+					"content-type": "application/json",
+				},
+				body: JSON.stringify({}),
+			}),
+		});
+		expect(untrusted.status).toBe(403);
+		expect(fetchRequestHandlerMock).not.toHaveBeenCalled();
+
+		const trustedResponse = new Response("ok", { status: 200 });
+		fetchRequestHandlerMock.mockResolvedValueOnce(trustedResponse);
+		const trusted = await handlers().POST({
+			request: new Request("https://dailystand.dev/api/trpc/standups.upsert", {
+				method: "POST",
+				headers: {
+					origin: "https://dailystand.dev",
+					"content-type": "application/json",
+				},
+				body: JSON.stringify({}),
+			}),
+		});
+		expect(trusted).toBe(trustedResponse);
+		expect(fetchRequestHandlerMock).toHaveBeenCalledTimes(1);
+	});
 });

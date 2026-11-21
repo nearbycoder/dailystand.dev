@@ -67,7 +67,7 @@ function TeamsPage() {
 				team_name: name,
 			});
 			setName("");
-			queryClient.invalidateQueries();
+			void queryClient.invalidateQueries(trpc.teams.pathFilter());
 		}
 		setCreating(false);
 	};
@@ -78,7 +78,7 @@ function TeamsPage() {
 	);
 
 	const refreshData = async () => {
-		await queryClient.invalidateQueries();
+		await queryClient.invalidateQueries(trpc.teams.pathFilter());
 	};
 
 	return (

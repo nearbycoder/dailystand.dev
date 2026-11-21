@@ -1,8 +1,8 @@
 import { TRPCError } from "@trpc/server";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { dbMock } = vi.hoisted(() => ({
-	dbMock: {
+const { dbMock } = vi.hoisted(() => {
+	const mock = {
 		query: {
 			teamMember: {
 				findMany: vi.fn(),
@@ -26,15 +26,20 @@ const { dbMock } = vi.hoisted(() => ({
 		delete: vi.fn(),
 		insert: vi.fn(),
 		update: vi.fn(),
-	},
-}));
+		transaction: vi.fn(),
+	};
+	mock.transaction.mockImplementation(
+		async (cb: (tx: typeof mock) => unknown) => cb(mock),
+	);
+	return { dbMock: mock };
+});
 
 vi.mock("@/db", () => ({
 	db: dbMock,
 }));
 
 import { createTRPCRouter } from "../init";
-import { standupsRouter } from "./standups";
+import { escapeCsvCell, standupsRouter } from "./standups";
 import type { TRPCContext } from "../init";
 
 const router = createTRPCRouter({
@@ -67,6 +72,13 @@ function createPublicCaller() {
 describe("standups router", () => {
 	beforeEach(() => {
 		vi.clearAllMocks();
+		dbMock.query.member.findFirst.mockResolvedValue({
+			id: "member_1",
+			role: "member",
+		});
+		dbMock.transaction.mockImplementation(
+			async (cb: (tx: typeof dbMock) => unknown) => cb(dbMock),
+		);
 	});
 
 	it("blocks upsert when user tries to submit for a team they are not in", async () => {
@@ -153,5 +165,41 @@ describe("standups router", () => {
 			expect(error).toBeInstanceOf(TRPCError);
 			expect((error as TRPCError).code).toBe("NOT_FOUND");
 		}
+	});
+
+	it("neutralizes spreadsheet formula prefixes in CSV cells", () => {
+		expect(escapeCsvCell("=CMD|' /C calc'!A0")).toBe("'=CMD|' /C calc'!A0");
+		expect(escapeCsvCell("+1+1")).toBe("'+1+1");
+		expect(escapeCsvCell("-2+3")).toBe("'-2+3");
+		expect(escapeCsvCell("@SUM(A1:A2)")).toBe("'@SUM(A1:A2)");
+		expect(escapeCsvCell('=HYPERLINK("https://evil.example","click")')).toBe(
+			`"'=HYPERLINK(""https://evil.example"",""click"")"`,
+		);
+		expect(escapeCsvCell("Normal standup item")).toBe("Normal standup item");
+	});
+
+	it("rejects inverted or excessive date ranges in getByDateRange", async () => {
+		await expect(
+			createOrgCaller().standups.getByDateRange({
+				startDate: "2026-03-10",
+				endDate: "2026-03-01",
+			}),
+		).rejects.toMatchObject({ code: "BAD_REQUEST" });
+
+		await expect(
+			createOrgCaller().standups.getByDateRange({
+				startDate: "2024-01-01",
+				endDate: "2026-01-01",
+			}),
+		).rejects.toMatchObject({ code: "BAD_REQUEST" });
+	});
+
+	it("rejects oversized standup entry content", async () => {
+		await expect(
+			createOrgCaller().standups.upsert({
+				date: "2026-02-16",
+				entries: [{ type: "completed", content: "x".repeat(4001) }],
+			}),
+		).rejects.toMatchObject({ code: "BAD_REQUEST" });
 	});
 });

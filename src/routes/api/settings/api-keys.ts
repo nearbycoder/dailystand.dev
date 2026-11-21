@@ -28,11 +28,23 @@ function parseCsvEnv(value?: string): string[] {
 }
 
 function getTrustedOriginsForRequest(request: Request): Set<string> {
-	return new Set([
+	const origins = new Set([
 		new URL(request.url).origin,
 		...parseCsvEnv(process.env.BETTER_AUTH_URL),
 		...parseCsvEnv(process.env.BETTER_AUTH_TRUSTED_ORIGINS),
 	]);
+	const forwardedHost = request.headers
+		.get("x-forwarded-host")
+		?.split(",")[0]
+		?.trim();
+	const forwardedProto = request.headers
+		.get("x-forwarded-proto")
+		?.split(",")[0]
+		?.trim();
+	if (forwardedHost && (forwardedProto === "http" || forwardedProto === "https")) {
+		origins.add(`${forwardedProto}://${forwardedHost}`);
+	}
+	return origins;
 }
 
 function resolveOriginFromReferer(referer: string | null): string | null {

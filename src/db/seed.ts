@@ -4,9 +4,22 @@ config({ path: [".env.local", ".env"] });
 
 import { randomBytes } from "node:crypto";
 import { hashPassword } from "better-auth/crypto";
+import { eq } from "drizzle-orm";
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
 import * as schema from "./schema";
+
+const SEED_BATCH_SIZE = 500;
+
+async function insertInChunks<T>(
+	rows: T[],
+	insertChunk: (chunk: T[]) => Promise<unknown>,
+	chunkSize = SEED_BATCH_SIZE,
+) {
+	for (let i = 0; i < rows.length; i += chunkSize) {
+		await insertChunk(rows.slice(i, i + chunkSize));
+	}
+}
 
 const connectionString = process.env.DATABASE_URL;
 if (!connectionString) {
@@ -306,13 +319,15 @@ async function createUsersWithCredentialAccounts(
 	logEvery = 1,
 ): Promise<string[]> {
 	const userIds: string[] = [];
+	const userRows: (typeof schema.user.$inferInsert)[] = [];
+	const accountRows: (typeof schema.account.$inferInsert)[] = [];
 
 	for (let i = 0; i < people.length; i++) {
 		const person = people[i];
 		const userId = id();
 		userIds.push(userId);
 
-		await db.insert(schema.user).values({
+		userRows.push({
 			id: userId,
 			name: person.name,
 			email: person.email,
@@ -321,7 +336,7 @@ async function createUsersWithCredentialAccounts(
 			updatedAt: createdAt,
 		});
 
-		await db.insert(schema.account).values({
+		accountRows.push({
 			id: id(),
 			accountId: userId,
 			providerId: "credential",
@@ -335,6 +350,13 @@ async function createUsersWithCredentialAccounts(
 			console.log(`  Created user ${i + 1}/${people.length}: ${person.email}`);
 		}
 	}
+
+	await insertInChunks(userRows, (chunk) =>
+		db.insert(schema.user).values(chunk),
+	);
+	await insertInChunks(accountRows, (chunk) =>
+		db.insert(schema.account).values(chunk),
+	);
 
 	return userIds;
 }
@@ -360,15 +382,16 @@ async function createOrganizationWithMembers({
 		createdAt,
 	});
 
-	for (let i = 0; i < memberUserIds.length; i++) {
-		await db.insert(schema.member).values({
-			id: id(),
-			organizationId: orgId,
-			userId: memberUserIds[i],
-			role: memberRoles?.[i] ?? (i === 0 ? "owner" : "member"),
-			createdAt,
-		});
-	}
+	const memberRows = memberUserIds.map((userId, i) => ({
+		id: id(),
+		organizationId: orgId,
+		userId,
+		role: memberRoles?.[i] ?? (i === 0 ? "owner" : "member"),
+		createdAt,
+	}));
+	await insertInChunks(memberRows, (chunk) =>
+		db.insert(schema.member).values(chunk),
+	);
 
 	console.log(`  Created org: ${name}`);
 	console.log(`  Added ${memberUserIds.length} org members`);
@@ -381,19 +404,19 @@ async function createTeams(
 	teamNames: string[],
 	createdAt: Date,
 ): Promise<string[]> {
-	const teamIds: string[] = [];
+	const teamRows = teamNames.map((teamName) => ({
+		id: id(),
+		name: teamName,
+		memberCount: 0,
+		organizationId: orgId,
+		createdAt,
+	}));
 
-	for (const teamName of teamNames) {
-		const teamId = id();
-		teamIds.push(teamId);
-		await db.insert(schema.team).values({
-			id: teamId,
-			name: teamName,
-			organizationId: orgId,
-			createdAt,
-		});
-	}
+	await insertInChunks(teamRows, (chunk) =>
+		db.insert(schema.team).values(chunk),
+	);
 
+	const teamIds = teamRows.map((row) => row.id);
 	console.log(`  Created ${teamIds.length} teams`);
 	return teamIds;
 }
@@ -438,6 +461,8 @@ async function seedDemoOrg(hashedPassword: string) {
 
 	const coreDeliveryTeamCount = 5;
 	const userTeams = new Map<string, string[]>();
+	const demoTeamMemberRows: (typeof schema.teamMember.$inferInsert)[] = [];
+	const demoTeamCounts = new Map<string, number>();
 
 	for (let u = 0; u < userIds.length; u++) {
 		const userId = userIds[u];
@@ -458,21 +483,30 @@ async function seedDemoOrg(hashedPassword: string) {
 		userTeams.set(userId, membershipList);
 
 		for (const teamId of membershipList) {
-			await db.insert(schema.teamMember).values({
+			demoTeamMemberRows.push({
 				id: id(),
 				teamId,
 				userId,
 				createdAt,
 			});
+			demoTeamCounts.set(teamId, (demoTeamCounts.get(teamId) ?? 0) + 1);
 		}
 	}
 
-	for (let t = 0; t < teamIds.length; t++) {
-		const memberCount = Array.from(userTeams.values()).filter((memberships) =>
-			memberships.includes(teamIds[t]),
-		).length;
-		console.log(`  Team ${DEMO_TEAMS[t]} members: ${memberCount}`);
-	}
+	await insertInChunks(demoTeamMemberRows, (chunk) =>
+		db.insert(schema.teamMember).values(chunk),
+	);
+
+	await Promise.all(
+		teamIds.map((teamId, t) => {
+			const memberCount = demoTeamCounts.get(teamId) ?? 0;
+			console.log(`  Team ${DEMO_TEAMS[t]} members: ${memberCount}`);
+			return db
+				.update(schema.team)
+				.set({ memberCount })
+				.where(eq(schema.team.id, teamId));
+		}),
+	);
 
 	await db.insert(schema.emailDigestPreference).values(
 		userIds.map((userId, index) => {
@@ -530,7 +564,7 @@ async function seedDemoOrg(hashedPassword: string) {
 	]);
 	console.log("  Added pending invitations");
 
-	let entryCount = 0;
+	const demoEntries: (typeof schema.standupEntry.$inferInsert)[] = [];
 	for (let day = 45; day >= 0; day--) {
 		const date = daysAgo(day);
 		const dow = date.getDay();
@@ -558,7 +592,7 @@ async function seedDemoOrg(hashedPassword: string) {
 
 			for (const teamId of teamTargets) {
 				for (const item of pickN(COMPLETED_ITEMS, 1, 3)) {
-					await db.insert(schema.standupEntry).values({
+					demoEntries.push({
 						userId: userIds[u],
 						organizationId: orgId,
 						teamId,
@@ -567,11 +601,10 @@ async function seedDemoOrg(hashedPassword: string) {
 						content: item,
 						createdAt: date,
 					});
-					entryCount++;
 				}
 
 				for (const item of pickN(PLANNED_ITEMS, 1, 2)) {
-					await db.insert(schema.standupEntry).values({
+					demoEntries.push({
 						userId: userIds[u],
 						organizationId: orgId,
 						teamId,
@@ -580,11 +613,10 @@ async function seedDemoOrg(hashedPassword: string) {
 						content: item,
 						createdAt: date,
 					});
-					entryCount++;
 				}
 
 				if (Math.random() < 0.32) {
-					await db.insert(schema.standupEntry).values({
+					demoEntries.push({
 						userId: userIds[u],
 						organizationId: orgId,
 						teamId,
@@ -593,12 +625,11 @@ async function seedDemoOrg(hashedPassword: string) {
 						content: pick(BLOCKER_ITEMS),
 						createdAt: date,
 					});
-					entryCount++;
 				}
 			}
 
 			if (u === 0 && day % 4 === 0) {
-				await db.insert(schema.standupEntry).values({
+				demoEntries.push({
 					userId: userIds[u],
 					organizationId: orgId,
 					teamId: null,
@@ -608,10 +639,13 @@ async function seedDemoOrg(hashedPassword: string) {
 						"Draft weekly leadership summary for external stakeholders https://x.com",
 					createdAt: date,
 				});
-				entryCount++;
 			}
 		}
 	}
+	await insertInChunks(demoEntries, (chunk) =>
+		db.insert(schema.standupEntry).values(chunk),
+	);
+	const entryCount = demoEntries.length;
 
 	const shareDates = [daysAgo(1), daysAgo(3), daysAgo(7)];
 	await db.insert(schema.standupShare).values([
@@ -682,6 +716,9 @@ async function seedEnterpriseOrg(hashedPassword: string) {
 	const teamIds = await createTeams(orgId, ENTERPRISE_TEAM_NAMES, createdAt);
 
 	const userTeams = new Map<string, string[]>();
+	const enterpriseTeamMemberRows: (typeof schema.teamMember.$inferInsert)[] = [];
+	const enterpriseTeamCounts = new Map<string, number>();
+
 	for (let i = 0; i < userIds.length; i++) {
 		const userId = userIds[i];
 		const disciplineTeamIdx = i % 5;
@@ -699,23 +736,35 @@ async function seedEnterpriseOrg(hashedPassword: string) {
 		userTeams.set(userId, membershipList);
 
 		for (const teamId of membershipList) {
-			await db.insert(schema.teamMember).values({
+			enterpriseTeamMemberRows.push({
 				id: id(),
 				teamId,
 				userId,
 				createdAt,
 			});
+			enterpriseTeamCounts.set(
+				teamId,
+				(enterpriseTeamCounts.get(teamId) ?? 0) + 1,
+			);
 		}
 	}
 
-	for (let t = 0; t < teamIds.length; t++) {
-		const memberCount = Array.from(userTeams.values()).filter((memberships) =>
-			memberships.includes(teamIds[t]),
-		).length;
-		console.log(`  Team ${ENTERPRISE_TEAM_NAMES[t]} members: ${memberCount}`);
-	}
+	await insertInChunks(enterpriseTeamMemberRows, (chunk) =>
+		db.insert(schema.teamMember).values(chunk),
+	);
 
-	let entryCount = 0;
+	await Promise.all(
+		teamIds.map((teamId, t) => {
+			const memberCount = enterpriseTeamCounts.get(teamId) ?? 0;
+			console.log(`  Team ${ENTERPRISE_TEAM_NAMES[t]} members: ${memberCount}`);
+			return db
+				.update(schema.team)
+				.set({ memberCount })
+				.where(eq(schema.team.id, teamId));
+		}),
+	);
+
+	const enterpriseEntries: (typeof schema.standupEntry.$inferInsert)[] = [];
 	for (let day = 21; day >= 0; day--) {
 		const date = daysAgo(day);
 		const dow = date.getDay();
@@ -737,7 +786,7 @@ async function seedEnterpriseOrg(hashedPassword: string) {
 
 			for (const teamId of teamsToPost) {
 				for (const item of pickN(COMPLETED_ITEMS, 1, 3)) {
-					await db.insert(schema.standupEntry).values({
+					enterpriseEntries.push({
 						userId,
 						organizationId: orgId,
 						teamId,
@@ -746,11 +795,10 @@ async function seedEnterpriseOrg(hashedPassword: string) {
 						content: item,
 						createdAt: date,
 					});
-					entryCount++;
 				}
 
 				for (const item of pickN(PLANNED_ITEMS, 1, 2)) {
-					await db.insert(schema.standupEntry).values({
+					enterpriseEntries.push({
 						userId,
 						organizationId: orgId,
 						teamId,
@@ -759,11 +807,10 @@ async function seedEnterpriseOrg(hashedPassword: string) {
 						content: item,
 						createdAt: date,
 					});
-					entryCount++;
 				}
 
 				if (Math.random() < 0.25) {
-					await db.insert(schema.standupEntry).values({
+					enterpriseEntries.push({
 						userId,
 						organizationId: orgId,
 						teamId,
@@ -772,11 +819,15 @@ async function seedEnterpriseOrg(hashedPassword: string) {
 						content: pick(BLOCKER_ITEMS),
 						createdAt: date,
 					});
-					entryCount++;
 				}
 			}
 		}
 	}
+
+	await insertInChunks(enterpriseEntries, (chunk) =>
+		db.insert(schema.standupEntry).values(chunk),
+	);
+	const entryCount = enterpriseEntries.length;
 
 	console.log(`  Created ${entryCount} enterprise standup entries`);
 	return { orgId, userIds, people };

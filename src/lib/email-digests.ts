@@ -26,13 +26,34 @@ export type DigestWorkflowResult = {
 	}>;
 };
 
+const DATE_KEY_FORMATTERS = new Map<string, Intl.DateTimeFormat>();
+const DATE_LABEL_FORMATTER = new Intl.DateTimeFormat("en-US", {
+	month: "short",
+	day: "numeric",
+	year: "numeric",
+	timeZone: "UTC",
+});
+
+function getDateKeyFormatter(timeZone: string): Intl.DateTimeFormat {
+	let formatter = DATE_KEY_FORMATTERS.get(timeZone);
+	if (!formatter) {
+		formatter = new Intl.DateTimeFormat("en-CA", {
+			timeZone,
+			year: "numeric",
+			month: "2-digit",
+			day: "2-digit",
+		});
+		DATE_KEY_FORMATTERS.set(timeZone, formatter);
+	}
+	return formatter;
+}
+
 function normalizeTimeZone(timeZone: string | null | undefined): string {
 	const candidate = (timeZone ?? "").trim();
 	if (!candidate) return "UTC";
+	if (DATE_KEY_FORMATTERS.has(candidate)) return candidate;
 	try {
-		new Intl.DateTimeFormat("en-US", { timeZone: candidate }).format(
-			new Date(),
-		);
+		getDateKeyFormatter(candidate).format(new Date());
 		return candidate;
 	} catch {
 		return "UTC";
@@ -40,13 +61,7 @@ function normalizeTimeZone(timeZone: string | null | undefined): string {
 }
 
 function toLocalDateKey(date: Date, timeZone: string): string {
-	const formatter = new Intl.DateTimeFormat("en-CA", {
-		timeZone,
-		year: "numeric",
-		month: "2-digit",
-		day: "2-digit",
-	});
-	return formatter.format(date);
+	return getDateKeyFormatter(timeZone).format(date);
 }
 
 function dateKeyMinusDays(dateKey: string, days: number): string {
@@ -64,11 +79,7 @@ function weekKeyFromDateKey(dateKey: string): string {
 
 function formatDateLabel(dateKey: string): string {
 	const date = new Date(`${dateKey}T00:00:00.000Z`);
-	return date.toLocaleDateString("en-US", {
-		month: "short",
-		day: "numeric",
-		year: "numeric",
-	});
+	return DATE_LABEL_FORMATTER.format(date);
 }
 
 function summarizeCadenceWindow(
@@ -163,11 +174,39 @@ export async function runDigestWorkflow(
 		},
 	});
 
+	const orgPlanCache = new Map<
+		string,
+		Promise<Awaited<ReturnType<typeof resolveOrganizationPlanLimits>>>
+	>();
+	const getOrgPlan = (organizationId: string, userId: string) => {
+		let cached = orgPlanCache.get(organizationId);
+		if (!cached) {
+			cached = resolveOrganizationPlanLimits({ organizationId, userId });
+			orgPlanCache.set(organizationId, cached);
+		}
+		return cached;
+	};
+
 	for (const preference of preferences) {
 		result.evaluated += 1;
 		const timeZone = normalizeTimeZone(preference.timezone);
 
 		try {
+			// Skip obviously ineligible preferences before hitting the database.
+			if (cadence === "daily" && preference.cadence !== "daily") {
+				result.skipped += 1;
+				continue;
+			}
+
+			const lastSentAt =
+				cadence === "daily"
+					? preference.lastDailySentAt
+					: preference.lastWeeklySentAt;
+			if (hasAlreadySentForCurrentWindow(cadence, lastSentAt, now, timeZone)) {
+				result.skipped += 1;
+				continue;
+			}
+
 			const membership = await db.query.member.findFirst({
 				where: and(
 					eq(member.userId, preference.userId),
@@ -180,22 +219,13 @@ export async function runDigestWorkflow(
 				continue;
 			}
 
-			const plan = await resolveOrganizationPlanLimits({
-				organizationId: preference.organizationId,
-				userId: preference.userId,
-			});
+			const plan = await getOrgPlan(
+				preference.organizationId,
+				preference.userId,
+			);
 			const effectiveCadence: DigestCadence =
 				plan.plan === "free" ? "weekly" : preference.cadence;
 			if (effectiveCadence !== cadence) {
-				result.skipped += 1;
-				continue;
-			}
-
-			const lastSentAt =
-				cadence === "daily"
-					? preference.lastDailySentAt
-					: preference.lastWeeklySentAt;
-			if (hasAlreadySentForCurrentWindow(cadence, lastSentAt, now, timeZone)) {
 				result.skipped += 1;
 				continue;
 			}

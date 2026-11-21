@@ -72,6 +72,8 @@ export function getRouter() {
 		);
 		const tracesSampleRate = parseRate(sentryTracesSampleRate, 0.1);
 
+		const sendDefaultPii = sentrySendDefaultPii === "true";
+
 		Sentry.init({
 			dsn: sentryDsn,
 			integrations: [
@@ -83,7 +85,16 @@ export function getRouter() {
 			tracesSampleRate,
 			replaysSessionSampleRate,
 			replaysOnErrorSampleRate,
-			sendDefaultPii: sentrySendDefaultPii === "true",
+			...(sendDefaultPii
+				? {}
+				: {
+						dataCollection: {
+							userInfo: false,
+							cookies: false,
+							httpHeaders: false,
+							httpBodies: [],
+						},
+					}),
 			enabled: import.meta.env.PROD || sentryEnableInDev === "true",
 		});
 	}

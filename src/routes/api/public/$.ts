@@ -22,6 +22,10 @@ type ApiPermission =
 	| "analytics:read";
 
 type StandupType = "completed" | "planned" | "blocker";
+const MAX_STANDUP_ENTRIES = 100;
+const MAX_ENTRY_CONTENT_LENGTH = 4000;
+const MAX_HISTORY_RANGE_DAYS = 366;
+
 const standupCreateBodySchema = z.object({
 	orgId: z.string().optional(),
 	date: z.string().optional(),
@@ -30,9 +34,10 @@ const standupCreateBodySchema = z.object({
 		.array(
 			z.object({
 				type: z.enum(["completed", "planned", "blocker"]),
-				content: z.string(),
+				content: z.string().max(MAX_ENTRY_CONTENT_LENGTH),
 			}),
 		)
+		.max(MAX_STANDUP_ENTRIES)
 		.optional(),
 });
 
@@ -177,31 +182,32 @@ function chooseEntriesForTeam<T extends { teamId: string | null }>(
 	return entries.filter((entry) => entry.teamId === null);
 }
 
+const PUBLIC_API_STOP_WORDS = new Set([
+	"about",
+	"after",
+	"again",
+	"between",
+	"build",
+	"done",
+	"from",
+	"have",
+	"into",
+	"next",
+	"only",
+	"plan",
+	"review",
+	"same",
+	"standup",
+	"team",
+	"that",
+	"this",
+	"today",
+	"update",
+	"with",
+	"work",
+]);
+
 function extractTopKeywords(contents: string[], limit = 12) {
-	const stopWords = new Set([
-		"about",
-		"after",
-		"again",
-		"between",
-		"build",
-		"done",
-		"from",
-		"have",
-		"into",
-		"next",
-		"only",
-		"plan",
-		"review",
-		"same",
-		"standup",
-		"team",
-		"that",
-		"this",
-		"today",
-		"update",
-		"with",
-		"work",
-	]);
 	const counts = new Map<string, number>();
 	for (const content of contents) {
 		const cleaned = content
@@ -210,7 +216,7 @@ function extractTopKeywords(contents: string[], limit = 12) {
 			.replace(/www\.\S+/g, " ");
 		for (const token of cleaned.split(/[^a-z0-9]+/g)) {
 			if (token.length < 4) continue;
-			if (stopWords.has(token)) continue;
+			if (PUBLIC_API_STOP_WORDS.has(token)) continue;
 			counts.set(token, (counts.get(token) ?? 0) + 1);
 		}
 	}
@@ -258,7 +264,7 @@ async function requireApiKeyAuth(request: Request, permission: ApiPermission) {
 	}
 
 	const actor = await db.query.user.findFirst({
-		where: eq(user.id, verification.key.userId),
+		where: eq(user.id, verification.key.referenceId),
 		columns: { id: true, name: true, email: true, image: true },
 	});
 
@@ -524,15 +530,15 @@ async function handleGetStandupsDay(request: Request, url: URL) {
 		url.searchParams.get("orgId"),
 	);
 	const teamId = url.searchParams.get("teamId");
-	const { floorDate } = await resolveHistoryWindow(org.id, actor.id);
 	const date = parseDate(
 		url.searchParams.get("date") ??
 			isoDate(new Date(new Date().setHours(0, 0, 0, 0))),
 		"date",
 	);
-	const teamScope = teamId
-		? await assertTeamInOrganization(teamId, org.id)
-		: null;
+	const [{ floorDate }, teamScope] = await Promise.all([
+		resolveHistoryWindow(org.id, actor.id),
+		teamId ? assertTeamInOrganization(teamId, org.id) : Promise.resolve(null),
+	]);
 	if (teamScope) {
 		await assertActorInTeam(actor.id, teamScope.id, "read");
 	}
@@ -613,16 +619,36 @@ async function handleGetStandupsHistory(request: Request, url: URL) {
 		actor.id,
 		url.searchParams.get("orgId"),
 	);
-	const { floorDate } = await resolveHistoryWindow(org.id, actor.id);
 	const startDate = parseDate(
 		url.searchParams.get("startDate") ?? "",
 		"startDate",
 	);
 	const endDate = parseDate(url.searchParams.get("endDate") ?? "", "endDate");
+	if (startDate > endDate) {
+		throw new ApiHttpError(
+			400,
+			"INVALID_DATE_RANGE",
+			"startDate must be on or before endDate.",
+		);
+	}
+	const rangeDays =
+		Math.floor(
+			(Date.parse(`${endDate}T00:00:00Z`) -
+				Date.parse(`${startDate}T00:00:00Z`)) /
+				86_400_000,
+		) + 1;
+	if (!Number.isFinite(rangeDays) || rangeDays > MAX_HISTORY_RANGE_DAYS) {
+		throw new ApiHttpError(
+			400,
+			"INVALID_DATE_RANGE",
+			`Date range cannot exceed ${MAX_HISTORY_RANGE_DAYS} days.`,
+		);
+	}
 	const teamId = url.searchParams.get("teamId");
-	const teamScope = teamId
-		? await assertTeamInOrganization(teamId, org.id)
-		: null;
+	const [{ floorDate }, teamScope] = await Promise.all([
+		resolveHistoryWindow(org.id, actor.id),
+		teamId ? assertTeamInOrganization(teamId, org.id) : Promise.resolve(null),
+	]);
 	if (teamScope) {
 		await assertActorInTeam(actor.id, teamScope.id, "read");
 	}
@@ -760,31 +786,33 @@ async function handlePostStandups(request: Request) {
 		await assertActorInTeam(actor.id, targetTeamId, "write");
 	}
 
-	await db
-		.delete(standupEntry)
-		.where(
-			and(
-				eq(standupEntry.userId, actor.id),
-				eq(standupEntry.organizationId, org.id),
-				eq(standupEntry.date, date),
-				targetTeamId
-					? eq(standupEntry.teamId, targetTeamId)
-					: isNull(standupEntry.teamId),
-			),
-		);
+	await db.transaction(async (tx) => {
+		await tx
+			.delete(standupEntry)
+			.where(
+				and(
+					eq(standupEntry.userId, actor.id),
+					eq(standupEntry.organizationId, org.id),
+					eq(standupEntry.date, date),
+					targetTeamId
+						? eq(standupEntry.teamId, targetTeamId)
+						: isNull(standupEntry.teamId),
+				),
+			);
 
-	if (entries.length > 0) {
-		await db.insert(standupEntry).values(
-			entries.map((entry) => ({
-				userId: actor.id,
-				organizationId: org.id,
-				teamId: targetTeamId,
-				date,
-				type: entry.type,
-				content: entry.content.trim(),
-			})),
-		);
-	}
+		if (entries.length > 0) {
+			await tx.insert(standupEntry).values(
+				entries.map((entry) => ({
+					userId: actor.id,
+					organizationId: org.id,
+					teamId: targetTeamId,
+					date,
+					type: entry.type,
+					content: entry.content.trim(),
+				})),
+			);
+		}
+	});
 
 	return ok({
 		organization: org,
@@ -802,11 +830,11 @@ async function handleGetAnalytics(request: Request, url: URL) {
 	);
 	const teamId = url.searchParams.get("teamId");
 	const requestedRangeDays = parseRangeDays(url.searchParams.get("rangeDays"));
-	const { maxDays, floorDate } = await resolveHistoryWindow(org.id, actor.id);
+	const [{ maxDays, floorDate }, scopedTeam] = await Promise.all([
+		resolveHistoryWindow(org.id, actor.id),
+		teamId ? assertTeamInOrganization(teamId, org.id) : Promise.resolve(null),
+	]);
 	const rangeDays = maxHistoryDays(maxDays, requestedRangeDays);
-	const scopedTeam = teamId
-		? await assertTeamInOrganization(teamId, org.id)
-		: null;
 	if (scopedTeam) {
 		await assertActorInTeam(actor.id, scopedTeam.id, "read");
 	}
@@ -830,18 +858,30 @@ async function handleGetAnalytics(request: Request, url: URL) {
 		conditions.push(eq(standupEntry.teamId, scopedTeam.id));
 	}
 
-	const entries = await db.query.standupEntry.findMany({
-		where: and(...conditions),
-		with: {
-			user: {
-				columns: { id: true, name: true },
+	const [entries, scopeMemberRows] = await Promise.all([
+		db.query.standupEntry.findMany({
+			where: and(...conditions),
+			with: {
+				user: {
+					columns: { id: true, name: true },
+				},
+				team: {
+					columns: { id: true, name: true },
+				},
 			},
-			team: {
-				columns: { id: true, name: true },
-			},
-		},
-		orderBy: [desc(standupEntry.date), desc(standupEntry.createdAt)],
-	});
+			orderBy: [desc(standupEntry.date), desc(standupEntry.createdAt)],
+		}),
+		scopedTeam
+			? db.query.teamMember.findMany({
+					where: eq(teamMember.teamId, scopedTeam.id),
+					columns: { userId: true },
+				})
+			: db.query.member.findMany({
+					where: eq(member.organizationId, org.id),
+					columns: { userId: true },
+				}),
+	]);
+	const scopeMembers = scopeMemberRows.length;
 
 	const dateKeys = enumerateDateRange(startDateObj, endDateObj);
 	const dailyMap = new Map(
@@ -945,20 +985,6 @@ async function handleGetAnalytics(request: Request, url: URL) {
 		else if (entry.type === "planned") contributor.planned++;
 		else contributor.blockers++;
 	}
-
-	const scopeMembers = scopedTeam
-		? (
-				await db.query.teamMember.findMany({
-					where: eq(teamMember.teamId, scopedTeam.id),
-					columns: { userId: true },
-				})
-			).length
-		: (
-				await db.query.member.findMany({
-					where: eq(member.organizationId, org.id),
-					columns: { userId: true },
-				})
-			).length;
 
 	const daily = dateKeys.map((date) => {
 		const day = dailyMap.get(date);

@@ -97,6 +97,28 @@ describe("workflow email-digests route", () => {
 		});
 	});
 
+	it("returns bad request for malformed JSON payloads", async () => {
+		const response = await handlers().POST({
+			request: new Request(
+				"https://dailystand.dev/api/workflows/email-digests",
+				{
+					method: "POST",
+					headers: {
+						"x-workflow-secret": "secret_123",
+						"content-type": "application/json",
+					},
+					body: "{bad-json",
+				},
+			),
+		});
+
+		expect(response.status).toBe(400);
+		await expect(response.json()).resolves.toMatchObject({
+			success: false,
+		});
+		expect(runDigestWorkflowMock).not.toHaveBeenCalled();
+	});
+
 	it("returns bad request for invalid cadence payloads", async () => {
 		const response = await handlers().POST({
 			request: new Request(

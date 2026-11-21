@@ -1,4 +1,11 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import {
+	createContext,
+	useCallback,
+	useContext,
+	useEffect,
+	useMemo,
+	useState,
+} from "react";
 
 type Theme = "dark" | "light" | "system";
 
@@ -72,19 +79,24 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 		return () => mq.removeEventListener("change", handler);
 	}, [theme]);
 
-	const setTheme = (t: Theme) => {
+	const setTheme = useCallback((t: Theme) => {
 		setThemeState(t);
-		localStorage.setItem("ds-theme", t);
+		try {
+			localStorage.setItem("ds-theme", t);
+		} catch {
+			// Storage may be unavailable in restricted browser contexts.
+		}
 		const r = resolveTheme(t);
 		setResolved(r);
 		applyTheme(r);
-	};
+	}, []);
 
-	return (
-		<ThemeCtx.Provider value={{ theme, setTheme, resolved }}>
-			{children}
-		</ThemeCtx.Provider>
+	const value = useMemo(
+		() => ({ theme, setTheme, resolved }),
+		[theme, setTheme, resolved],
 	);
+
+	return <ThemeCtx.Provider value={value}>{children}</ThemeCtx.Provider>;
 }
 
 export function useTheme() {

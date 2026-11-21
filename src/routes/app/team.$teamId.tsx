@@ -15,6 +15,7 @@ import { useMemo, useState } from "react";
 import { AutoLinkText } from "@/components/auto-link-text";
 import { UserNameLink } from "@/components/user-name-link";
 import { useTRPC } from "@/integrations/trpc/react";
+import { getLocalDateString } from "@/lib/date";
 
 export const Route = createFileRoute("/app/team/$teamId")({
 	component: TeamView,
@@ -29,35 +30,39 @@ type TeamDayStandup = {
 	blockers: string[];
 };
 
-function formatDateHeading(dateStr: string): string {
-	const date = new Date(dateStr + "T12:00:00");
-	const today = new Date();
-	const yesterday = new Date();
-	yesterday.setDate(today.getDate() - 1);
+const TEAM_SHORT_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+	weekday: "short",
+	month: "short",
+	day: "numeric",
+});
 
-	const todayStr = today.toISOString().split("T")[0];
-	const yesterdayStr = yesterday.toISOString().split("T")[0];
+const TEAM_FULL_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+	weekday: "long",
+	year: "numeric",
+	month: "long",
+	day: "numeric",
+});
 
+const TEAM_RANGE_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+	month: "short",
+	day: "numeric",
+});
+
+function formatDateHeading(
+	dateStr: string,
+	todayStr: string,
+	yesterdayStr: string,
+): string {
 	if (dateStr === todayStr) return "TODAY";
 	if (dateStr === yesterdayStr) return "YESTERDAY";
 
-	return date
-		.toLocaleDateString("en-US", {
-			weekday: "short",
-			month: "short",
-			day: "numeric",
-		})
-		.toUpperCase();
+	const date = new Date(`${dateStr}T12:00:00`);
+	return TEAM_SHORT_DATE_FORMATTER.format(date).toUpperCase();
 }
 
 function formatDateSub(dateStr: string): string {
-	const date = new Date(dateStr + "T12:00:00");
-	return date.toLocaleDateString("en-US", {
-		weekday: "long",
-		year: "numeric",
-		month: "long",
-		day: "numeric",
-	});
+	const date = new Date(`${dateStr}T12:00:00`);
+	return TEAM_FULL_DATE_FORMATTER.format(date);
 }
 
 function getDateRange(page: number): { startDate: string; endDate: string } {
@@ -67,8 +72,8 @@ function getDateRange(page: number): { startDate: string; endDate: string } {
 	start.setDate(start.getDate() - (PAGE_SIZE - 1));
 
 	return {
-		startDate: start.toISOString().split("T")[0],
-		endDate: end.toISOString().split("T")[0],
+		startDate: getLocalDateString(start),
+		endDate: getLocalDateString(end),
 	};
 }
 
@@ -138,6 +143,12 @@ function TeamView() {
 	const [page, setPage] = useState(0);
 
 	const { startDate, endDate } = useMemo(() => getDateRange(page), [page]);
+	const todayStr = useMemo(() => getLocalDateString(), []);
+	const yesterdayStr = useMemo(() => {
+		const yesterday = new Date();
+		yesterday.setDate(yesterday.getDate() - 1);
+		return getLocalDateString(yesterday);
+	}, []);
 
 	const { data: teams } = useQuery(trpc.teams.list.queryOptions());
 	const {
@@ -165,7 +176,7 @@ function TeamView() {
 		const cur = new Date(endDate + "T12:00:00");
 		const stop = new Date(startDate + "T12:00:00");
 		while (cur >= stop) {
-			dates.push(cur.toISOString().split("T")[0]);
+			dates.push(getLocalDateString(cur));
 			cur.setDate(cur.getDate() - 1);
 		}
 		return dates;
@@ -220,19 +231,13 @@ function TeamView() {
 
 					<div className="order-3 w-full text-center sm:order-2 sm:w-auto">
 						<span className="text-xs font-bold tracking-widest text-ds-muted">
-							{new Date(startDate + "T12:00:00")
-								.toLocaleDateString("en-US", {
-									month: "short",
-									day: "numeric",
-								})
-								.toUpperCase()}{" "}
+							{TEAM_RANGE_DATE_FORMATTER.format(
+								new Date(`${startDate}T12:00:00`),
+							).toUpperCase()}{" "}
 							&mdash;{" "}
-							{new Date(endDate + "T12:00:00")
-								.toLocaleDateString("en-US", {
-									month: "short",
-									day: "numeric",
-								})
-								.toUpperCase()}
+							{TEAM_RANGE_DATE_FORMATTER.format(
+								new Date(`${endDate}T12:00:00`),
+							).toUpperCase()}
 						</span>
 					</div>
 
@@ -286,6 +291,8 @@ function TeamView() {
 							<DaySection
 								key={date}
 								date={date}
+								todayStr={todayStr}
+								yesterdayStr={yesterdayStr}
 								teamName={team?.name ?? "Team"}
 								standups={standups ?? []}
 							/>
@@ -304,14 +311,18 @@ function TeamView() {
 
 function DaySection({
 	date,
+	todayStr,
+	yesterdayStr,
 	teamName,
 	standups,
 }: {
 	date: string;
+	todayStr: string;
+	yesterdayStr: string;
 	teamName: string;
 	standups: TeamDayStandup[];
 }) {
-	const isToday = date === new Date().toISOString().split("T")[0];
+	const isToday = date === todayStr;
 	const hasStandups = standups.length > 0;
 	const [copyState, setCopyState] = useState<"idle" | "copied" | "error">(
 		"idle",
@@ -351,7 +362,7 @@ function DaySection({
 					<span
 						className={`text-sm font-extrabold tracking-wider ${isToday ? "text-ds-accent" : "text-ds-fg"}`}
 					>
-						{formatDateHeading(date)}
+						{formatDateHeading(date, todayStr, yesterdayStr)}
 					</span>
 					<span className="text-[11px] text-ds-text-tertiary">
 						{formatDateSub(date)}

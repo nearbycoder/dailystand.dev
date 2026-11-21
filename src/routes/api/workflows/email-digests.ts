@@ -1,4 +1,4 @@
-import { timingSafeEqual } from "node:crypto";
+import { createHash, timingSafeEqual } from "node:crypto";
 import { createFileRoute } from "@tanstack/react-router";
 import { z } from "zod";
 import { runDigestWorkflow } from "@/lib/email-digests";
@@ -31,10 +31,9 @@ function extractProvidedSecret(request: Request): string | null {
 
 function secretsMatch(expected: string, provided: string | null): boolean {
 	if (!provided) return false;
-	const expectedBuffer = Buffer.from(expected);
-	const providedBuffer = Buffer.from(provided);
-	if (expectedBuffer.length !== providedBuffer.length) return false;
-	return timingSafeEqual(expectedBuffer, providedBuffer);
+	const expectedDigest = createHash("sha256").update(expected).digest();
+	const providedDigest = createHash("sha256").update(provided).digest();
+	return timingSafeEqual(expectedDigest, providedDigest);
 }
 
 function unauthorized(message = "Unauthorized workflow access."): Response {
@@ -102,7 +101,13 @@ export const Route = createFileRoute("/api/workflows/email-digests")({
 
 				let cadence: "daily" | "weekly" | "all" = "all";
 				if (request.headers.get("content-type")?.includes("application/json")) {
-					const parsed = bodySchema.safeParse(await request.json());
+					let rawBody: unknown;
+					try {
+						rawBody = await request.json();
+					} catch {
+						return badRequest("Request body must be valid JSON.");
+					}
+					const parsed = bodySchema.safeParse(rawBody);
 					if (!parsed.success) {
 						return badRequest(
 							"Invalid body. cadence must be daily, weekly, or all.",

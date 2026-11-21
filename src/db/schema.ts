@@ -36,6 +36,7 @@ export const standupEntry = pgTable(
 		index("standup_entry_userId_idx").on(table.userId),
 		index("standup_entry_orgId_idx").on(table.organizationId),
 		index("standup_entry_date_idx").on(table.date),
+		index("standup_entry_org_date_idx").on(table.organizationId, table.date),
 		index("standup_entry_user_org_date_idx").on(
 			table.userId,
 			table.organizationId,

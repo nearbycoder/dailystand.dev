@@ -49,8 +49,11 @@ vi.mock("better-auth/adapters/drizzle", () => ({
 	drizzleAdapter: drizzleAdapterMock,
 }));
 
-vi.mock("better-auth/plugins", () => ({
+vi.mock("@better-auth/api-key", () => ({
 	apiKey: apiKeyMock,
+}));
+
+vi.mock("better-auth/plugins", () => ({
 	organization: organizationMock,
 }));
 

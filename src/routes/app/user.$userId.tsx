@@ -18,28 +18,30 @@ export const Route = createFileRoute("/app/user/$userId")({
 
 const HISTORY_PAGE_SIZE = 20;
 
+const PROFILE_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+	month: "short",
+	day: "numeric",
+	year: "numeric",
+});
+
+const PROFILE_HEADING_DATE_FORMATTER = new Intl.DateTimeFormat("en-US", {
+	weekday: "short",
+	month: "short",
+	day: "numeric",
+});
+
 function formatDate(dateLike: string | Date | null | undefined) {
 	if (!dateLike) return "UNKNOWN";
 	const value =
 		typeof dateLike === "string" ? `${dateLike}T12:00:00` : dateLike;
 	const parsed = new Date(value);
 	if (Number.isNaN(parsed.getTime())) return "UNKNOWN";
-	return parsed.toLocaleDateString("en-US", {
-		month: "short",
-		day: "numeric",
-		year: "numeric",
-	});
+	return PROFILE_DATE_FORMATTER.format(parsed);
 }
 
 function formatDateHeading(dateLike: string) {
 	const parsed = new Date(`${dateLike}T12:00:00`);
-	return parsed
-		.toLocaleDateString("en-US", {
-			weekday: "short",
-			month: "short",
-			day: "numeric",
-		})
-		.toUpperCase();
+	return PROFILE_HEADING_DATE_FORMATTER.format(parsed).toUpperCase();
 }
 
 function getInitials(name: string) {

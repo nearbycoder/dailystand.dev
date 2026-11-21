@@ -29,6 +29,13 @@
       "when": 1771263578676,
       "tag": "0003_long_jimmy_woo",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1795190400000,
+      "tag": "0004_better_auth_1_7_and_indexes",
+      "breakpoints": true
     }
   ]
 }

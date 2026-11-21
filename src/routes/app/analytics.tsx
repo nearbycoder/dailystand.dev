@@ -130,7 +130,9 @@ function Dashboard() {
 
 	const periodLabel = analytics
 		? `${formatDate(analytics.period.startDate)} - ${formatDate(analytics.period.endDate)}`
-		: "ANALYZING...";
+		: analyticsQuery.isError
+			? "UNAVAILABLE"
+			: "ANALYZING...";
 
 	const completionToPlanRatio = analytics
 		? analytics.totals.planned > 0
@@ -359,7 +361,26 @@ function Dashboard() {
 				</div>
 			)}
 
-			{analyticsQuery.isLoading || !analytics ? (
+			{analyticsQuery.isError && !analytics ? (
+				<div className="border-[3px] border-red-500/70 bg-red-500/5 p-6">
+					<div className="mb-2 flex items-center gap-2 text-red-500 dark:text-red-400">
+						<TriangleAlert className="h-4 w-4" />
+						<span className="text-sm font-extrabold tracking-widest">
+							ANALYTICS_LOAD_FAILED
+						</span>
+					</div>
+					<p className="text-sm text-ds-muted">
+						Unable to load organization analytics right now.
+					</p>
+					<button
+						type="button"
+						onClick={() => void analyticsQuery.refetch()}
+						className="mt-4 inline-flex items-center gap-2 border-[2px] border-ds-muted3 px-3 py-1.5 text-[10px] font-extrabold tracking-widest text-ds-text-tertiary transition-colors hover:border-ds-accent hover:text-ds-accent"
+					>
+						RETRY
+					</button>
+				</div>
+			) : analyticsQuery.isLoading || !analytics ? (
 				<DashboardSkeleton />
 			) : (
 				<>
@@ -564,7 +585,9 @@ function Dashboard() {
 										</div>
 										<div className="mb-2 text-[10px] font-bold tracking-widest text-ds-text-tertiary">
 											TOP_PEOPLE:{" "}
-											<PeopleInlineList people={day.topContributors.slice(0, 5)} />
+											<PeopleInlineList
+												people={day.topContributors.slice(0, 5)}
+											/>
 										</div>
 										<div className="space-y-1.5">
 											{day.sampleTasks.slice(0, 5).map((task, index) => (
@@ -614,7 +637,9 @@ function Dashboard() {
 										</div>
 										<div className="mb-2 text-[10px] font-bold tracking-widest text-ds-text-tertiary">
 											TOP_PEOPLE:{" "}
-											<PeopleInlineList people={team.topContributors.slice(0, 5)} />
+											<PeopleInlineList
+												people={team.topContributors.slice(0, 5)}
+											/>
 										</div>
 										<div className="space-y-1.5">
 											{team.sampleTasks.slice(0, 5).map((task, index) => (

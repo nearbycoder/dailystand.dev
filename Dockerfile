@@ -19,4 +19,4 @@ COPY --from=builder /app/drizzle ./drizzle
 COPY --from=builder /app/src/db ./src/db
 
 EXPOSE 3000
-CMD ["bun", "run", "start"]
+CMD ["sh", "-c", "bun src/db/migrate.ts && exec bun run start"]

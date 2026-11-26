@@ -360,8 +360,9 @@ bun run test:e2e
 
 ### Container deployment
 
+- Coolify builds `main` from the signed GitHub push webhook and serves `https://dailystand.dev`.
 - Dockerfile: `Dockerfile`
-- Built image runs `bun run start` and exposes port `3000`
+- The container applies pending database migrations before running `bun run start`. The runtime reads its port from `PORT`.
 - Runtime image also includes `drizzle/`, `drizzle.config.ts`, and `src/db/` so `bun run db:migrate` / `bun run db:push` can run in deployment environments.
 
 ## Key routes
